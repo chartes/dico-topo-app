@@ -1,0 +1,16 @@
+version: '2'
+services:
+          dico_topo_mysql_test:
+                  container_name: dico_topo_mysql_test
+                  restart: always
+                  image: mysql:5.6
+                  ports:
+                          - "3308:3306"
+                  environment:
+                          MYSQL_ROOT_PASSWORD: 'root'
+                          MYSQL_USER: 'dicotopo'
+                          MYSQL_PASS: 'dicotopo'
+                  volumes:
+                   - dico-topo-datavolume-test:/var/lib/mysql
+volumes:
+        dico-topo-datavolume-test: {}

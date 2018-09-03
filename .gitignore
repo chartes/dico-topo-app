@@ -3,3 +3,7 @@ dt2ghs.xsl
 *.ttl
 app/
 docs/
+.idea
+__pycache__
+venv
+*.pyc
