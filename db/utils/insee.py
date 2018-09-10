@@ -21,6 +21,7 @@ on doit donc procéder en 2 passes pour cette table
  
 """
 
+
 # Liste des communes. On conserve les étiquettes de l’INSEE: https://www.insee.fr/fr/information/3363419#titre-bloc-7
 
 # On ne valide pas les cantons: problème de cantons antérieurs à 2018
@@ -80,7 +81,7 @@ def insert_insee_communes(db, cursor):
             # TODO: corriger le référentiel ?
             REG_id   = 'REG_94' if row['DEP'] == '20' else 'REG_'+row['REG']
             cursor.execute("INSERT INTO insee_communes"
-                           "(insee_id, REG_id, DEP_id, AR_id, CT_id, NCCENR, ARTMIN) VALUES(%s, %s, %s, %s, %s, %s, %s)",
+                           "(insee_id, REG_id, DEP_id, AR_id, CT_id, NCCENR, ARTMIN) VALUES(?, ?, ?, ?, ?, ?, ?)",
                            (insee_COM, REG_id, 'DEP_'+row['DEP'], AR_id, CT_id, row['NCCENR'], row['ARTMIN']))
             db.commit()
 
@@ -90,21 +91,21 @@ def insert_insee_ref(db, cursor):
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 ('REG_'+row['REGION'], 'REG', row['REGION'], 'FR', '2', row['NCCENR']))
             db.commit()
     with open('insee/depts2018.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 ('DEP_'+row['DEP'], 'DEP', row['DEP'], 'REG_'+row['REGION'], '3', row['NCCENR']))
             db.commit()
     with open('insee/arrond2018.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 ('AR_' + row['DEP'] + '-' + row['AR'], 'AR', row['AR'], 'DEP_' + row['DEP'], '4', row['NCCENR']))
             db.commit()
     # NB: les cantons ne dépendent pas toujours d’un arrondissement ! -> parent n’est pas obligatoire
@@ -115,7 +116,7 @@ def insert_insee_ref(db, cursor):
             id = 'CT_' + row['DEP'] + '-' + row['CANTON']
              # parent_id = ("SELECT DISTINCT AR_id FROM dicotopo.insee_communes WHERE CT_id = '%s'" % id)
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 (id, 'CT', row['CANTON'], None, '5', row['NCCENR']))
             db.commit()
     # EXCEPTIONS (à reprendre)
@@ -141,7 +142,7 @@ def update_insee_ref(db, cursor):
     cursor.execute("SELECT id FROM insee_ref WHERE type= 'CT'")
     for canton in cursor:
         ct_id = canton[0]
-        cursor.execute(("SELECT DISTINCT AR_id FROM dicotopo.insee_communes WHERE CT_id = '%s'" % ct_id))
+        cursor.execute(("SELECT DISTINCT AR_id FROM insee_communes WHERE CT_id = '%s'" % ct_id))
         parent_id = cursor.fetchone()[0] if cursor.rowcount > 0 else None
         if parent_id is None:
             continue
