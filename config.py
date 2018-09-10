@@ -36,12 +36,13 @@ class DevelopmentConfig(Config):
     SQLALCHEMY_ECHO = True
 
     DB_HOST = '127.0.0.1'
-    DB_PORT = 3307
-    DB_USER = 'root'
-    DB_PWD = 'root'
+    DB_PORT = 3306
+    DB_SCHEMA = 'dico-topo-dev'
+    DB_USER = ''
+    DB_PWD = ''
     DB_DROP_AND_CREATE_ALL = True
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
-        DB_USER, DB_PWD, DB_HOST, DB_PORT, Config.DB_SCHEMA
+        DB_USER, DB_PWD, DB_HOST, DB_PORT, DB_SCHEMA
     )
 
     @staticmethod
