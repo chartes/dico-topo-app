@@ -131,7 +131,8 @@ def insert_insee_ref(db, cursor):
 """
 On récupère l’id de l’AR parent du CT dans la table insee_commune. Problème :
     * 17 Communes dépendent d’un CT mais pas d’un AR dans insee_communes (des cantons qui ne dépendent pas d’un arrondissement)
-    * 255 CT restent sans AR parent après enreichissement (sans doute des CT listés in insee_ref, absent de insee_commune)
+    * 255 CT restent sans AR parent après enrichissement (sans doute des CT listés in insee_ref, absent de insee_commune)
+    * surtout, d’après le insee_commune (le référentiel INSEE), un même CT peut-être rattaché à des AR différents… (ex CT_01-10)
 TODO: comment régler cette absence de parent ?
     1. On créer un AR avec l’id unspecified_AR ?
     2. On considère que le CT est rattaché au DEP ? (sont parent_id devient celui d’un DEP et son level passe de 5 à 4)
@@ -140,10 +141,15 @@ TODO: comment régler cette absence de parent ?
 def update_insee_ref(db, cursor):
     # get CT parent_id in table insee_communes
     cursor.execute("SELECT id FROM insee_ref WHERE type= 'CT'")
-    for canton in cursor:
+    for canton in cursor.fetchall():
         ct_id = canton[0]
         cursor.execute(("SELECT DISTINCT AR_id FROM insee_communes WHERE CT_id = '%s'" % ct_id))
-        parent_id = cursor.fetchone()[0] if cursor.rowcount > 0 else None
+        parents = cursor.fetchall() # possiblement plusieurs parents (AR) pour un même CT (étrange…)
+        # trop compliqué: on ramasse le premier AR parent du CT si la liste de parents n’est pas vide, et si sa valeur n’est pas None
+        parent_id = parents[0][0] if parents and parents[0][0] is not None else None
+        # print(parent_id)
+        # pour mémoire, plus simple avec MySQLdb:
+        # parent_id = cursor.fetchone()[0] if cursor.rowcount > 0 else None
         if parent_id is None:
             continue
         else:
