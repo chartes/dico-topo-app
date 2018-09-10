@@ -8,15 +8,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY')
 
-    DB_HOST = '127.0.0.1'
-    DB_PORT = 3309
-    DB_SCHEMA = 'dicotopo'
-    DB_USER = 'USE_AN_ENV_VAR'
-    DB_PWD = 'USE_AN_ENV_VAR'
     DB_DROP_AND_CREATE_ALL = False
 
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DICO_TOPO_DATABASE_URL') or \
-        'mysql+pymysql://{}:{}@{}:{}/{}'.format(DB_USER, DB_PWD, DB_HOST, DB_PORT, DB_SCHEMA)
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo.sqlite')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SCSS_STATIC_DIR = os.path.join(basedir, "app ", "static", "css")
@@ -35,15 +29,8 @@ class DevelopmentConfig(Config):
     ASSETS_DEBUG = True
     SQLALCHEMY_ECHO = True
 
-    DB_HOST = '127.0.0.1'
-    DB_PORT = 3306
-    DB_SCHEMA = 'dico-topo-dev'
-    DB_USER = ''
-    DB_PWD = ''
     DB_DROP_AND_CREATE_ALL = True
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://{}:{}@{}:{}/{}'.format(
-        DB_USER, DB_PWD, DB_HOST, DB_PORT, DB_SCHEMA
-    )
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo-dev.sqlite')
 
     @staticmethod
     def init_app(app):

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1, user-scalable=no">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="shortcut icon" href="http://www.chartes.psl.eu/favicon.ico" type="image/vnd.microsoft.icon">
+    {% block title %}
+        {% if title %}<title>{{ title }}</title>{% endif %}
+    {% endblock %}
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.0/css/bulma.min.css">
+    <link rel="stylesheet" href="{{ url_for('app_bp.static', filename='css/main.css') }}">
+    <script defer src="https://use.fontawesome.com/releases/v5.2.0/js/all.js"></script>
+    {% block head_scripts %}
+    {% endblock head_scripts %}
+</head>
+<body>
+
+{% block hero %}
+    <section class="hero is-light">
+        <div class="hero-head">
+            {% block navbar %}
+                <nav class="navbar is-light" role="navigation" aria-label="main navigation">
+                    <div class="navbar-brand">
+                        <a class="navbar-item" href="{{ url_for('app_bp.index') }}">
+                            <img src="{{ url_for('app_bp.static', filename='images/logo-ecole-nationale-des-chartes-header.png') }}"
+                                 alt="École Nationale des Chartes - PSL" height="30">
+                        </a>
+                        <div class="navbar-burger">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div class="navbar-menu">
+                        <a class="navbar-item breadcrumb-index" href="">
+                            <div class="title is-size-5 ">Dico Topo</div>
+                        </a>
+                        {% block breadcrumb %} {% endblock %}
+                    </div>
+
+                    <div class="navbar-end">
+                    </div>
+                </nav>
+            {% endblock %}
+        </div>
+
+    </section>
+{% endblock %}
+
+{% block flash_messages %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <section class="message-section">
+                <div class="container is-fullhd">{% for category, message in messages %}
+                    <article class="message {% if category == 'success' %}is-info{% else %}is-warning{% endif %}">
+                        <div class="message-body">
+                            <ul>
+                                <li role="alert">{{ message }}</li>
+                            </ul>
+                        </div>
+                    </article> {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    {% endwith %}
+{% endblock %}
+
+{% block content %}
+    {% block app_content %}{% endblock %}
+{% endblock %}
+
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function (event) {
+
+    });
+</script>
+
+{% block scripts %}
+{% endblock %}
+
+</body>
+</html>

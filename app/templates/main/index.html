@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+    {% block head_scripts %}
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/leaflet.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/leaflet.css" />
+    {% endblock head_scripts %}
+
+
+{% block content %}
+
+    <section class="section">
+        <div class="container is-fluid">
+            <div class="columns">
+                <div class="column">
+                    <div id="viewerDiv" style="width:1000px; height:800px;"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+{% endblock content %}
+
+
+{% block scripts %}
+<script type="text/javascript">
+    window.onload= function() {
+        const map = L.map("viewerDiv").setView([48.845,2.424],10) ;
+        const resource = 'ORTHOIMAGERY.ORTHOPHOTOS';
+        const API_KEY = 'ld0jgrlpaway88fw6u4x3h38';
+        L.tileLayer(
+            `https://wxs.ign.fr/${API_KEY}/geoportail/wmts?service=WMTS&request=GetTile&version=1.0.0&tilematrixset=PM&tilematrix={z}&tilecol={x}&tilerow={y}&layer=${resource}&format=image/jpeg&style=normal`,
+            {
+                minZoom : 0,
+                maxZoom : 18,
+                tileSize : 256,
+                attribution : "IGN-F/Géoportail"
+            }).addTo(map);
+    }
+</script>
+{% endblock scripts %}
