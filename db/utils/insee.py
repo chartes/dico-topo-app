@@ -21,6 +21,7 @@ on doit donc procéder en 2 passes pour cette table
  
 """
 
+
 # Liste des communes. On conserve les étiquettes de l’INSEE: https://www.insee.fr/fr/information/3363419#titre-bloc-7
 
 # On ne valide pas les cantons: problème de cantons antérieurs à 2018
@@ -80,7 +81,7 @@ def insert_insee_communes(db, cursor):
             # TODO: corriger le référentiel ?
             REG_id   = 'REG_94' if row['DEP'] == '20' else 'REG_'+row['REG']
             cursor.execute("INSERT INTO insee_communes"
-                           "(insee_id, REG_id, DEP_id, AR_id, CT_id, NCCENR, ARTMIN) VALUES(%s, %s, %s, %s, %s, %s, %s)",
+                           "(insee_id, REG_id, DEP_id, AR_id, CT_id, NCCENR, ARTMIN) VALUES(?, ?, ?, ?, ?, ?, ?)",
                            (insee_COM, REG_id, 'DEP_'+row['DEP'], AR_id, CT_id, row['NCCENR'], row['ARTMIN']))
             db.commit()
 
@@ -90,21 +91,21 @@ def insert_insee_ref(db, cursor):
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 ('REG_'+row['REGION'], 'REG', row['REGION'], 'FR', '2', row['NCCENR']))
             db.commit()
     with open('insee/depts2018.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 ('DEP_'+row['DEP'], 'DEP', row['DEP'], 'REG_'+row['REGION'], '3', row['NCCENR']))
             db.commit()
     with open('insee/arrond2018.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 ('AR_' + row['DEP'] + '-' + row['AR'], 'AR', row['AR'], 'DEP_' + row['DEP'], '4', row['NCCENR']))
             db.commit()
     # NB: les cantons ne dépendent pas toujours d’un arrondissement ! -> parent n’est pas obligatoire
@@ -115,7 +116,7 @@ def insert_insee_ref(db, cursor):
             id = 'CT_' + row['DEP'] + '-' + row['CANTON']
              # parent_id = ("SELECT DISTINCT AR_id FROM dicotopo.insee_communes WHERE CT_id = '%s'" % id)
             cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 (id, 'CT', row['CANTON'], None, '5', row['NCCENR']))
             db.commit()
     # EXCEPTIONS (à reprendre)
@@ -130,7 +131,8 @@ def insert_insee_ref(db, cursor):
 """
 On récupère l’id de l’AR parent du CT dans la table insee_commune. Problème :
     * 17 Communes dépendent d’un CT mais pas d’un AR dans insee_communes (des cantons qui ne dépendent pas d’un arrondissement)
-    * 255 CT restent sans AR parent après enreichissement (sans doute des CT listés in insee_ref, absent de insee_commune)
+    * 255 CT restent sans AR parent après enrichissement (sans doute des CT listés in insee_ref, absent de insee_commune)
+    * surtout, d’après le insee_commune (le référentiel INSEE), un même CT peut-être rattaché à des AR différents… (ex CT_01-10)
 TODO: comment régler cette absence de parent ?
     1. On créer un AR avec l’id unspecified_AR ?
     2. On considère que le CT est rattaché au DEP ? (sont parent_id devient celui d’un DEP et son level passe de 5 à 4)
@@ -139,10 +141,15 @@ TODO: comment régler cette absence de parent ?
 def update_insee_ref(db, cursor):
     # get CT parent_id in table insee_communes
     cursor.execute("SELECT id FROM insee_ref WHERE type= 'CT'")
-    for canton in cursor:
+    for canton in cursor.fetchall():
         ct_id = canton[0]
-        cursor.execute(("SELECT DISTINCT AR_id FROM dicotopo.insee_communes WHERE CT_id = '%s'" % ct_id))
-        parent_id = cursor.fetchone()[0] if cursor.rowcount > 0 else None
+        cursor.execute(("SELECT DISTINCT AR_id FROM insee_communes WHERE CT_id = '%s'" % ct_id))
+        parents = cursor.fetchall() # possiblement plusieurs parents (AR) pour un même CT (étrange…)
+        # trop compliqué: on ramasse le premier AR parent du CT si la liste de parents n’est pas vide, et si sa valeur n’est pas None
+        parent_id = parents[0][0] if parents and parents[0][0] is not None else None
+        # print(parent_id)
+        # pour mémoire, plus simple avec MySQLdb:
+        # parent_id = cursor.fetchone()[0] if cursor.rowcount > 0 else None
         if parent_id is None:
             continue
         else:

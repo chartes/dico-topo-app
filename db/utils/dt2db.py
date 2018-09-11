@@ -6,7 +6,7 @@ import os
 import insee
 
 """
-pour le nopmmage des champs, on privilégie la sémantique TEI en prévision du mapping en sortie
+pour le nommage des champs, on privilégie la sémantique TEI en prévision du mapping en sortie
     * entry: une entrée du dictionnaire (un article) (body/entry)
     * entry-id: l’identifiant de l’articcle (entry/@xml:id)
     * orth: vedette (entry/form/orth)
