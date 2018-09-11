@@ -4,3 +4,4 @@ docs/
 __pycache__
 venv
 *.pyc
+git db/dicotopo-dev.sqlite
