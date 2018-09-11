@@ -45,6 +45,7 @@ def create_app(config_name="dev"):
     """
 
     from app import routes
+    from app.api import routes
     from app import models
 
     if app.config["DB_DROP_AND_CREATE_ALL"]:

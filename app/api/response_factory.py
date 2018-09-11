@@ -1,0 +1,6 @@
+
+
+class JSONAPIResponseFactory(object):
+
+
+    pass

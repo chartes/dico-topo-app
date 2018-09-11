@@ -7,44 +7,149 @@ class Entry(db.Model):
     orth = db.Column(db.String(200), nullable=False)
     country = db.Column(db.String(2), nullable=False)
     dpt = db.Column(db.String(2), nullable=False)
-    insee = db.Column(db.String(5), db.ForeignKey('insee_communes.insee_id'))
-    localization_insee = db.Column(db.String(5), db.ForeignKey('insee_communes.insee_id'), index=True)
-    localization_entry_id = db.Column(db.String(10))
+    insee_id = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_id'))
+    localization_insee_id = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_id'), index=True)
+    localization_entry_id = db.Column(db.String(10), db.ForeignKey('entry.entry_id'), index=True)
     localization_certainty = db.Column(db.Enum('high', 'low'))
     def_col = db.Column('def', db.String(200))
 
-    def serialize(self):
+    insee = db.relationship('InseeCommune', backref=db.backref('entries'),
+                            primaryjoin="InseeCommune.insee_id==Entry.insee_id")
+    localization_insee = db.relationship('InseeCommune', backref=db.backref('localization_entries'),
+                                         primaryjoin="InseeCommune.insee_id==Entry.localization_insee_id")
+    localization_entry = db.relationship('Entry', uselist=False)
+
+    @property
+    def resource_identifier(self):
         return {
-            'entry_id': self.entry_id,
-            'orth': self.orth,
-            'country': self.country,
-            'dpt': self.dpt,
-            'insee': self.insee,
-            'localization_insee': self.localization_insee,
-            'localization_entry_id': self.localization_entry_id,
-            'localization_certainty': self.localization_certainty,
-            'def': self.def_col
+            "type": "entries",
+            "id": self.entry_id
         }
+
+    @property
+    def resource(self):
+        res = {
+            "attributes": {
+                "orth": self.orth,
+                "country": self.country,
+                "dpt": self.dpt,
+                "def": self.def_col,
+                "localization-certainty": self.localization_certainty
+            },
+            "relationships": {
+                "insee": {
+                    "links": {
+                        "self": "/entries/%s/relationships/insee" % self.entry_id,
+                        "related": "/entries/%s/insee" % self.entry_id
+                    },
+                    "data": None if self.insee is None else self.insee.resource_identifier
+                },
+                "localization-insee": {
+                    "links": {
+                        "self": "/entries/%s/relationships/localization-insee" % self.entry_id,
+                        "related": "/entries/%s/localization-insee" % self.entry_id
+                    },
+                    "data": None if self.localization_insee is None else self.localization_insee.resource_identifier
+                },
+                "localization-entry": {
+                    "links": {
+                        "self": "/entries/%s/relationships/localization-entry" % self.entry_id,
+                        "related": "/entries/%s/localization-entry" % self.entry_id
+                    },
+                    "data": None if self.localization_entry is None else self.localization_entry.resource_identifier
+                },
+                "alt-orths": {
+                    "links": {
+                        "self": "/entries/%s/relationships/alt-orths" % self.entry_id,
+                        "related": "/entries/%s/alt-orths" % self.entry_id
+                    },
+                    "data": [] if self.alt_orths is None else [_as.resource_identifier for _as in self.alt_orths]
+                },
+            },
+            "meta": {},
+            "links": {
+                "self": "/entries/%s" % self.entry_id
+            }
+        }
+        res.update(self.resource_identifier)
+        return res
 
 
 class AltOrth(db.Model):
     __tablename__ = 'alt_orth'
     entry_id = db.Column(db.String(10), db.ForeignKey(Entry.entry_id), primary_key=True)
-    label = db.Column(db.String(200))
+    label = db.Column(db.String(200), primary_key=True)
 
     entry = db.relationship(Entry, backref=db.backref('alt_orths'))
 
-    def serialize(self):
+    @property
+    def resource_identifier(self):
         return {
-            'entry': self.entry.serialize(),
-            'label': self.label
+            "type": "alt-orths",
+            "id": self.entry_id
         }
+
+    @property
+    def resource(self):
+        res = {
+            "attributes": {
+                "label": self.label
+            },
+            "relationships": {
+                "entry": {
+                    "links": {
+                        "self": "/alt-orths/%s/relationships/entry" % self.entry_id,
+                        "related": "/alt-orths/%s/entry" % self.entry_id
+                    },
+                    "data": self.entry.resource_identifier
+                }
+            },
+            "meta": {},
+            "links": {
+                "self": "/alt-orths/%s" % self.entry_id
+            }
+        }
+        res.update(self.resource_identifier)
+        return res
 
 
 class Keywords(db.Model):
     __tablename__ = 'keywords'
     entry_id = db.Column(db.String(10), db.ForeignKey('entry.entry_id'), primary_key=True)
     term = db.Column(db.String(400), primary_key=True)
+
+    entry = db.relationship(Entry, backref=db.backref('keywords'))
+
+    @property
+    def unique_id(self):
+        return "%s_%s" % (self.entry_id, self.term)
+
+    @property
+    def resource_identifier(self):
+        return {
+            "type": "keywords",
+            "id": self.unique_id
+        }
+
+    @property
+    def resource(self):
+        res = {
+            "attributes": {
+                "term": self.term
+            },
+            "relationships": {
+                "entry": {
+                    "self": "/keywords/%s/relationships/entry" % self.unique_id,
+                    "related": "/keywords/%s/entry" % self.unique_id
+                }
+            },
+            "meta": {},
+            "links": {
+                "self": "/keywords/%s" % self.unique_id
+            }
+        }
+        res.update(self.resource_identifier)
+        return res
 
 
 class OldOrth(db.Model):
@@ -60,38 +165,101 @@ class OldOrth(db.Model):
     full_old_orth_html = db.Column(db.Text)
     full_old_orth_nude = db.Column(db.Text)
 
-    def serialize(self):
+    entry = db.relationship(Entry, backref=db.backref('old_orths'))
+
+    @property
+    def resource_identifier(self):
         return {
-            'old_orth_id': self.old_orth_id,
-            'entry_id': self.entry_id,
-            'old_orth': self.old_orth,
-            'date_rich': self.date_rich,
-            'reference_rich': self.reference_rich
+            "type": "old-orths",
+            "id": self.id
         }
 
+    @property
+    def resource(self):
+        res = {
+            "attributes": {
+                "orth": self.old_orth,
+                "date-rich": self.date_rich,
+                "date-nude": self.date_nude,
+                "reference-rich": self.date_rich,
+                "reference-nude": self.date_nude
+            },
+            "relationships": {
+                "entry": {
+                    "self": "/old-orths/%s/relationships/entry" % self.id,
+                    "related": "/old-orths/%s/entry" % self.id
+                },
+                "old-orths": {
+                    "self": "/old-orths/%s/relationships/old-orths" % self.id,
+                    "related": "/old-orths/%s/old-orths" % self.id
+                }
+            },
+            "meta": {},
+            "links": {
+                "self": "/old-orths/%s" % self.id
+            }
+        }
+        res.update(self.resource_identifier)
+        return res
 
-class InseeCommunes(db.Model):
-    __tablename__ = 'insee_communes'
+
+class InseeCommune(db.Model):
+    __tablename__ = 'insee_commune'
     insee_id = db.Column(db.String(5), primary_key=True)
     REG_id = db.Column(db.String(6), db.ForeignKey('insee_ref.id'), nullable=False)
     DEP_id = db.Column(db.String(7), db.ForeignKey('insee_ref.id'), nullable=False)
-    AR_id  = db.Column(db.String(8), db.ForeignKey('insee_ref.id'))
-    CT_id  = db.Column(db.String(9))
+    AR_id = db.Column(db.String(8), db.ForeignKey('insee_ref.id'))
+    CT_id = db.Column(db.String(9))
     NCCENR = db.Column(db.String(70), nullable=False)
     ARTMIN = db.Column(db.String(10))
     longlat = db.Column(db.String(100))
 
-    def serialize(self):
+    """
+    REG = db.relationship('InseeRef', backref=db.backref('REG'),
+                          primaryjoin="InseeCommune.REG_id==InseeRef.id")
+    DEP = db.relationship('InseeRef', backref=db.backref('DEP'),
+                          primaryjoin="InseeCommune.DEP_id==InseeRef.id")
+    AR = db.relationship('InseeRef', backref=db.backref('AR'),
+                         primaryjoin="InseeCommune.AR_id==InseeRef.id")
+    """
+
+    @property
+    def resource_identifier(self):
         return {
-            'insee_id': self.insee_id,
-            'REG_id': self.REG_id,
-            'DEP_id': self.DEP_id,
-            'AR_id': self.AR_id,
-            'CT_id': self.CT_id,
-            'NCCENR': self.NCCENR,
-            'ARTMIN': self.ARTMIN,
-            'longlat': self.longlat
+            "type": "insee-communes",
+            "id": self.insee_id
         }
+
+    @property
+    def resource(self):
+        res = {
+            "attributes": {
+                'CT_id': self.CT_id,
+                'NCCENR': self.NCCENR,
+                'ARTMIN': self.ARTMIN,
+                'longlat': self.longlat
+            },
+            "relationships": {
+                "reg": {
+                    "self": "/insee-communes/%s/relationships/reg" % self.insee_id,
+                    "related": "/insee-communes/%s/reg" % self.insee_id
+                },
+                "dep": {
+                    "self": "/insee-communes/%s/relationships/dep" % self.insee_id,
+                    "related": "/insee-communes/%s/dep" % self.insee_id
+                },
+                "ar": {
+                    "self": "/insee-communes/%s/relationships/ar" % self.insee_id,
+                    "related": "/insee-communes/%s/ar" % self.insee_id
+                }
+            },
+            "meta": {},
+            "links": {
+                "self": "/insee-communes/%s" % self.insee_id
+            }
+        }
+        res.update(self.resource_identifier)
+        return res
 
 
 class InseeRef(db.Model):
@@ -99,6 +267,42 @@ class InseeRef(db.Model):
     id = db.Column(db.String(10), primary_key=True)
     type = db.Column(db.String(4), nullable=False)
     insee = db.Column(db.String(3), nullable=False)
-    parent_id = db.Column(db.String(10))
+    parent_id = db.Column(db.String(10), db.ForeignKey('insee_ref.id'))
     level = db.Column(db.Integer, nullable=False)
     label = db.Column(db.String(50), nullable=False)
+
+    children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
+
+    @property
+    def resource_identifier(self):
+        return {
+            "type": "insee-refs",
+            "id": self.id
+        }
+
+    @property
+    def resource(self):
+        res = {
+            "attributes": {
+                'ref-type': self.type,
+                'insee': self.insee,
+                'level': self.level,
+                'label': self.label
+            },
+            "relationships": {
+                "parent": {
+                    "self": "/insee-refs/%s/relationships/parent" % self.id,
+                    "related": "/insee-refs/%s/parent" % self.id
+                },
+                "children": {
+                    "self": "/insee-refs/%s/relationships/children" % self.id,
+                    "related": "/insee-refs/%s/children" % self.id
+                }
+            },
+            "meta": {},
+            "links": {
+                "self": "/insee-refs/%s" % self.id
+            }
+        }
+        res.update(self.resource_identifier)
+        return res
