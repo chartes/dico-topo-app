@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sqlite3
 from lxml import etree
 from lxml.etree import tostring
