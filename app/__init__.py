@@ -43,7 +43,6 @@ def create_app(config_name="dev"):
     else:
         app.config.from_object(config[config_name])
 
-    JSONAPIResponseFactory.set_url_prefix(app.config["APP_URL_PREFIX"] + "/api/1.0")
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
 
     db.init_app(app)
