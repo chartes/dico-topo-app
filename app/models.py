@@ -1,3 +1,5 @@
+from flask import current_app
+
 from app import db
 
 
@@ -46,9 +48,38 @@ class Entry(db.Model):
             A JSONAPI resource object identifier
         """
         return {
-            "type": "entries",
+            "type": "entry",
             "id": self.entry_id
         }
+
+    def _get_links(self, rel_name):
+        url_prefix = current_app.config["API_URL_PREFIX"]
+        return {
+            "links": {
+                "self": "%s/entries/%s/relationships/%s" % (url_prefix, self.entry_id, rel_name),
+                "related": "%s/entries/%s/%s" % (url_prefix, self.entry_id, rel_name)
+            }
+        }
+
+    @property
+    def links_insee_commune(self):
+        return self._get_links("insee-commune")
+
+    @property
+    def links_localization_insee_commune(self):
+        return self._get_links("localization-insee-commune")
+
+    @property
+    def links_localization_entry(self):
+        return self._get_links("localization-entry")
+
+    @property
+    def links_alt_orths(self):
+        return self._get_links("alt-orths")
+
+    @property
+    def links_old_orths(self):
+        return self._get_links("old-orths")
 
     @property
     def resource(self):
@@ -60,7 +91,8 @@ class Entry(db.Model):
             country:
             dpt:
             def:
-            localization-certainty (optional):
+            start_pg:
+            localization-certainty:
         relationships:
 
 
@@ -68,6 +100,7 @@ class Entry(db.Model):
         -------
             A dict describing the corresponding JSONAPI resource object
         """
+        url_prefix = current_app.config["API_URL_PREFIX"]
         return {
             **self.resource_identifier,
             "attributes": {
@@ -75,48 +108,34 @@ class Entry(db.Model):
                 "country": self.country,
                 "dpt": self.dpt,
                 "def": self.def_col,
+                "start-page": self.start_pg,
                 "localization-certainty": self.localization_certainty
             },
             "relationships": {
                 "insee-commune": {
-                    "links": {
-                        "self": "/entries/%s/relationships/insee-commune" % self.entry_id,
-                        "related": "/entries/%s/insee-commune" % self.entry_id
-                    },
+                    **self.links_insee_commune,
                     "data": None if self.insee is None else self.insee.resource_identifier
                 },
                 "localization-insee-commune": {
-                    "links": {
-                        "self": "/entries/%s/relationships/localization-insee-commune" % self.entry_id,
-                        "related": "/entries/%s/localization-insee-commune" % self.entry_id
-                    },
+                    **self.links_localization_insee_commune,
                     "data": None if self.localization_insee is None else self.localization_insee.resource_identifier
                 },
                 "localization-entry": {
-                    "links": {
-                        "self": "/entries/%s/relationships/localization-entry" % self.entry_id,
-                        "related": "/entries/%s/localization-entry" % self.entry_id
-                    },
+                    **self.links_localization_entry,
                     "data": None if self.localization_entry is None else self.localization_entry.resource_identifier
                 },
                 "alt-orths": {
-                    "links": {
-                        "self": "/entries/%s/relationships/alt-orths" % self.entry_id,
-                        "related": "/entries/%s/alt-orths" % self.entry_id
-                    },
+                    **self.links_alt_orths,
                     "data": [] if self.alt_orths is None else [_as.resource_identifier for _as in self.alt_orths]
                 },
                 "old-orths": {
-                    "links": {
-                        "self": "/entries/%s/relationships/old-orths" % self.entry_id,
-                        "related": "/entries/%s/old-orths" % self.entry_id
-                    },
+                    **self.links_old_orths,
                     "data": [] if self.old_orths is None else [_os.resource_identifier for _os in self.old_orths]
                 },
             },
             "meta": {},
             "links": {
-                "self": "/entries/%s" % self.entry_id
+                "self": "%s/entries/%s" % (url_prefix, self.entry_id)
             }
         }
 
@@ -137,7 +156,7 @@ class AltOrth(db.Model):
             A JSONAPI resource object identifier
         """
         return {
-            "type": "alt-orths",
+            "type": "alt-orth",
             "id": self.entry_id
         }
 
@@ -186,7 +205,7 @@ class Keywords(db.Model):
             A JSONAPI resource object identifier
         """
         return {
-            "type": "keywords",
+            "type": "keyword",
             "id": self.unique_id
         }
 
@@ -238,7 +257,7 @@ class OldOrth(db.Model):
             A JSONAPI resource object identifier
         """
         return {
-            "type": "old-orths",
+            "type": "old-orth",
             "id": self.id
         }
 
@@ -304,7 +323,7 @@ class InseeCommune(db.Model):
             A JSONAPI resource object identifier
         """
         return {
-            "type": "insee-communes",
+            "type": "insee-commune",
             "id": self.insee_id
         }
 
@@ -369,7 +388,7 @@ class InseeRef(db.Model):
             A JSONAPI resource object identifier
         """
         return {
-            "type": "insee-refs",
+            "type": "insee-ref",
             "id": self.id
         }
 

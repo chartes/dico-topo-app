@@ -25,12 +25,14 @@ class TestBaseServer(TestCase):
     def setUp(self):
         with self.app.app_context():
             self.clear_data()
-            self.load_fixtures(self.BASE_FIXTURES)
+            self.load_sql_fixtures(self.BASE_FIXTURES)
 
     def create_app(self):
         with _app.app_context():
             db.create_all()
             self.client = _app.test_client(allow_subdomain_redirects=True)
+            self.db = db
+            self.url_prefix = _app.config["API_URL_PREFIX"]
         return _app
 
     def tearDown(self):
@@ -44,7 +46,7 @@ class TestBaseServer(TestCase):
             db.session.execute(table.delete())
         db.session.commit()
 
-    def load_fixtures(self, fixtures):
+    def load_sql_fixtures(self, fixtures):
         with self.app.app_context(), db.engine.connect() as connection:
             for fixture in fixtures:
                 with open(fixture) as f:
@@ -62,5 +64,31 @@ class TestBaseServer(TestCase):
     def put(self, url, data, **kwargs):
         return self.client.put(url, data=json.dumps(data), follow_redirects=True, **kwargs)
 
+    def patch(self, url, data, **kwargs):
+        return self.client.patch(url, data=json.dumps(data), follow_redirects=True, **kwargs)
+
     def delete(self, url, **kwargs):
         return self.client.delete(url, follow_redirects=True, **kwargs)
+
+    @staticmethod
+    def api_query(method, *args, **kwargs):
+        r = method(*args, **kwargs)
+        if r.data is None:
+            return r, r.status, None
+        else:
+            return r, r.status, json_loads(r.data)
+
+    def api_get(self, *args, **kwargs):
+        return TestBaseServer.api_query(self.get, *args, **kwargs)
+
+    def api_post(self, *args, **kwargs):
+        return TestBaseServer.api_query(self.post, *args, **kwargs)
+
+    def api_put(self, *args, **kwargs):
+        return TestBaseServer.api_query(self.put, *args, **kwargs)
+
+    def api_patch(self, *args, **kwargs):
+        return TestBaseServer.api_query(self.patch, *args, **kwargs)
+
+    def api_delete(self, *args, **kwargs):
+        return TestBaseServer.api_query(self.delete, *args, **kwargs)
