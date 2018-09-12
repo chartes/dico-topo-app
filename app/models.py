@@ -12,6 +12,7 @@ class Entry(db.Model):
     localization_entry_id = db.Column(db.String(10), db.ForeignKey('entry.entry_id'), index=True)
     localization_certainty = db.Column(db.Enum('high', 'low'))
     def_col = db.Column('def', db.String(200))
+    start_pg = db.Column(db.Integer)
 
     insee = db.relationship('InseeCommune', backref=db.backref('entries'),
                             primaryjoin="InseeCommune.insee_id==Entry.insee_id")
@@ -78,7 +79,7 @@ class Entry(db.Model):
 class AltOrth(db.Model):
     __tablename__ = 'alt_orth'
     entry_id = db.Column(db.String(10), db.ForeignKey(Entry.entry_id), primary_key=True)
-    label = db.Column(db.String(200), primary_key=True)
+    alt_orth = db.Column(db.String(200), primary_key=True)
 
     entry = db.relationship(Entry, backref=db.backref('alt_orths'))
 
@@ -93,7 +94,7 @@ class AltOrth(db.Model):
     def resource(self):
         res = {
             "attributes": {
-                "label": self.label
+                "alt_orth": self.alt_orth
             },
             "relationships": {
                 "entry": {

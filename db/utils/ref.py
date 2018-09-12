@@ -1,4 +1,5 @@
-import MySQLdb
+# -*- coding: utf-8 -*-
+import sqlite3
 from lxml import etree
 from lxml.etree import tostring
 import re
@@ -7,12 +8,9 @@ import io
 # TODO: des renvois ? cf ancienne DB
 
 # Ouverture de la connection
-db = MySQLdb.connect("localhost","root","rootroot","dicotopo" )
-db.set_character_set('utf8')
+db = sqlite3.connect('../dicotopo-dev.sqlite')
 cursor = db.cursor()
-cursor.execute('SET NAMES UTF8MB4;')
-cursor.execute('SET CHARACTER SET UTF8MB4;')
-cursor.execute('SET character_set_connection=UTF8MB4;')
+cursor.execute('PRAGMA foreign_keys=ON')
 
 insee_pattern = re.compile('[0-9]{5}')
 tags = re.compile('<[^>]+>')
@@ -232,7 +230,7 @@ for entry in tree.xpath("/DICTIONNAIRE/article"):
                 "date_rich, date_nude,"
                 "reference_rich, reference_nude,"
                 "full_old_orth_html, full_old_orth_nude)"
-                "VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (old_orth_id, art['id'], dfn, rich_date, date, rich_ref, ref, old_orth_html_str, old_orth_nude_str))
             db.commit()
 
