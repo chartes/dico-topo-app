@@ -1,14 +1,24 @@
 from flask import Flask, Blueprint
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
+from app.api.response_factory import JSONAPIResponseFactory
 from config import config
 
 
 # Initialize Flask extensions
 db = SQLAlchemy()
 
-api_bp = Blueprint('api_bp', __name__, template_folder='templates')
+api_bp = Blueprint('api_bp', __name__)
 app_bp = Blueprint('app_bp', __name__, template_folder='templates', static_folder='static')
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 
 class PrefixMiddleware(object):
@@ -33,20 +43,19 @@ def create_app(config_name="dev"):
     else:
         app.config.from_object(config[config_name])
 
+    JSONAPIResponseFactory.set_url_prefix(app.config["APP_URL_PREFIX"] + "/api/1.0")
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
 
     db.init_app(app)
     config[config_name].init_app(app)
 
-    """
-    ========================================================
-        Import models
-    ========================================================
-    """
+    #
+    # Import models & routes
+    #
 
+    from app import models
     from app import routes
     from app.api import routes
-    from app import models
 
     if app.config["DB_DROP_AND_CREATE_ALL"]:
         with app.app_context():
