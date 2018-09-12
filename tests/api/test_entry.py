@@ -21,11 +21,12 @@ class TestEntry(TestBaseServer):
 
         # test the attributes
         self.assertEqual(list(entry['attributes'].keys()),
-                         ["orth", "country", "dpt", "def", "localization-certainty"])
+                         ["orth", "country", "dpt", "def", "start-page", "localization-certainty"])
         self.assertEqual("Commune Un", entry["attributes"]["orth"])
         self.assertEqual("FR", entry["attributes"]["country"])
         self.assertEqual("57", entry["attributes"]["dpt"])
         self.assertEqual("low", entry["attributes"]["localization-certainty"])
+        self.assertEqual(1, entry["attributes"]["start-page"])
 
         # test the relationships
         self.assertEqual(list(entry['relationships'].keys()),

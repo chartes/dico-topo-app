@@ -91,7 +91,8 @@ class Entry(db.Model):
             country:
             dpt:
             def:
-            localization-certainty (optional):
+            start_pg:
+            localization-certainty:
         relationships:
 
 
@@ -107,6 +108,7 @@ class Entry(db.Model):
                 "country": self.country,
                 "dpt": self.dpt,
                 "def": self.def_col,
+                "start-page": self.start_pg,
                 "localization-certainty": self.localization_certainty
             },
             "relationships": {
