@@ -1,7 +1,6 @@
 import sqlite3
 import insee
-import entry
-import ref
+import dt2db
 
 db_path = '../dicotopo-dev.sqlite'
 dt_id = 'DT02'
@@ -22,10 +21,10 @@ cursor.execute('PRAGMA foreign_keys=ON')
 
 # 2. création et insertion des entry (une entrée du DT), altorth (aorthographic form alternative)  et keywords (feature types)
 # insertion des entries
-entry.insert_entry_values(db, cursor, dt_id)
-entry.fill_localisation_entry_id(db, cursor)
+dt2db.insert_entry_values(db, cursor, dt_id)
+dt2db.fill_localisation_entry_id(db, cursor)
 
 # 3. insertion des refs
-ref.insert_ref_values(db, cursor, dt_id)
+dt2db.insert_ref_values(db, cursor, dt_id)
 db.close()
 

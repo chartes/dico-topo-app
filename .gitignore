@@ -4,4 +4,5 @@ docs/
 __pycache__
 venv
 *.pyc
-db/dicotopo-dev.sqlitetests/data/dicotopo-test.sqlite
+db/dicotopo-dev.sqlite
+tests/data/dicotopo-test.sqlite
