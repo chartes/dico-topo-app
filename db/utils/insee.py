@@ -16,8 +16,8 @@ Sources
 Problème: on a la table de référence insee (insee_ref), mais sans le parent pour les Cantons
 on doit donc procéder en 2 passes pour cette table
 1.a. chargement de la table insee_ref (mais sans parent_id pour les cantons)
-1.b. chargement de la table insee_communes avec les tests adhoc
-2. UPDATE de insee_ref (parent_id des cantons) grâce à la table insee_communes
+1.b. chargement de la table insee_commune avec les tests adhoc
+2. UPDATE de insee_ref (parent_id des cantons) grâce à la table insee_commune
  
 """
 
@@ -25,8 +25,8 @@ on doit donc procéder en 2 passes pour cette table
 # Liste des communes. On conserve les étiquettes de l’INSEE: https://www.insee.fr/fr/information/3363419#titre-bloc-7
 
 # On ne valide pas les cantons: problème de cantons antérieurs à 2018
-def create_insee_communes(db, cursor):
-    sql = """CREATE TABLE IF NOT EXISTS insee_communes (
+def create_insee_commune(db, cursor):
+    sql = """CREATE TABLE IF NOT EXISTS insee_commune (
       insee_id  CHAR(5)     NOT NULL,
       REG_id    CHAR(6)     NOT NULL,
       DEP_id    VARCHAR(7)  NOT NULL,
@@ -60,7 +60,7 @@ def create_insee_ref(db, cursor):
     db.commit()
 
 
-def insert_insee_communes(db, cursor):
+def insert_insee_commune(db, cursor):
     with open('insee/France2018.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         insee_id_list = []
@@ -80,7 +80,7 @@ def insert_insee_communes(db, cursor):
             # cas des communes localisées dans l’ancien département corse (20)
             # TODO: corriger le référentiel ?
             REG_id   = 'REG_94' if row['DEP'] == '20' else 'REG_'+row['REG']
-            cursor.execute("INSERT INTO insee_communes"
+            cursor.execute("INSERT INTO insee_commune"
                            "(insee_id, REG_id, DEP_id, AR_id, CT_id, NCCENR, ARTMIN) VALUES(?, ?, ?, ?, ?, ?, ?)",
                            (insee_COM, REG_id, 'DEP_'+row['DEP'], AR_id, CT_id, row['NCCENR'], row['ARTMIN']))
             db.commit()
@@ -114,7 +114,7 @@ def insert_insee_ref(db, cursor):
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             id = 'CT_' + row['DEP'] + '-' + row['CANTON']
-             # parent_id = ("SELECT DISTINCT AR_id FROM dicotopo.insee_communes WHERE CT_id = '%s'" % id)
+             # parent_id = ("SELECT DISTINCT AR_id FROM dicotopo.insee_commune WHERE CT_id = '%s'" % id)
             cursor.execute(
                 "INSERT INTO insee_ref (id, type, insee, parent_id, level, label) VALUES(?, ?, ?, ?, ?, ?)",
                 (id, 'CT', row['CANTON'], None, '5', row['NCCENR']))
@@ -130,7 +130,7 @@ def insert_insee_ref(db, cursor):
 
 """
 On récupère l’id de l’AR parent du CT dans la table insee_commune. Problème :
-    * 17 Communes dépendent d’un CT mais pas d’un AR dans insee_communes (des cantons qui ne dépendent pas d’un arrondissement)
+    * 17 Communes dépendent d’un CT mais pas d’un AR dans insee_commune (des cantons qui ne dépendent pas d’un arrondissement)
     * 255 CT restent sans AR parent après enrichissement (sans doute des CT listés in insee_ref, absent de insee_commune)
     * surtout, d’après le insee_commune (le référentiel INSEE), un même CT peut-être rattaché à des AR différents… (ex CT_01-10)
 TODO: comment régler cette absence de parent ?
@@ -139,11 +139,11 @@ TODO: comment régler cette absence de parent ?
     Problème, 2 peut-être faux (information simplement manquante dans insee_commune)
 """
 def update_insee_ref(db, cursor):
-    # get CT parent_id in table insee_communes
+    # get CT parent_id in table insee_commune
     cursor.execute("SELECT id FROM insee_ref WHERE type= 'CT'")
     for canton in cursor.fetchall():
         ct_id = canton[0]
-        cursor.execute(("SELECT DISTINCT AR_id FROM insee_communes WHERE CT_id = '%s'" % ct_id))
+        cursor.execute(("SELECT DISTINCT AR_id FROM insee_commune WHERE CT_id = '%s'" % ct_id))
         parents = cursor.fetchall() # possiblement plusieurs parents (AR) pour un même CT (étrange…)
         # trop compliqué: on ramasse le premier AR parent du CT si la liste de parents n’est pas vide, et si sa valeur n’est pas None
         parent_id = parents[0][0] if parents and parents[0][0] is not None else None
@@ -160,13 +160,13 @@ def update_insee_ref(db, cursor):
 def insert_longlat(db, cursor, method):
     # on ne dispose pas des coords, on va les chercher sur https://api.gouv.fr/api/api-geo.html
     if method == 'api':
-        cursor.execute("SELECT insee_id FROM insee_communes")
+        cursor.execute("SELECT insee_id FROM insee_commune")
         for insee_id in cursor:
             insee_id = insee_id[0]
             longlat = get_longlat(insee_id)
             if longlat is not None:
                 print('insert de ' + insee_id + '    ' + longlat)
-                cursor.execute(("UPDATE insee_communes SET longlat = '%s' WHERE insee_id = '%s'" % (longlat, insee_id)))
+                cursor.execute(("UPDATE insee_commune SET longlat = '%s' WHERE insee_id = '%s'" % (longlat, insee_id)))
                 db.commit()
             else:
                 continue
@@ -178,7 +178,7 @@ def insert_longlat(db, cursor, method):
                 insee_id = row[0]
                 longlat = row[1]
                 print('insert de ' + insee_id + '    ' + longlat)
-                cursor.execute(("UPDATE insee_communes SET longlat = '%s' WHERE insee_id = '%s'" % (longlat, insee_id)))
+                cursor.execute(("UPDATE insee_commune SET longlat = '%s' WHERE insee_id = '%s'" % (longlat, insee_id)))
                 db.commit()
     else:
         return
@@ -197,4 +197,7 @@ def get_longlat(insee_id):
             return longlat
         else:
             return
+
+def test():
+    print('test')
 
