@@ -1,9 +1,12 @@
 import sqlite3
 import insee
 import entry
-import os
+import ref
 
-db = sqlite3.connect('../dicotopo-dev.sqlite')
+db_path = '../dicotopo-dev.sqlite'
+dt_id = 'DT02'
+
+db = sqlite3.connect(db_path)
 cursor = db.cursor()
 cursor.execute('PRAGMA foreign_keys=ON')
 
@@ -19,9 +22,10 @@ cursor.execute('PRAGMA foreign_keys=ON')
 
 # 2. création et insertion des entry (une entrée du DT), altorth (aorthographic form alternative)  et keywords (feature types)
 # insertion des entries
-# entry.insert_entry_values(db, cursor, 'DT02')
-# entry.fill_localisation_entry_id(db, cursor)
+entry.insert_entry_values(db, cursor, dt_id)
+entry.fill_localisation_entry_id(db, cursor)
+
+# 3. insertion des refs
+ref.insert_ref_values(db, cursor, dt_id)
 db.close()
 
-# moche!
-os.system("python ref.py")
