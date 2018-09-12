@@ -5,23 +5,13 @@ from flask import Response
 class JSONAPIResponseFactory:
 
     CONTENT_TYPE = "application/vnd.api+json; charset=utf-8"
-    HEADERS = {"Access-Control-Allow-Origin": "*"}
-
-    URL_PREFIX = ""
-
-    @classmethod
-    def set_url_prefix(cls, url_prefix):
-        cls.URL_PREFIX = url_prefix
-
-    @classmethod
-    def prefix(cls, resource):
-        print("TODO: PREFIX RESOURCES BY", cls.URL_PREFIX)
-        return resource
+    HEADERS = {"Access-Control-Allow-Origin": "*",
+               "Access-Control-Allow-Methods": ["GET", "POST", "DELETE", "PATCH"]}
 
     @classmethod
     def encapsulate(cls, toplevel, resource):
         return {
-            toplevel: cls.prefix(resource),
+            toplevel: resource,
             "meta": {
 
             },
@@ -39,20 +29,21 @@ class JSONAPIResponseFactory:
         return JSONAPIResponseFactory.encapsulate("errors", resource)
 
     @classmethod
-    def make_response(cls, resource):
+    def make_response(cls, resource, **kwargs):
         return Response(
             json.dumps(resource, indent=2, ensure_ascii=False),
             content_type=JSONAPIResponseFactory.CONTENT_TYPE,
-            headers=JSONAPIResponseFactory.HEADERS
+            headers=JSONAPIResponseFactory.HEADERS,
+            **kwargs
         )
 
     @classmethod
-    def make_data_response(cls, data_resource):
+    def make_data_response(cls, data_resource, **kwargs):
         resource = JSONAPIResponseFactory.encapsulate_data(data_resource)
-        return JSONAPIResponseFactory.make_response(resource)
+        return JSONAPIResponseFactory.make_response(resource, **kwargs)
 
     @classmethod
-    def make_errors_response(cls, errors_resource):
+    def make_errors_response(cls, errors_resource, **kwargs):
         resource = JSONAPIResponseFactory.encapsulate_errors(errors_resource)
-        return JSONAPIResponseFactory.make_response(resource)
+        return JSONAPIResponseFactory.make_response(resource, **kwargs)
 
