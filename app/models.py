@@ -2,6 +2,24 @@ from app import db
 
 
 class Entry(db.Model):
+
+    """Illustrate class-level docstring.
+
+    Classes use a special whitespace convention: the opening and closing quotes
+    are preceded and followed by a blank line, respectively. No other
+    docstrings should be preceded or followed by anything but code.
+
+    A blank line at the end of a multi-line docstring before the closing
+    quotation marks simply makes it easier for tooling to auto-format
+    paragraphs (wrapping them at 79 characters, per PEP8), without the closing
+    quotation marks interfering. For example, in Vim, you can use `gqip` to
+    "apply text formatting inside the paragraph." In Emacs, the equivalent
+    would be the `fill-paragraph` command. While it's not required, the
+    presence of a blank line is quite common and much appreciated. Regardless,
+    the closing quotation marks should certainly be on a line by themselves.
+
+    """
+
     __tablename__ = 'entry'
     entry_id = db.Column(db.String(10), primary_key=True)
     orth = db.Column(db.String(200), nullable=False)
@@ -21,6 +39,11 @@ class Entry(db.Model):
 
     @property
     def resource_identifier(self):
+        """
+        Returns
+        -------
+            A JSONAPI resource object identifier
+        """
         return {
             "type": "entries",
             "id": self.entry_id
@@ -28,7 +51,24 @@ class Entry(db.Model):
 
     @property
     def resource(self):
-        res = {
+        """Make a JSONAPI resource object describing what is a dictionnary entry
+
+        A dictionnary entry is made of:
+        attributes:
+            orth:
+            country:
+            dpt:
+            def:
+            localization-certainty (optional):
+        relationships:
+
+
+        Returns
+        -------
+            A dict describing the corresponding JSONAPI resource object
+        """
+        return {
+            **self.resource_identifier,
             "attributes": {
                 "orth": self.orth,
                 "country": self.country,
@@ -37,17 +77,17 @@ class Entry(db.Model):
                 "localization-certainty": self.localization_certainty
             },
             "relationships": {
-                "insee": {
+                "insee-commune": {
                     "links": {
-                        "self": "/entries/%s/relationships/insee" % self.entry_id,
-                        "related": "/entries/%s/insee" % self.entry_id
+                        "self": "/entries/%s/relationships/insee-commune" % self.entry_id,
+                        "related": "/entries/%s/insee-commune" % self.entry_id
                     },
                     "data": None if self.insee is None else self.insee.resource_identifier
                 },
-                "localization-insee": {
+                "localization-insee-commune": {
                     "links": {
-                        "self": "/entries/%s/relationships/localization-insee" % self.entry_id,
-                        "related": "/entries/%s/localization-insee" % self.entry_id
+                        "self": "/entries/%s/relationships/localization-insee-commune" % self.entry_id,
+                        "related": "/entries/%s/localization-insee-commune" % self.entry_id
                     },
                     "data": None if self.localization_insee is None else self.localization_insee.resource_identifier
                 },
@@ -65,17 +105,23 @@ class Entry(db.Model):
                     },
                     "data": [] if self.alt_orths is None else [_as.resource_identifier for _as in self.alt_orths]
                 },
+                "old-orths": {
+                    "links": {
+                        "self": "/entries/%s/relationships/old-orths" % self.entry_id,
+                        "related": "/entries/%s/old-orths" % self.entry_id
+                    },
+                    "data": [] if self.old_orths is None else [_os.resource_identifier for _os in self.old_orths]
+                },
             },
             "meta": {},
             "links": {
                 "self": "/entries/%s" % self.entry_id
             }
         }
-        res.update(self.resource_identifier)
-        return res
 
 
 class AltOrth(db.Model):
+    """ """
     __tablename__ = 'alt_orth'
     entry_id = db.Column(db.String(10), db.ForeignKey(Entry.entry_id), primary_key=True)
     label = db.Column(db.String(200), primary_key=True)
@@ -84,6 +130,11 @@ class AltOrth(db.Model):
 
     @property
     def resource_identifier(self):
+        """
+        Returns
+        -------
+            A JSONAPI resource object identifier
+        """
         return {
             "type": "alt-orths",
             "id": self.entry_id
@@ -91,7 +142,9 @@ class AltOrth(db.Model):
 
     @property
     def resource(self):
-        res = {
+        """ """
+        return {
+            **self.resource_identifier,
             "attributes": {
                 "label": self.label
             },
@@ -109,11 +162,10 @@ class AltOrth(db.Model):
                 "self": "/alt-orths/%s" % self.entry_id
             }
         }
-        res.update(self.resource_identifier)
-        return res
 
 
 class Keywords(db.Model):
+    """ """
     __tablename__ = 'keywords'
     entry_id = db.Column(db.String(10), db.ForeignKey('entry.entry_id'), primary_key=True)
     term = db.Column(db.String(400), primary_key=True)
@@ -122,10 +174,16 @@ class Keywords(db.Model):
 
     @property
     def unique_id(self):
+        """ """
         return "%s_%s" % (self.entry_id, self.term)
 
     @property
     def resource_identifier(self):
+        """
+        Returns
+        -------
+            A JSONAPI resource object identifier
+        """
         return {
             "type": "keywords",
             "id": self.unique_id
@@ -133,14 +191,19 @@ class Keywords(db.Model):
 
     @property
     def resource(self):
-        res = {
+        """ """
+        return {
+            **self.resource_identifier,
             "attributes": {
                 "term": self.term
             },
             "relationships": {
                 "entry": {
-                    "self": "/keywords/%s/relationships/entry" % self.unique_id,
-                    "related": "/keywords/%s/entry" % self.unique_id
+                    "links": {
+                        "self": "/keywords/%s/relationships/entry" % self.unique_id,
+                        "related": "/keywords/%s/entry" % self.unique_id
+                    },
+                    "data": self.entry.resource_identifier
                 }
             },
             "meta": {},
@@ -148,11 +211,10 @@ class Keywords(db.Model):
                 "self": "/keywords/%s" % self.unique_id
             }
         }
-        res.update(self.resource_identifier)
-        return res
 
 
 class OldOrth(db.Model):
+    """ """
     __tablename__ = 'old_orth'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     old_orth_id = db.Column(db.String(13), nullable=False, unique=True)
@@ -169,6 +231,11 @@ class OldOrth(db.Model):
 
     @property
     def resource_identifier(self):
+        """
+        Returns
+        -------
+            A JSONAPI resource object identifier
+        """
         return {
             "type": "old-orths",
             "id": self.id
@@ -176,7 +243,9 @@ class OldOrth(db.Model):
 
     @property
     def resource(self):
-        res = {
+        """ """
+        return {
+            **self.resource_identifier,
             "attributes": {
                 "orth": self.old_orth,
                 "date-rich": self.date_rich,
@@ -186,12 +255,18 @@ class OldOrth(db.Model):
             },
             "relationships": {
                 "entry": {
-                    "self": "/old-orths/%s/relationships/entry" % self.id,
-                    "related": "/old-orths/%s/entry" % self.id
+                    "links": {
+                        "self": "/old-orths/%s/relationships/entry" % self.id,
+                        "related": "/old-orths/%s/entry" % self.id
+                    },
+                    "data": self.entry.resource_identifier
                 },
                 "old-orths": {
-                    "self": "/old-orths/%s/relationships/old-orths" % self.id,
-                    "related": "/old-orths/%s/old-orths" % self.id
+                    "links": {
+                        "self": "/old-orths/%s/relationships/old-orths" % self.id,
+                        "related": "/old-orths/%s/old-orths" % self.id
+                    },
+                    "data": [oo.resource_identifier for oo in self.entry.old_orths]
                 }
             },
             "meta": {},
@@ -199,11 +274,10 @@ class OldOrth(db.Model):
                 "self": "/old-orths/%s" % self.id
             }
         }
-        res.update(self.resource_identifier)
-        return res
 
 
 class InseeCommune(db.Model):
+    """ """
     __tablename__ = 'insee_commune'
     insee_id = db.Column(db.String(5), primary_key=True)
     REG_id = db.Column(db.String(6), db.ForeignKey('insee_ref.id'), nullable=False)
@@ -214,17 +288,20 @@ class InseeCommune(db.Model):
     ARTMIN = db.Column(db.String(10))
     longlat = db.Column(db.String(100))
 
-    """
-    REG = db.relationship('InseeRef', backref=db.backref('REG'),
+    reg = db.relationship('InseeRef', backref=db.backref('reg'),
                           primaryjoin="InseeCommune.REG_id==InseeRef.id")
-    DEP = db.relationship('InseeRef', backref=db.backref('DEP'),
+    dep = db.relationship('InseeRef', backref=db.backref('dep'),
                           primaryjoin="InseeCommune.DEP_id==InseeRef.id")
-    AR = db.relationship('InseeRef', backref=db.backref('AR'),
+    ar = db.relationship('InseeRef', backref=db.backref('ar'),
                          primaryjoin="InseeCommune.AR_id==InseeRef.id")
-    """
 
     @property
     def resource_identifier(self):
+        """
+        Returns
+        -------
+            A JSONAPI resource object identifier
+        """
         return {
             "type": "insee-communes",
             "id": self.insee_id
@@ -232,7 +309,9 @@ class InseeCommune(db.Model):
 
     @property
     def resource(self):
-        res = {
+        """ """
+        return {
+            **self.resource_identifier,
             "attributes": {
                 'CT_id': self.CT_id,
                 'NCCENR': self.NCCENR,
@@ -241,16 +320,25 @@ class InseeCommune(db.Model):
             },
             "relationships": {
                 "reg": {
-                    "self": "/insee-communes/%s/relationships/reg" % self.insee_id,
-                    "related": "/insee-communes/%s/reg" % self.insee_id
+                    "links": {
+                        "self": "/insee-communes/%s/relationships/reg" % self.insee_id,
+                        "related": "/insee-communes/%s/reg" % self.insee_id
+                    },
+                    "data": self.reg.resource_identifier
                 },
                 "dep": {
-                    "self": "/insee-communes/%s/relationships/dep" % self.insee_id,
-                    "related": "/insee-communes/%s/dep" % self.insee_id
+                    "links": {
+                        "self": "/insee-communes/%s/relationships/dep" % self.insee_id,
+                        "related": "/insee-communes/%s/dep" % self.insee_id
+                    },
+                    "data": self.dep.resource_identifier
                 },
                 "ar": {
-                    "self": "/insee-communes/%s/relationships/ar" % self.insee_id,
-                    "related": "/insee-communes/%s/ar" % self.insee_id
+                    "links": {
+                        "self": "/insee-communes/%s/relationships/ar" % self.insee_id,
+                        "related": "/insee-communes/%s/ar" % self.insee_id
+                    },
+                    "data": self.dep.resource_identifier
                 }
             },
             "meta": {},
@@ -258,11 +346,10 @@ class InseeCommune(db.Model):
                 "self": "/insee-communes/%s" % self.insee_id
             }
         }
-        res.update(self.resource_identifier)
-        return res
 
 
 class InseeRef(db.Model):
+    """ """
     __tablename__ = 'insee_ref'
     id = db.Column(db.String(10), primary_key=True)
     type = db.Column(db.String(4), nullable=False)
@@ -275,6 +362,11 @@ class InseeRef(db.Model):
 
     @property
     def resource_identifier(self):
+        """
+        Returns
+        -------
+            A JSONAPI resource object identifier
+        """
         return {
             "type": "insee-refs",
             "id": self.id
@@ -282,7 +374,9 @@ class InseeRef(db.Model):
 
     @property
     def resource(self):
-        res = {
+        """ """
+        return {
+            **self.resource_identifier,
             "attributes": {
                 'ref-type': self.type,
                 'insee': self.insee,
@@ -291,12 +385,18 @@ class InseeRef(db.Model):
             },
             "relationships": {
                 "parent": {
-                    "self": "/insee-refs/%s/relationships/parent" % self.id,
-                    "related": "/insee-refs/%s/parent" % self.id
+                    "links": {
+                        "self": "/insee-refs/%s/relationships/parent" % self.id,
+                        "related": "/insee-refs/%s/parent" % self.id
+                    },
+                    "data": None if self.parent is None else self.parent.resource_identifier
                 },
                 "children": {
-                    "self": "/insee-refs/%s/relationships/children" % self.id,
-                    "related": "/insee-refs/%s/children" % self.id
+                    "links": {
+                        "self": "/insee-refs/%s/relationships/children" % self.id,
+                        "related": "/insee-refs/%s/children" % self.id
+                    },
+                    "data": [] if self.children is None else [c.resource_identifier for c in self.children]
                 }
             },
             "meta": {},
@@ -304,5 +404,3 @@ class InseeRef(db.Model):
                 "self": "/insee-refs/%s" % self.id
             }
         }
-        res.update(self.resource_identifier)
-        return res
