@@ -24,7 +24,8 @@ def load_fixtures(db):
                insee_id=commune1.insee_id,
                localization_insee_id=commune2.insee_id,
                localization_certainty="low",
-               def_col="this is a def col")
+               def_col="this is a def col",
+               start_pg=1)
     db.session.add(e1)
     db.session.commit()
 
@@ -33,7 +34,8 @@ def load_fixtures(db):
                localization_insee_id=commune2.insee_id,
                localization_entry_id=e1.entry_id,
                localization_certainty="high",
-               def_col="this is a def col")
+               def_col="this is a def col",
+               start_pg=2)
 
     db.session.add(e2)
     db.session.commit()
@@ -43,7 +45,8 @@ def load_fixtures(db):
                localization_insee_id=None,
                localization_entry_id=None,
                localization_certainty=None,
-               def_col=None)
+               def_col=None,
+               start_pg=None)
 
     db.session.add(e3)
     db.session.commit()
