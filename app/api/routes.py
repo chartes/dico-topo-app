@@ -2,7 +2,8 @@ import json
 from flask import Response
 
 from app import api_bp, db
-from app.models import Entry, InseeRef, InseeCommune, AltOrth
+from app.api.response_factory import JSONAPIResponseFactory
+from app.models import Entry, InseeRef, InseeCommune, AltOrth, OldOrth
 
 
 @api_bp.route('/api/<api_version>/init')
@@ -49,6 +50,14 @@ def api_init(api_version):
     db.session.add(alt_orth2)
     db.session.commit()
 
+    old_orth1 = OldOrth(old_orth_id='ENTRY1_OLD_1', entry_id=e1.entry_id, old_orth="Cmune Un")
+    old_orth2 = OldOrth(old_orth_id='ENTRY1_OLD_2', entry_id=e1.entry_id, old_orth="Cmn Un")
+    old_orth3 = OldOrth(old_orth_id='ENTRY1_OLD_3', entry_id=e1.entry_id, old_orth="Comm Un")
+    db.session.add(old_orth1)
+    db.session.add(old_orth2)
+    db.session.add(old_orth3)
+    db.session.commit()
+
     return Response("init ok")
 
 
@@ -56,19 +65,12 @@ def api_init(api_version):
 def api_entries(api_version, entry_id):
     e = Entry.query.filter(Entry.entry_id == entry_id).first()
     resource = None if e is None else e.resource
-    return Response(
-            json.dumps(resource, indent=2, ensure_ascii=False),
-            content_type="application/vnd.api+json; charset=utf-8",
-            headers={"Access-Control-Allow-Origin": "*"}
-        )
+    return JSONAPIResponseFactory.make_data_response(resource)
 
 
 @api_bp.route('/api/<api_version>/entries/<entry_id>/insee')
 def api_entries_insee(api_version, entry_id):
     e = Entry.query.filter(Entry.entry_id == entry_id).first()
     resource = None if e is None or e.insee is None else e.insee.resource
-    return Response(
-            json.dumps(resource, indent=2, ensure_ascii=False),
-            content_type="application/vnd.api+json; charset=utf-8",
-            headers={"Access-Control-Allow-Origin": "*"}
-        )
+    return JSONAPIResponseFactory.make_data_response(resource)
+
