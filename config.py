@@ -29,7 +29,7 @@ class DevelopmentConfig(Config):
     ASSETS_DEBUG = True
     SQLALCHEMY_ECHO = True
 
-    DB_DROP_AND_CREATE_ALL = True
+    DB_DROP_AND_CREATE_ALL = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo-dev.sqlite')
 
     @staticmethod
@@ -46,7 +46,9 @@ class DevelopmentConfig(Config):
 
 
 class TestConfig(Config):
-    DB_PORT = 3308
+    DB_DROP_AND_CREATE_ALL = False
+    DB_PATH = os.path.join(basedir, "tests", "data")
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), DB_PATH, 'dicotopo-test.sqlite')
 
 
 config = {
