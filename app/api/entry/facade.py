@@ -1,0 +1,134 @@
+from flask import current_app
+from app.api.abstract_facade import JSONAPIAbstractFacade
+
+
+class EntryFacade(JSONAPIAbstractFacade):
+
+    """
+
+    """
+
+    @property
+    def id(self):
+        return self.obj.entry_id
+
+    @property
+    def type(self):
+        return "entry"
+
+    @property
+    def type_plural(self):
+        return "entries"
+
+    @property
+    def resource_identifier(self):
+        """
+        Returns
+        -------
+            A JSONAPI resource object identifier
+        """
+        return {
+            "type": self.type,
+            "id": self.id
+        }
+
+    @property
+    def links_commune(self):
+        return self._get_links("commune")
+
+    @property
+    def links_linked_commune(self):
+        return self._get_links("linked-commune")
+
+    @property
+    def links_linked_placenames(self):
+        return self._get_links("linked-placenames")
+
+    @property
+    def links_alt_orths(self):
+        return self._get_links("alt-orths")
+
+    @property
+    def links_old_orths(self):
+        return self._get_links("old-orths")
+
+    @property
+    def commune_resource_identifier(self):
+        from app.api.insee_commune.facade import CommuneFacade
+        return None if self.obj.commune is None else CommuneFacade(self.obj.commune).resource_identifier
+
+    @property
+    def linked_commune_resource_identifier(self):
+        from app.api.insee_commune.facade import CommuneFacade
+        return None if self.obj.localization_commune is None else CommuneFacade(self.obj.localization_commune).resource_identifier
+
+    @property
+    def linked_placenames_resource_identifiers(self):
+        return [] if self.obj.localization_placename is None else [EntryFacade(_loc).resource_identifier
+                                                                   for _loc in self.obj.localization_placename]
+
+    @property
+    def alt_orths_resource_identifiers(self):
+        from app.api.alt_orth.facade import AltOrthFacade
+        return [] if self.obj.alt_orths is None else [AltOrthFacade(_as).resource_identifier for _as in self.obj.alt_orths]
+
+    @property
+    def old_orths_resource_identifiers(self):
+        from app.api.old_orth.facade import OldOrthFacade
+        return [] if self.obj.old_orths is None else [OldOrthFacade(_os).resource_identifier for _os in self.obj.old_orths]
+
+    @property
+    def resource(self):
+        """Make a JSONAPI resource object describing what is a dictionnary entry
+
+        A dictionnary entry is made of:
+        attributes:
+            orth:
+            country:
+            dpt:
+            def:
+            start_pg:
+            localization-certainty:
+        relationships:
+
+        Returns
+        -------
+            A dict describing the corresponding JSONAPI resource object
+        """
+        return {
+            **self.resource_identifier,
+            "attributes": {
+                "orth": self.obj.orth,
+                "country": self.obj.country,
+                "dpt": self.obj.dpt,
+                "def": self.obj.def_col,
+                "start-page": self.obj.start_pg,
+                "localization-certainty": self.obj.localization_certainty
+            },
+            "relationships": {
+                "commune": {
+                    **self.links_commune,
+                    "data": self.commune_resource_identifier
+                },
+                "linked-commune": {
+                    **self.links_linked_commune,
+                    "data": self.linked_commune_resource_identifier
+                },
+                "linked-placenames": {
+                    **self.links_linked_placenames,
+                    "data": self.linked_placenames_resource_identifiers
+                },
+                "alt-orths": {
+                    **self.links_alt_orths,
+                    "data": self.alt_orths_resource_identifiers
+                },
+                "old-orths": {
+                    **self.links_old_orths,
+                    "data": self.old_orths_resource_identifiers
+                },
+            },
+            "meta": {},
+            "links": {
+                "self": self.self_link
+            }
+        }

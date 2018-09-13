@@ -1,4 +1,3 @@
-from flask import current_app
 
 from app import db
 
@@ -40,106 +39,6 @@ class Entry(db.Model):
                                          primaryjoin="InseeCommune.insee_id==Entry.localization_insee_id")
     localization_placename = db.relationship('Entry')
 
-    @property
-    def resource_identifier(self):
-        """
-        Returns
-        -------
-            A JSONAPI resource object identifier
-        """
-        return {
-            "type": "entry",
-            "id": self.entry_id
-        }
-
-    def _get_links(self, rel_name):
-        url_prefix = current_app.config["API_URL_PREFIX"]
-        return {
-            "links": {
-                "self": "%s/entries/%s/relationships/%s" % (url_prefix, self.entry_id, rel_name),
-                "related": "%s/entries/%s/%s" % (url_prefix, self.entry_id, rel_name)
-            }
-        }
-
-    @property
-    def links_commune(self):
-        return self._get_links("commune")
-
-    @property
-    def links_linked_insee(self):
-        return self._get_links("linked-commune")
-
-    @property
-    def links_linked_placenames(self):
-        return self._get_links("linked-placenames")
-
-    @property
-    def links_alt_orths(self):
-        return self._get_links("alt-orths")
-
-    @property
-    def links_old_orths(self):
-        return self._get_links("old-orths")
-
-    @property
-    def resource(self):
-        """Make a JSONAPI resource object describing what is a dictionnary entry
-
-        A dictionnary entry is made of:
-        attributes:
-            orth:
-            country:
-            dpt:
-            def:
-            start_pg:
-            localization-certainty:
-        relationships:
-
-
-        Returns
-        -------
-            A dict describing the corresponding JSONAPI resource object
-        """
-        url_prefix = current_app.config["API_URL_PREFIX"]
-        return {
-            **self.resource_identifier,
-            "attributes": {
-                "orth": self.orth,
-                "country": self.country,
-                "dpt": self.dpt,
-                "def": self.def_col,
-                "start-page": self.start_pg,
-                "localization-certainty": self.localization_certainty
-            },
-            "relationships": {
-                "commune": {
-                    **self.links_commune,
-                    "data": None if self.commune is None else self.commune.resource_identifier
-                },
-                "linked-commune": {
-                    **self.links_linked_insee,
-                    "data": None if self.localization_commune is None else self.localization_commune.resource_identifier
-                },
-                "linked-placenames": {
-                    **self.links_linked_placenames,
-                    "data": [] if self.localization_placename is None else
-                                [_loc.resource_identifier for _loc in self.localization_placename]
-                },
-                "alt-orths": {
-                    **self.links_alt_orths,
-                    "data": [] if self.alt_orths is None else [_as.resource_identifier for _as in self.alt_orths]
-                },
-                "old-orths": {
-                    **self.links_old_orths,
-                    "data": [] if self.old_orths is None else [_os.resource_identifier for _os in self.old_orths]
-                },
-            },
-            "meta": {},
-            "links": {
-                "self": "%s/entries/%s" % (url_prefix, self.entry_id)
-            }
-        }
-
 
 class AltOrth(db.Model):
     """ """
@@ -149,41 +48,6 @@ class AltOrth(db.Model):
 
     entry = db.relationship(Entry, backref=db.backref('alt_orths'))
 
-    @property
-    def resource_identifier(self):
-        """
-        Returns
-        -------
-            A JSONAPI resource object identifier
-        """
-        return {
-            "type": "alt-orth",
-            "id": self.entry_id
-        }
-
-    @property
-    def resource(self):
-        """ """
-        return {
-            **self.resource_identifier,
-            "attributes": {
-                "alt_orth": self.alt_orth
-            },
-            "relationships": {
-                "entry": {
-                    "links": {
-                        "self": "/alt-orths/%s/relationships/entry" % self.entry_id,
-                        "related": "/alt-orths/%s/entry" % self.entry_id
-                    },
-                    "data": self.entry.resource_identifier
-                }
-            },
-            "meta": {},
-            "links": {
-                "self": "/alt-orths/%s" % self.entry_id
-            }
-        }
-
 
 class Keywords(db.Model):
     """ """
@@ -192,46 +56,6 @@ class Keywords(db.Model):
     term = db.Column(db.String(400), primary_key=True)
 
     entry = db.relationship(Entry, backref=db.backref('keywords'))
-
-    @property
-    def unique_id(self):
-        """ """
-        return "%s_%s" % (self.entry_id, self.term)
-
-    @property
-    def resource_identifier(self):
-        """
-        Returns
-        -------
-            A JSONAPI resource object identifier
-        """
-        return {
-            "type": "keyword",
-            "id": self.unique_id
-        }
-
-    @property
-    def resource(self):
-        """ """
-        return {
-            **self.resource_identifier,
-            "attributes": {
-                "term": self.term
-            },
-            "relationships": {
-                "entry": {
-                    "links": {
-                        "self": "/keywords/%s/relationships/entry" % self.unique_id,
-                        "related": "/keywords/%s/entry" % self.unique_id
-                    },
-                    "data": self.entry.resource_identifier
-                }
-            },
-            "meta": {},
-            "links": {
-                "self": "/keywords/%s" % self.unique_id
-            }
-        }
 
 
 class OldOrth(db.Model):
@@ -250,52 +74,6 @@ class OldOrth(db.Model):
 
     entry = db.relationship(Entry, backref=db.backref('old_orths'))
 
-    @property
-    def resource_identifier(self):
-        """
-        Returns
-        -------
-            A JSONAPI resource object identifier
-        """
-        return {
-            "type": "old-orth",
-            "id": self.id
-        }
-
-    @property
-    def resource(self):
-        """ """
-        return {
-            **self.resource_identifier,
-            "attributes": {
-                "orth": self.old_orth,
-                "date-rich": self.date_rich,
-                "date-nude": self.date_nude,
-                "reference-rich": self.date_rich,
-                "reference-nude": self.date_nude
-            },
-            "relationships": {
-                "entry": {
-                    "links": {
-                        "self": "/old-orths/%s/relationships/entry" % self.id,
-                        "related": "/old-orths/%s/entry" % self.id
-                    },
-                    "data": self.entry.resource_identifier
-                },
-                "old-orths": {
-                    "links": {
-                        "self": "/old-orths/%s/relationships/old-orths" % self.id,
-                        "related": "/old-orths/%s/old-orths" % self.id
-                    },
-                    "data": [oo.resource_identifier for oo in self.entry.old_orths]
-                }
-            },
-            "meta": {},
-            "links": {
-                "self": "/old-orths/%s" % self.id
-            }
-        }
-
 
 class InseeCommune(db.Model):
     """ """
@@ -304,7 +82,7 @@ class InseeCommune(db.Model):
     REG_id = db.Column(db.String(6), db.ForeignKey('insee_ref.id'), nullable=False)
     DEP_id = db.Column(db.String(7), db.ForeignKey('insee_ref.id'), nullable=False)
     AR_id = db.Column(db.String(8), db.ForeignKey('insee_ref.id'))
-    CT_id = db.Column(db.String(9))
+    CT_id = db.Column(db.String(9), db.ForeignKey('insee_ref.id'))
     NCCENR = db.Column(db.String(70), nullable=False)
     ARTMIN = db.Column(db.String(10))
     longlat = db.Column(db.String(100))
@@ -315,58 +93,8 @@ class InseeCommune(db.Model):
                           primaryjoin="InseeCommune.DEP_id==InseeRef.id")
     ar = db.relationship('InseeRef', backref=db.backref('ar'),
                          primaryjoin="InseeCommune.AR_id==InseeRef.id")
-
-    @property
-    def resource_identifier(self):
-        """
-        Returns
-        -------
-            A JSONAPI resource object identifier
-        """
-        return {
-            "type": "insee-commune",
-            "id": self.insee_id
-        }
-
-    @property
-    def resource(self):
-        """ """
-        return {
-            **self.resource_identifier,
-            "attributes": {
-                'CT_id': self.CT_id,
-                'NCCENR': self.NCCENR,
-                'ARTMIN': self.ARTMIN,
-                'longlat': self.longlat
-            },
-            "relationships": {
-                "reg": {
-                    "links": {
-                        "self": "/insee-communes/%s/relationships/reg" % self.insee_id,
-                        "related": "/insee-communes/%s/reg" % self.insee_id
-                    },
-                    "data": self.reg.resource_identifier
-                },
-                "dep": {
-                    "links": {
-                        "self": "/insee-communes/%s/relationships/dep" % self.insee_id,
-                        "related": "/insee-communes/%s/dep" % self.insee_id
-                    },
-                    "data": self.dep.resource_identifier
-                },
-                "ar": {
-                    "links": {
-                        "self": "/insee-communes/%s/relationships/ar" % self.insee_id,
-                        "related": "/insee-communes/%s/ar" % self.insee_id
-                    },
-                    "data": self.dep.resource_identifier
-                }
-            },
-            "meta": {},
-            "links": {
-                "self": "/insee-communes/%s" % self.insee_id
-            }
-        }
+    ct = db.relationship('InseeRef', backref=db.backref('ct'),
+                         primaryjoin="InseeCommune.CT_id==InseeRef.id")
 
 
 class InseeRef(db.Model):
@@ -380,48 +108,3 @@ class InseeRef(db.Model):
     label = db.Column(db.String(50), nullable=False)
 
     children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
-
-    @property
-    def resource_identifier(self):
-        """
-        Returns
-        -------
-            A JSONAPI resource object identifier
-        """
-        return {
-            "type": "insee-ref",
-            "id": self.id
-        }
-
-    @property
-    def resource(self):
-        """ """
-        return {
-            **self.resource_identifier,
-            "attributes": {
-                'ref-type': self.type,
-                'insee': self.insee,
-                'level': self.level,
-                'label': self.label
-            },
-            "relationships": {
-                "parent": {
-                    "links": {
-                        "self": "/insee-refs/%s/relationships/parent" % self.id,
-                        "related": "/insee-refs/%s/parent" % self.id
-                    },
-                    "data": None if self.parent is None else self.parent.resource_identifier
-                },
-                "children": {
-                    "links": {
-                        "self": "/insee-refs/%s/relationships/children" % self.id,
-                        "related": "/insee-refs/%s/children" % self.id
-                    },
-                    "data": [] if self.children is None else [c.resource_identifier for c in self.children]
-                }
-            },
-            "meta": {},
-            "links": {
-                "self": "/insee-refs/%s" % self.id
-            }
-        }
