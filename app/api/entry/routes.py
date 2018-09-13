@@ -22,29 +22,29 @@ def api_get_entry(api_version, entry_id):
         return JSONAPIResponseFactory.make_data_response(e.resource)
 
 
-@api_bp.route('/api/<api_version>/entries/<entry_id>/relationships/insee')
-def api_get_entry_relationships_insee_commune(api_version, entry_id):
+@api_bp.route('/api/<api_version>/entries/<entry_id>/relationships/commune')
+def api_get_entry_relationships_commune(api_version, entry_id):
     e, kwargs, errors = get_entry(entry_id)
     if e is None:
         return JSONAPIResponseFactory.make_errors_response(errors, **kwargs)
     else:
         data = {
-            **e.links_insee_commune,
-            "data": None if e.insee is None else e.insee.resource_identifier
+            **e.links_commune,
+            "data": None if e.commune is None else e.commune.resource_identifier
         }
         return JSONAPIResponseFactory.make_response(data, **kwargs)
 
 
-@api_bp.route('/api/<api_version>/entries/<entry_id>/insee')
-def api_get_entry_insee_commune(api_version, entry_id):
+@api_bp.route('/api/<api_version>/entries/<entry_id>/commune')
+def api_get_entry_commune(api_version, entry_id):
     e, kwargs, errors = get_entry(entry_id)
     if e is None:
         return JSONAPIResponseFactory.make_errors_response(errors, **kwargs)
     else:
-        return JSONAPIResponseFactory.make_data_response(e.insee.resource)
+        return JSONAPIResponseFactory.make_data_response(e.commune.resource)
 
 
-@api_bp.route('/api/<api_version>/all-entries')
+@api_bp.route('/api/<api_version>/entries')
 def api_get_all_entries(api_version):
-    entries = Entry.query.filter(Entry.insee_id).all()
+    entries = Entry.query.all()
     return JSONAPIResponseFactory.make_data_response([e.resource for e in entries])
