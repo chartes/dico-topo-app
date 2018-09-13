@@ -87,6 +87,9 @@ def insert_insee_commune(db, cursor):
 
 
 def insert_insee_ref(db, cursor):
+    cursor.execute("INSERT INTO insee_ref (id, type, insee, parent_id, level, label)"
+                   "VALUES('FR', 'PAYS', 'FR', NULL, '1', 'France')")
+    db.commit()
     with open('insee/reg2018.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
@@ -122,9 +125,6 @@ def insert_insee_ref(db, cursor):
     # EXCEPTIONS (à reprendre)
     cursor.execute("INSERT INTO insee_ref (id, type, insee, parent_id, level, label)"
                    "VALUES('DEP_20', 'DEP', '20', 'REG_94', '3', 'Corse')")
-    db.commit()
-    cursor.execute("INSERT INTO insee_ref (id, type, insee, parent_id, level, label)"
-                   "VALUES('FR', 'PAYS', 'FR', NULL, '1', 'France')")
     db.commit()
 
 
