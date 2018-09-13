@@ -52,6 +52,7 @@ class TestEntry(TestBaseServer):
         # ======= test the relationship link
         self.assertEqual("%s/entries/id1/relationships/commune" % self.url_prefix, rel["links"]["self"])
         r, status, links_self = self.api_get(rel["links"]["self"])
+        print({"links": rel["links"], "data": rel["data"]}, links_self)
         self.assertEqual({"links": rel["links"], "data": rel["data"]}, links_self)
         self.assertEqual({"type": "commune", "id": "Commune1"}, rel["data"])
         # test wrong ids

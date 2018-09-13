@@ -7,17 +7,20 @@ class EntryFacade(JSONAPIAbstractFacade):
     """
 
     """
+    TYPE = "entry"
+    TYPE_PLURAL = "entries"
+
     @property
     def id(self):
         return self.obj.entry_id
 
     @property
     def type(self):
-        return "entry"
+        return self.TYPE
 
     @property
     def type_plural(self):
-        return "entries"
+        return self.TYPE_PLURAL
 
     @property
     def resource_identifier(self):
@@ -110,6 +113,7 @@ class EntryFacade(JSONAPIAbstractFacade):
     def linked_placenames_resources(self):
         return [] if self.localization_placename is None else [EntryFacade(_loc).resource
                                                                for _loc in self.localization_placename]
+
     @property
     def alt_orths_resources(self):
         from app.api.alt_orth.facade import AltOrthFacade
