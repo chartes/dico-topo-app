@@ -14,5 +14,5 @@ def api_init(api_version):
 
 
 
-
 from app.api.entry import routes
+from app.api.insee_commune import routes
