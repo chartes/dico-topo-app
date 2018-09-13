@@ -53,8 +53,7 @@ def api_get_commune_region(api_version, insee_id):
         return RF.make_errors_response(errors, **kwargs)
     else:
         f_commune = CommuneFacade(commune)
-        f_reg = InseeRefFacade(f_commune.obj.reg)
-        return RF.make_data_response(f_reg.resource)
+        return RF.make_data_response(f_commune.region_resource)
 
 
 # ==========================
@@ -78,8 +77,7 @@ def api_get_commune_departement(api_version, insee_id):
         return RF.make_errors_response(errors, **kwargs)
     else:
         f_commune = CommuneFacade(commune)
-        f_dep = InseeRefFacade(f_commune.obj.dep)
-        return RF.make_data_response(f_dep.resource)
+        return RF.make_data_response(f_commune.departement_resource)
 
 
 # =============================
@@ -103,8 +101,7 @@ def api_get_commune_arrondissement(api_version, insee_id):
         return RF.make_errors_response(errors, **kwargs)
     else:
         f_commune = CommuneFacade(commune)
-        f_ar = InseeRefFacade(f_commune.obj.ar)
-        return RF.make_data_response(f_ar.resource)
+        return RF.make_data_response(f_commune.arrondissement_resource)
 
 
 # =============================
@@ -128,5 +125,4 @@ def api_get_commune_canton(api_version, insee_id):
         return RF.make_errors_response(errors, **kwargs)
     else:
         f_commune = CommuneFacade(commune)
-        f_ct = InseeRefFacade(f_commune.obj.ct)
-        return RF.make_data_response(f_ct.resource)
+        return RF.make_data_response(f_commune.canton_resource)

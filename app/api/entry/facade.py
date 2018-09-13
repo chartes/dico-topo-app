@@ -7,7 +7,6 @@ class EntryFacade(JSONAPIAbstractFacade):
     """
 
     """
-
     @property
     def id(self):
         return self.obj.entry_id
@@ -53,29 +52,73 @@ class EntryFacade(JSONAPIAbstractFacade):
         return self._get_links("old-orths")
 
     @property
+    def commune(self):
+        return self.obj.commune
+
+    @property
+    def localization_commune(self):
+        return self.obj.localization_commune
+
+    @property
+    def localization_placename(self):
+        return self.obj.localization_placename
+
+    @property
+    def alt_orths(self):
+        return self.obj.alt_orths
+
+    @property
+    def old_orths(self):
+        return self.obj.old_orths
+
+    @property
     def commune_resource_identifier(self):
         from app.api.insee_commune.facade import CommuneFacade
-        return None if self.obj.commune is None else CommuneFacade(self.obj.commune).resource_identifier
+        return None if self.commune is None else CommuneFacade(self.commune).resource_identifier
 
     @property
     def linked_commune_resource_identifier(self):
         from app.api.insee_commune.facade import CommuneFacade
-        return None if self.obj.localization_commune is None else CommuneFacade(self.obj.localization_commune).resource_identifier
+        return None if self.localization_commune is None else CommuneFacade(self.localization_commune).resource_identifier
 
     @property
     def linked_placenames_resource_identifiers(self):
-        return [] if self.obj.localization_placename is None else [EntryFacade(_loc).resource_identifier
-                                                                   for _loc in self.obj.localization_placename]
+        return [] if self.localization_placename is None else [EntryFacade(_loc).resource_identifier
+                                                               for _loc in self.localization_placename]
 
     @property
     def alt_orths_resource_identifiers(self):
         from app.api.alt_orth.facade import AltOrthFacade
-        return [] if self.obj.alt_orths is None else [AltOrthFacade(_as).resource_identifier for _as in self.obj.alt_orths]
+        return [] if self.alt_orths is None else [AltOrthFacade(_as).resource_identifier for _as in self.alt_orths]
 
     @property
     def old_orths_resource_identifiers(self):
         from app.api.old_orth.facade import OldOrthFacade
-        return [] if self.obj.old_orths is None else [OldOrthFacade(_os).resource_identifier for _os in self.obj.old_orths]
+        return [] if self.old_orths is None else [OldOrthFacade(_os).resource_identifier for _os in self.old_orths]
+
+    @property
+    def commune_resource(self):
+        from app.api.insee_commune.facade import CommuneFacade
+        return None if self.commune is None else CommuneFacade(self.commune).resource
+
+    @property
+    def linked_commune_resource(self):
+        from app.api.insee_commune.facade import CommuneFacade
+        return None if self.localization_commune is None else CommuneFacade(self.localization_commune).resource
+
+    @property
+    def linked_placenames_resources(self):
+        return [] if self.localization_placename is None else [EntryFacade(_loc).resource
+                                                               for _loc in self.localization_placename]
+    @property
+    def alt_orths_resources(self):
+        from app.api.alt_orth.facade import AltOrthFacade
+        return [] if self.alt_orths is None else [AltOrthFacade(_as).resource for _as in self.alt_orths]
+
+    @property
+    def old_orths_resources(self):
+        from app.api.old_orth.facade import OldOrthFacade
+        return [] if self.old_orths is None else [OldOrthFacade(_os).resource for _os in self.old_orths]
 
     @property
     def resource(self):

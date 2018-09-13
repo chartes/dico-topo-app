@@ -87,14 +87,10 @@ class InseeCommune(db.Model):
     ARTMIN = db.Column(db.String(10))
     longlat = db.Column(db.String(100))
 
-    reg = db.relationship('InseeRef', backref=db.backref('reg'),
-                          primaryjoin="InseeCommune.REG_id==InseeRef.id")
-    dep = db.relationship('InseeRef', backref=db.backref('dep'),
-                          primaryjoin="InseeCommune.DEP_id==InseeRef.id")
-    ar = db.relationship('InseeRef', backref=db.backref('ar'),
-                         primaryjoin="InseeCommune.AR_id==InseeRef.id")
-    ct = db.relationship('InseeRef', backref=db.backref('ct'),
-                         primaryjoin="InseeCommune.CT_id==InseeRef.id")
+    region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id")
+    departement = db.relationship('InseeRef',  primaryjoin="InseeCommune.DEP_id==InseeRef.id")
+    arrondissement = db.relationship('InseeRef', primaryjoin="InseeCommune.AR_id==InseeRef.id")
+    canton = db.relationship('InseeRef', primaryjoin="InseeCommune.CT_id==InseeRef.id")
 
 
 class InseeRef(db.Model):

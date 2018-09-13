@@ -24,6 +24,10 @@ class KeywordFacade(JSONAPIAbstractFacade):
         return self._get_links(rel_name="entry")
 
     @property
+    def entry_resource_identifier(self):
+        return None if self.obj.entry is None else EntryFacade(self.obj.entry).resource_identifier
+
+    @property
     def resource(self):
         """ """
         return {
@@ -34,7 +38,7 @@ class KeywordFacade(JSONAPIAbstractFacade):
             "relationships": {
                 "entry": {
                     **self.links_entry,
-                    "data": None if self.obj.entry is None else EntryFacade(self.obj.entry).resource_identifier
+                    "data": self.entry_resource_identifier
                 },
             },
             "meta": {},
