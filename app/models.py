@@ -34,9 +34,9 @@ class Entry(db.Model):
     def_col = db.Column('def', db.String(200))
     start_pg = db.Column(db.Integer)
 
-    insee = db.relationship('InseeCommune', backref=db.backref('placenames'),
+    commune = db.relationship('InseeCommune', backref=db.backref('placenames'),
                             primaryjoin="InseeCommune.insee_id==Entry.insee_id")
-    localization_insee = db.relationship('InseeCommune', backref=db.backref('localized_placenames'),
+    localization_commune = db.relationship('InseeCommune', backref=db.backref('localized_placenames'),
                                          primaryjoin="InseeCommune.insee_id==Entry.localization_insee_id")
     localization_placename = db.relationship('Entry')
 
@@ -62,12 +62,12 @@ class Entry(db.Model):
         }
 
     @property
-    def links_insee_commune(self):
-        return self._get_links("insee")
+    def links_commune(self):
+        return self._get_links("commune")
 
     @property
     def links_linked_insee(self):
-        return self._get_links("linked-insee")
+        return self._get_links("linked-commune")
 
     @property
     def links_linked_placenames(self):
@@ -112,13 +112,13 @@ class Entry(db.Model):
                 "localization-certainty": self.localization_certainty
             },
             "relationships": {
-                "insee": {
-                    **self.links_insee_commune,
-                    "data": None if self.insee is None else self.insee.resource_identifier
+                "commune": {
+                    **self.links_commune,
+                    "data": None if self.commune is None else self.commune.resource_identifier
                 },
-                "linked-insee": {
+                "linked-commune": {
                     **self.links_linked_insee,
-                    "data": None if self.localization_insee is None else self.localization_insee.resource_identifier
+                    "data": None if self.localization_commune is None else self.localization_commune.resource_identifier
                 },
                 "linked-placenames": {
                     **self.links_linked_placenames,
