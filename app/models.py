@@ -34,11 +34,11 @@ class Entry(db.Model):
     def_col = db.Column('def', db.String(200))
     start_pg = db.Column(db.Integer)
 
-    insee = db.relationship('InseeCommune', backref=db.backref('entries'),
+    insee = db.relationship('InseeCommune', backref=db.backref('placenames'),
                             primaryjoin="InseeCommune.insee_id==Entry.insee_id")
-    localization_insee = db.relationship('InseeCommune', backref=db.backref('localization_entries'),
+    localization_insee = db.relationship('InseeCommune', backref=db.backref('localized_placenames'),
                                          primaryjoin="InseeCommune.insee_id==Entry.localization_insee_id")
-    localization_entry = db.relationship('Entry', uselist=False)
+    localization_placename = db.relationship('Entry')
 
     @property
     def resource_identifier(self):
@@ -63,15 +63,15 @@ class Entry(db.Model):
 
     @property
     def links_insee_commune(self):
-        return self._get_links("insee-commune")
+        return self._get_links("insee")
 
     @property
-    def links_localization_insee_commune(self):
-        return self._get_links("localization-insee-commune")
+    def links_linked_insee(self):
+        return self._get_links("linked-insee")
 
     @property
-    def links_localization_entry(self):
-        return self._get_links("localization-entry")
+    def links_linked_placenames(self):
+        return self._get_links("linked-placenames")
 
     @property
     def links_alt_orths(self):
@@ -112,17 +112,18 @@ class Entry(db.Model):
                 "localization-certainty": self.localization_certainty
             },
             "relationships": {
-                "insee-commune": {
+                "insee": {
                     **self.links_insee_commune,
                     "data": None if self.insee is None else self.insee.resource_identifier
                 },
-                "localization-insee-commune": {
-                    **self.links_localization_insee_commune,
+                "linked-insee": {
+                    **self.links_linked_insee,
                     "data": None if self.localization_insee is None else self.localization_insee.resource_identifier
                 },
-                "localization-entry": {
-                    **self.links_localization_entry,
-                    "data": None if self.localization_entry is None else self.localization_entry.resource_identifier
+                "linked-placenames": {
+                    **self.links_linked_placenames,
+                    "data": [] if self.localization_placename is None else
+                                [_loc.resource_identifier for _loc in self.localization_placename]
                 },
                 "alt-orths": {
                     **self.links_alt_orths,

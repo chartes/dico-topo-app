@@ -2,6 +2,7 @@ import os
 import sys
 import json
 from flask_testing import TestCase
+from json import JSONDecodeError
 from os.path import join
 from app import create_app, db
 
@@ -76,7 +77,11 @@ class TestBaseServer(TestCase):
         if r.data is None:
             return r, r.status, None
         else:
-            return r, r.status, json_loads(r.data)
+            try:
+                data = json_loads(r.data)
+            except JSONDecodeError as e:
+                data = r.data
+            return r, r.status, data
 
     def api_get(self, *args, **kwargs):
         return TestBaseServer.api_query(self.get, *args, **kwargs)
