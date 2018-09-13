@@ -1,4 +1,3 @@
-from tests.api.insee_commune import TestInseeCommune
 from tests.base_server import TestBaseServer
 from tests.data.fixtures.entry import load_fixtures
 
@@ -28,33 +27,31 @@ class TestEntry(TestBaseServer):
         self.assertEqual("low", entry["attributes"]["localization-certainty"])
         self.assertEqual(1, entry["attributes"]["start-page"])
 
-        # test the relationships
-        self.assertEqual(list(entry['relationships'].keys()),
-                         ["insee-commune", "localization-insee-commune",
-                          "localization-entry", "alt-orths", "old-orths"])
+        # test the presence of the required relationships
+        self.assertEqual(["insee", "linked-insee",
+                          "linked-placenames", "alt-orths", "old-orths"], list(entry['relationships'].keys()))
         for rel in entry['relationships'].values():
-            self.assertEqual(list(rel.keys()), ["links", "data"])
-            self.assertEqual(list(rel["links"].keys()), ["self", "related"])
+            self.assertEqual(["links", "data"], list(rel.keys()))
+            self.assertEqual(["self", "related"], list(rel["links"].keys()))
 
         # test the meta data
-        # TODO
+        self.assertEqual(entry['meta'], {})
         # test the top level links
-        # TODO
+        self.assertEqual('%s/entries/id1' % self.url_prefix, entry["links"]["self"])
         # test wrong ids
-        # TODO
         r, status, obj = self.api_get('%s/entries/9999' % self.url_prefix)
         self.assert404(r)
 
-    def test_get_entry_insee_commune(self):
+    def test_get_entry_insee(self):
         r, status, obj = self.api_get('%s/entries/id1' % self.url_prefix)
         self.assertIn('data', obj)
         entry = obj["data"]
 
-        # insee-commune
+        # insee
         # ============= 
-        rel = entry['relationships']["insee-commune"]
+        rel = entry['relationships']["insee"]
         # ------ test the relationship link
-        self.assertEqual("%s/entries/id1/relationships/insee-commune" % self.url_prefix, rel["links"]["self"])
+        self.assertEqual("%s/entries/id1/relationships/insee" % self.url_prefix, rel["links"]["self"])
         r, status, links_self = self.api_get(rel["links"]["self"])
         self.assertEqual({
                 "links": rel["links"],
@@ -63,15 +60,21 @@ class TestEntry(TestBaseServer):
             links_self)
         self.assertEqual({"type": "insee-commune", "id": "Commune1"}, rel["data"])
         # ------ test the related resource link
-        self.assertEqual("%s/entries/id1/insee-commune" % self.url_prefix, rel["links"]["related"])
+        self.assertEqual("%s/entries/id1/insee" % self.url_prefix, rel["links"]["related"])
         r, status, related_commune = self.api_get(rel["links"]["related"])
+        # do not test more than the reosource identifier in this test
         self.assertEqual(rel["data"]["type"], related_commune["data"]["type"])
         self.assertEqual(rel["data"]["id"], related_commune["data"]["id"])
 
         # test the relationships pagination links if any
         # TODO
         # test when the relationships is empty
-        # TODO
+        r, status, obj = self.api_get('%s/entries/id3/relationships/insee' % self.url_prefix)
+        self.assertEqual(None, obj["data"])
+
         # test wrong ids
-        # TODO
+        r, status, obj = self.api_get('%s/entries/9999/relationships/insee' % self.url_prefix)
+        self.assert404(r)
+        r, status, obj = self.api_get('%s/entries/9999/insee' % self.url_prefix)
+        self.assert404(r)
 
