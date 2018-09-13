@@ -27,6 +27,14 @@ class InseeRefFacade(JSONAPIAbstractFacade):
         return self._get_links(rel_name="children")
 
     @property
+    def parent_resource_identifier(self):
+        return None if self.obj.parent is None else InseeRefFacade(self.obj.parent).resource_identifier
+
+    @property
+    def children_resource_identifiers(self):
+        return [] if self.obj.children is None else [InseeRefFacade(c).resource_identifier for c in self.obj.children]
+
+    @property
     def resource(self):
         """ """
         return {
@@ -40,12 +48,11 @@ class InseeRefFacade(JSONAPIAbstractFacade):
             "relationships": {
                 "parent": {
                     **self.links_parent,
-                    "data": None if self.obj.parent is None else InseeRefFacade(self.obj.parent).resource_identifier
+                    "data": self.parent_resource_identifier
                 },
                 "children": {
                     **self.links_children,
-                    "data": [] if self.obj.children is None else [InseeRefFacade(c).resource_identifier
-                                                                  for c in self.obj.children]
+                    "data": self.children_resource_identifiers
                 }
             },
             "meta": {},

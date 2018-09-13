@@ -36,20 +36,52 @@ class CommuneFacade(JSONAPIAbstractFacade):
         return self._get_links(rel_name="canton")
 
     @property
+    def region(self):
+        return self.obj.region
+
+    @property
+    def departement(self):
+        return self.obj.departement
+
+    @property
+    def arrondissement(self):
+        return self.obj.arrondissement
+
+    @property
+    def canton(self):
+        return self.obj.canton
+
+    @property
     def region_resource_identifier(self):
-        return None if self.obj.reg is None else InseeRefFacade(self.obj.reg).resource_identifier
+        return None if self.region is None else InseeRefFacade(self.region).resource_identifier
 
     @property
     def departement_resource_identifier(self):
-        return None if self.obj.dep is None else InseeRefFacade(self.obj.dep).resource_identifier
+        return None if self.departement is None else InseeRefFacade(self.departement).resource_identifier
 
     @property
     def arrondissement_resource_identifier(self):
-        return None if self.obj.ar is None else InseeRefFacade(self.obj.ar).resource_identifier
+        return None if self.arrondissement is None else InseeRefFacade(self.arrondissement).resource_identifier
 
     @property
     def canton_resource_identifier(self):
-        return None if self.obj.ct is None else InseeRefFacade(self.obj.ct).resource_identifier
+        return None if self.canton is None else InseeRefFacade(self.canton).resource_identifier
+
+    @property
+    def region_resource(self):
+        return None if self.region is None else InseeRefFacade(self.region).resource
+
+    @property
+    def departement_resource(self):
+        return None if self.departement is None else InseeRefFacade(self.departement).resource
+
+    @property
+    def arrondissement_resource(self):
+        return None if self.arrondissement is None else InseeRefFacade(self.arrondissement).resource
+
+    @property
+    def canton_resource(self):
+        return None if self.canton is None else InseeRefFacade(self.canton).resource
 
     @property
     def resource(self):

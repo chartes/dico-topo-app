@@ -1,4 +1,5 @@
 from app.api.abstract_facade import JSONAPIAbstractFacade
+from app.api.entry.facade import EntryFacade
 
 
 class OldOrthFacade(JSONAPIAbstractFacade):
@@ -27,6 +28,15 @@ class OldOrthFacade(JSONAPIAbstractFacade):
         return self._get_links(rel_name="old-orths")
 
     @property
+    def entry_resource_identifier(self):
+        from app.api.entry.facade import EntryFacade
+        return None if self.obj.entry is None else EntryFacade(self.obj.entry).resource_identifier
+
+    @property
+    def old_orths_resource_identifiers(self):
+        return [] if self.obj.entry is None else EntryFacade(self.obj.entry).old_orths_resource_identifiers
+
+    @property
     def resource(self):
         """ """
         return {
@@ -41,11 +51,11 @@ class OldOrthFacade(JSONAPIAbstractFacade):
             "relationships": {
                 "entry": {
                     **self.links_entry,
-                    "data": None if self.obj.entry is None else self.obj.entry.resource_identifier
+                    "data": self.entry_resource_identifier
                 },
                 "old-orths": {
                     **self.links_old_orths,
-                    "data": [OldOrthFacade(os).resource_identifier for os in self.obj.entry.old_orths]
+                    "data": self.old_orths_resource_identifiers
                 }
             },
             "meta": {},

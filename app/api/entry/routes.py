@@ -54,7 +54,100 @@ def api_get_entry_commune(api_version, entry_id):
         return RF.make_errors_response(errors, **kwargs)
     else:
         f_entry = EntryFacade(entry)
-        f_commune = CommuneFacade(f_entry.obj.commune)
-        return RF.make_data_response(f_commune.resource)
+        return RF.make_data_response(f_entry.commune_resource)
 
 
+# ==============================
+# Linked Commune relationship
+# ==============================
+@api_bp.route('/api/<api_version>/entries/<entry_id>/relationships/linked-commune')
+def api_get_entry_relationships_linked_commune(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        data = {**f_entry.links_linked_commune, "data": f_entry.linked_commune_resource_identifier}
+        return RF.make_response(data, **kwargs)
+
+
+@api_bp.route('/api/<api_version>/entries/<entry_id>/linked-commune')
+def api_get_entry_linked_commune(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        return RF.make_data_response(f_entry.linked_commune_resource)
+
+
+# ==============================
+# Linked Placenames relationship
+# ==============================
+@api_bp.route('/api/<api_version>/entries/<entry_id>/relationships/linked-placenames')
+def api_get_entry_relationships_linked_placenames(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        data = {**f_entry.links_linked_placenames, "data": f_entry.linked_placenames_resource_identifiers}
+        return RF.make_response(data, **kwargs)
+
+
+@api_bp.route('/api/<api_version>/entries/<entry_id>/linked-placenames')
+def api_get_entry_linked_placenames(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        return RF.make_data_response(f_entry.linked_placenames_resources)
+
+
+# ==============================
+# Alt Orths relationship
+# ==============================
+@api_bp.route('/api/<api_version>/entries/<entry_id>/relationships/alt-orths')
+def api_get_entry_relationships_alt_orths(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        data = {**f_entry.links_alt_orths, "data": f_entry.alt_orths_resource_identifiers}
+        return RF.make_response(data, **kwargs)
+
+
+@api_bp.route('/api/<api_version>/entries/<entry_id>/alt-orths')
+def api_get_entry_alt_orths(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        return RF.make_data_response(f_entry.alt_orths_resources)
+
+
+# ==============================
+# old Orths relationship
+# ==============================
+@api_bp.route('/api/<api_version>/entries/<entry_id>/relationships/old-orths')
+def api_get_entry_relationships_old_orths(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        data = {**f_entry.links_old_orths, "data": f_entry.old_orths_resource_identifiers}
+        return RF.make_response(data, **kwargs)
+
+
+@api_bp.route('/api/<api_version>/entries/<entry_id>/old-orths')
+def api_get_entry_old_orths(api_version, entry_id):
+    entry, kwargs, errors = get_entry(entry_id)
+    if entry is None:
+        return RF.make_errors_response(errors, **kwargs)
+    else:
+        f_entry = EntryFacade(entry)
+        return RF.make_data_response(f_entry.old_orths_resources)
