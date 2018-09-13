@@ -126,3 +126,4 @@ def api_get_commune_canton(api_version, insee_id):
     else:
         f_commune = CommuneFacade(commune)
         return RF.make_data_response(f_commune.canton_resource)
+
