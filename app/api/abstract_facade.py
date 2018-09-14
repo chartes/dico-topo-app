@@ -6,6 +6,9 @@ class JSONAPIAbstractFacade(object):
     """
 
     """
+    TYPE = "ABSTRACT-TYPE"
+    TYPE_PLURAL = "ABSTRACT-TYPE-PLURAL"
+
     def __init__(self, obj):
         self.obj = obj
         self.url_prefix = current_app.config["API_URL_PREFIX"]
@@ -44,14 +47,25 @@ class JSONAPIAbstractFacade(object):
     def resource(self):
         raise NotImplementedError
 
+    @property
+    def relationships(self):
+        raise NotImplementedError
+
     def _get_links(self, rel_name):
         return {
-            "links": {
-                "self": "{url_prefix}/{source_col}/{source_id}/relationships/{rel_name}".format(
-                    url_prefix=self.url_prefix, source_col=self.type_plural, source_id=self.id, rel_name=rel_name
-                ),
-                "related": "{url_prefix}/{source_col}/{source_id}/{rel_name}".format(
-                    url_prefix=self.url_prefix, source_col=self.type_plural, source_id=self.id, rel_name=rel_name
-                )
+            "self": "{url_prefix}/{source_col}/{source_id}/relationships/{rel_name}".format(
+                url_prefix=self.url_prefix, source_col=self.type_plural, source_id=self.id, rel_name=rel_name
+            ),
+            "related": "{url_prefix}/{source_col}/{source_id}/{rel_name}".format(
+                url_prefix=self.url_prefix, source_col=self.type_plural, source_id=self.id, rel_name=rel_name
+            )
+        }
+
+    def _exposed_relationships(self):
+        return {
+            rel_name: {
+                "links": rel.get("links"),
+                "data": rel.get("resource_identifier")
             }
+            for rel_name, rel in self.relationships.items()
         }

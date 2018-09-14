@@ -6,6 +6,8 @@ class CommuneFacade(JSONAPIAbstractFacade):
     """
 
     """
+    TYPE = "commune"
+    TYPE_PLURAL = "communes"
 
     @property
     def id(self):
@@ -13,11 +15,11 @@ class CommuneFacade(JSONAPIAbstractFacade):
 
     @property
     def type(self):
-        return "commune"
+        return self.TYPE
 
     @property
     def type_plural(self):
-        return "communes"
+        return self.TYPE_PLURAL
 
     @property
     def links_reg(self):
@@ -84,6 +86,31 @@ class CommuneFacade(JSONAPIAbstractFacade):
         return None if self.canton is None else InseeRefFacade(self.canton).resource
 
     @property
+    def relationships(self):
+        return {
+            "region": {
+                "links": self.links_reg,
+                "resource_identifier": self.region_resource_identifier,
+                "resource": self.region_resource
+            },
+            "departement": {
+                "links": self.links_dep,
+                "resource_identifier": self.departement_resource_identifier,
+                "resource": self.departement_resource
+            },
+            "arrondissement": {
+                "links": self.links_ar,
+                "resource_identifier": self.arrondissement_resource_identifier,
+                "resource": self.arrondissement_resource
+            },
+            "canton": {
+                "links": self.links_ct,
+                "resource_identifier": self.canton_resource_identifier,
+                "resource": self.canton_resource
+            }
+        }
+
+    @property
     def resource(self):
         """ """
         return {
@@ -93,24 +120,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'ARTMIN': self.obj.ARTMIN,
                 'longlat': self.obj.longlat
             },
-            "relationships": {
-                "region": {
-                    **self.links_reg,
-                    "data": self.region_resource_identifier
-                },
-                "departement": {
-                    **self.links_dep,
-                    "data": self.departement_resource_identifier
-                },
-                "arrondissement": {
-                    **self.links_ar,
-                    "data": self.arrondissement_resource_identifier
-                },
-                "canton": {
-                    **self.links_ct,
-                    "data": self.canton_resource_identifier
-                }
-            },
+            "relationships": self._exposed_relationships(),
             "meta": {},
             "links": {
                 "self": self.self_link

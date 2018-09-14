@@ -6,6 +6,8 @@ class AltOrthFacade(JSONAPIAbstractFacade):
     """
 
     """
+    TYPE = "alt-orth"
+    TYPE_PLURAL = "alt-orths"
 
     @property
     def id(self):
@@ -13,11 +15,11 @@ class AltOrthFacade(JSONAPIAbstractFacade):
 
     @property
     def type(self):
-        return "alt-orth"
+        return self.TYPE
 
     @property
     def type_plural(self):
-        return "alt-orths"
+        return self.TYPE_PLURAL
 
     @property
     def links_entry(self):
@@ -28,6 +30,20 @@ class AltOrthFacade(JSONAPIAbstractFacade):
         return None if self.obj.entry is None else EntryFacade(self.obj.entry).resource_identifier
 
     @property
+    def entry_resource(self):
+        return None if self.obj.entry is None else EntryFacade(self.obj.entry).resource
+
+    @property
+    def relationships(self):
+        return {
+            "commune": {
+                "links": self.links_entry,
+                "resource_identifier": self.entry_resource_identifier,
+                "resource": self.entry_resource
+            }
+        }
+
+    @property
     def resource(self):
         """ """
         return {
@@ -35,12 +51,7 @@ class AltOrthFacade(JSONAPIAbstractFacade):
             "attributes": {
                 "alt_orth": self.obj.alt_orth
             },
-            "relationships": {
-                "entry": {
-                    **self.links_entry,
-                    "data": self.entry_resource_identifier
-                }
-            },
+            "relationships": self._exposed_relationships(),
             "meta": {},
             "links": {
                 "self": self.self_link

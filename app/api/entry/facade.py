@@ -23,18 +23,6 @@ class EntryFacade(JSONAPIAbstractFacade):
         return self.TYPE_PLURAL
 
     @property
-    def resource_identifier(self):
-        """
-        Returns
-        -------
-            A JSONAPI resource object identifier
-        """
-        return {
-            "type": self.type,
-            "id": self.id
-        }
-
-    @property
     def links_commune(self):
         return self._get_links("commune")
 
@@ -125,6 +113,36 @@ class EntryFacade(JSONAPIAbstractFacade):
         return [] if self.old_orths is None else [OldOrthFacade(_os).resource for _os in self.old_orths]
 
     @property
+    def relationships(self):
+        return {
+            "commune": {
+                "links": self.links_commune,
+                "resource_identifier": self.commune_resource_identifier,
+                "resource": self.commune_resource
+            },
+            "linked-commune": {
+                "links": self.links_linked_commune,
+                "resource_identifier": self.linked_commune_resource_identifier,
+                "resource": self.linked_commune_resource
+            },
+            "linked-placenames": {
+                "links": self.links_linked_placenames,
+                "resource_identifier": self.linked_placenames_resource_identifiers,
+                "resource": self.linked_placenames_resources
+            },
+            "alt-orths": {
+                "links": self.links_alt_orths,
+                "resource_identifier": self.alt_orths_resource_identifiers,
+                "resource": self.alt_orths_resource_identifiers
+            },
+            "old-orths": {
+                "links": self.links_old_orths,
+                "resource_identifier": self.old_orths_resource_identifiers,
+                "resource": self.old_orths_resources
+            },
+        }
+
+    @property
     def resource(self):
         """Make a JSONAPI resource object describing what is a dictionnary entry
 
@@ -152,28 +170,7 @@ class EntryFacade(JSONAPIAbstractFacade):
                 "start-page": self.obj.start_pg,
                 "localization-certainty": self.obj.localization_certainty
             },
-            "relationships": {
-                "commune": {
-                    **self.links_commune,
-                    "data": self.commune_resource_identifier
-                },
-                "linked-commune": {
-                    **self.links_linked_commune,
-                    "data": self.linked_commune_resource_identifier
-                },
-                "linked-placenames": {
-                    **self.links_linked_placenames,
-                    "data": self.linked_placenames_resource_identifiers
-                },
-                "alt-orths": {
-                    **self.links_alt_orths,
-                    "data": self.alt_orths_resource_identifiers
-                },
-                "old-orths": {
-                    **self.links_old_orths,
-                    "data": self.old_orths_resource_identifiers
-                },
-            },
+            "relationships": self._exposed_relationships(),
             "meta": {},
             "links": {
                 "self": self.self_link
