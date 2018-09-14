@@ -18,8 +18,8 @@ class Config(object):
     CSRF_ENABLED = True
 
     APP_URL_PREFIX = '/dico-topo'
+    API_VERSION = '1.0'
     API_URL_PREFIX = '/dico-topo/api/1.0'
-
 
     @staticmethod
     def init_app(app):
@@ -31,7 +31,7 @@ class DevelopmentConfig(Config):
     ASSETS_DEBUG = True
     SQLALCHEMY_ECHO = False
 
-    DB_DROP_AND_CREATE_ALL = False
+    DB_DROP_AND_CREATE_ALL = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo-dev.sqlite')
 
     @staticmethod

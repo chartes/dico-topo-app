@@ -1,4 +1,3 @@
-from flask import current_app
 
 
 class JSONAPIAbstractFacade(object):
@@ -9,9 +8,9 @@ class JSONAPIAbstractFacade(object):
     TYPE = "ABSTRACT-TYPE"
     TYPE_PLURAL = "ABSTRACT-TYPE-PLURAL"
 
-    def __init__(self, obj):
+    def __init__(self, url_prefix, obj):
         self.obj = obj
-        self.url_prefix = current_app.config["API_URL_PREFIX"]
+        self.url_prefix = url_prefix
 
     @property
     def id(self):

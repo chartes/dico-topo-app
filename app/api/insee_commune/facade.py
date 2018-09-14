@@ -11,7 +11,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
 
     @property
     def id(self):
-        return self.obj.insee_id
+        return self.obj.insee_code
 
     @property
     def type(self):
@@ -55,35 +55,35 @@ class CommuneFacade(JSONAPIAbstractFacade):
 
     @property
     def region_resource_identifier(self):
-        return None if self.region is None else InseeRefFacade(self.region).resource_identifier
+        return None if self.region is None else InseeRefFacade(self.url_prefix, self.region).resource_identifier
 
     @property
     def departement_resource_identifier(self):
-        return None if self.departement is None else InseeRefFacade(self.departement).resource_identifier
+        return None if self.departement is None else InseeRefFacade(self.url_prefix, self.departement).resource_identifier
 
     @property
     def arrondissement_resource_identifier(self):
-        return None if self.arrondissement is None else InseeRefFacade(self.arrondissement).resource_identifier
+        return None if self.arrondissement is None else InseeRefFacade(self.url_prefix, self.arrondissement).resource_identifier
 
     @property
     def canton_resource_identifier(self):
-        return None if self.canton is None else InseeRefFacade(self.canton).resource_identifier
+        return None if self.canton is None else InseeRefFacade(self.url_prefix, self.canton).resource_identifier
 
     @property
     def region_resource(self):
-        return None if self.region is None else InseeRefFacade(self.region).resource
+        return None if self.region is None else InseeRefFacade(self.url_prefix, self.region).resource
 
     @property
     def departement_resource(self):
-        return None if self.departement is None else InseeRefFacade(self.departement).resource
+        return None if self.departement is None else InseeRefFacade(self.url_prefix, self.departement).resource
 
     @property
     def arrondissement_resource(self):
-        return None if self.arrondissement is None else InseeRefFacade(self.arrondissement).resource
+        return None if self.arrondissement is None else InseeRefFacade(self.url_prefix, self.arrondissement).resource
 
     @property
     def canton_resource(self):
-        return None if self.canton is None else InseeRefFacade(self.canton).resource
+        return None if self.canton is None else InseeRefFacade(self.url_prefix, self.canton).resource
 
     @property
     def relationships(self):

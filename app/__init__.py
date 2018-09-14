@@ -54,14 +54,32 @@ def create_app(config_name="dev"):
 
     from app import models
     from app import routes
+
+    # =====================================
+    # register api routes
+    # =====================================
+
+    from app.api.rule_registrar import JSONAPIRuleRegistrar
+    app.api_url_registrar = JSONAPIRuleRegistrar(app.config["API_VERSION"], app.config["API_URL_PREFIX"])
+
     from app.api import routes
+    from app.api.insee_commune.routes import register_insee_commune_api_urls
+    from app.api.insee_ref.routes import register_insee_ref_api_urls
+    from app.api.placename.routes import register_placename_api_urls
+    from app.api.placename_alt_label.routes import register_placename_alt_label_api_urls
+
+    with app.app_context():
+        register_placename_api_urls(app)
+        register_placename_alt_label_api_urls(app)
+        register_insee_commune_api_urls(app)
+        register_insee_ref_api_urls(app)
+
+    app.register_blueprint(app_bp)
+    app.register_blueprint(api_bp)
 
     if app.config["DB_DROP_AND_CREATE_ALL"]:
         with app.app_context():
             db.drop_all()
             db.create_all()
-
-    app.register_blueprint(app_bp)
-    app.register_blueprint(api_bp)
 
     return app
