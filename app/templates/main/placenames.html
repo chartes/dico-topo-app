@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% from 'main/fragments/placename.html' import write_placename %}
+
+{% block content %}
+
+    <section class="section">
+        <div class="container is-fluid">
+            <div class="columns">
+                <div class="column">
+                    <div id="placenames">
+                        <ul id="placenames-list">
+                        {% for placename in placenames %}
+                            {{ write_placename(placename) }}
+                        {% endfor %}
+                    </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+{% endblock content %}
+
+
+{% block scripts %}
+<script type="text/javascript">
+</script>
+{% endblock scripts %}

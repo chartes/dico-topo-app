@@ -1,3 +1,5 @@
+from app.api.placename.facade import PlacenameFacade
+from app.models import Placename
 from tests.base_server import TestBaseServer
 from tests.data.fixtures.placename import load_fixtures
 
@@ -8,6 +10,10 @@ class TestPlacename(TestBaseServer):
         super().setUp()
         load_fixtures(self.db)
         self.url_prefix = self.app.config["API_URL_PREFIX"]
+
+    def test_recursion(self):
+        p = PlacenameFacade(self.url_prefix, Placename.query.first())
+        print(p.resource)
 
     def test_get_placename(self):
         r, status, obj = self.api_get('%s/placenames/id1' % self.url_prefix)

@@ -24,5 +24,5 @@ def register_placename_api_urls(app):
     register_placename_relationship_url('commune')
     register_placename_relationship_url('linked-commune')
     register_placename_relationship_url('linked-placenames')
-    register_placename_relationship_url('old-orths')
-    register_placename_relationship_url('alt-orths')
+    register_placename_relationship_url('old-labels')
+    register_placename_relationship_url('alt-labels')

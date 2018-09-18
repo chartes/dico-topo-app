@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
+from werkzeug.contrib.profiler import ProfilerMiddleware
+
 from app.api.response_factory import JSONAPIResponseFactory
 from config import config
 
@@ -44,13 +46,14 @@ def create_app(config_name="dev"):
         app.config.from_object(config[config_name])
 
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
+    #app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
     db.init_app(app)
     config[config_name].init_app(app)
 
-    #
-    # Import models & routes
-    #
+    # =====================================
+    # Import models & app routes
+    # =====================================
 
     from app import models
     from app import routes
@@ -59,20 +62,26 @@ def create_app(config_name="dev"):
     # register api routes
     # =====================================
 
-    from app.api.rule_registrar import JSONAPIRuleRegistrar
-    app.api_url_registrar = JSONAPIRuleRegistrar(app.config["API_VERSION"], app.config["API_URL_PREFIX"])
+    from app.api.route_registrar import JSONAPIRouteRegistrar
+    app.api_url_registrar = JSONAPIRouteRegistrar(app.config["API_VERSION"], app.config["API_URL_PREFIX"])
+    print(app.config["SERVER_NAME"])
 
     from app.api import routes
     from app.api.insee_commune.routes import register_insee_commune_api_urls
     from app.api.insee_ref.routes import register_insee_ref_api_urls
     from app.api.placename.routes import register_placename_api_urls
     from app.api.placename_alt_label.routes import register_placename_alt_label_api_urls
+    from app.api.placename_old_label.routes import register_placename_old_label_api_urls
+    from app.api.feature_type.routes import register_feature_type_api_urls
 
     with app.app_context():
+        # generate GET routes for the API
         register_placename_api_urls(app)
         register_placename_alt_label_api_urls(app)
+        register_placename_old_label_api_urls(app)
         register_insee_commune_api_urls(app)
         register_insee_ref_api_urls(app)
+        register_feature_type_api_urls(app)
 
     app.register_blueprint(app_bp)
     app.register_blueprint(api_bp)

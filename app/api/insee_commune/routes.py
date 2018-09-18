@@ -3,11 +3,11 @@ from app.api.insee_commune.facade import CommuneFacade
 from app.models import InseeCommune
 
 
-def get_commune(insee_id):
-    e = InseeCommune.query.filter(InseeCommune.insee_id == insee_id).first()
+def get_commune(insee_code):
+    e = InseeCommune.query.filter(InseeCommune.insee_code == insee_code).first()
     if e is None:
         kwargs = {"status": 404}
-        errors = [{"status": 404, "title": "commmune %s does not exist" % insee_id}]
+        errors = [{"status": 404, "title": "commmune %s does not exist" % insee_code}]
     else:
         kwargs = {}
         errors = []
