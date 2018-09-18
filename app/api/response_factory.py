@@ -9,24 +9,27 @@ class JSONAPIResponseFactory:
                "Access-Control-Allow-Methods": ["GET", "POST", "DELETE", "PATCH"]}
 
     @classmethod
-    def encapsulate(cls, toplevel, resource):
+    def encapsulate(cls, toplevel, resource, links=None):
+        if links is None:
+            links = {}
         return {
             toplevel: resource,
             "meta": {
 
             },
+            "links": links,
             "jsonapi": {
                 "version": "1.0"
             }
         }
 
     @classmethod
-    def encapsulate_data(cls, resource):
-        return JSONAPIResponseFactory.encapsulate("data", resource)
+    def encapsulate_data(cls, resource, links):
+        return JSONAPIResponseFactory.encapsulate("data", resource, links)
 
     @classmethod
-    def encapsulate_errors(cls, resource):
-        return JSONAPIResponseFactory.encapsulate("errors", resource)
+    def encapsulate_errors(cls, resource, links):
+        return JSONAPIResponseFactory.encapsulate("errors", resource, links)
 
     @classmethod
     def make_response(cls, resource, **kwargs):
@@ -38,12 +41,12 @@ class JSONAPIResponseFactory:
         )
 
     @classmethod
-    def make_data_response(cls, data_resource, **kwargs):
-        resource = JSONAPIResponseFactory.encapsulate_data(data_resource)
+    def make_data_response(cls, data_resource, links, **kwargs):
+        resource = JSONAPIResponseFactory.encapsulate_data(data_resource, links)
         return JSONAPIResponseFactory.make_response(resource, **kwargs)
 
     @classmethod
     def make_errors_response(cls, errors_resource, **kwargs):
-        resource = JSONAPIResponseFactory.encapsulate_errors(errors_resource)
+        resource = JSONAPIResponseFactory.encapsulate_errors(errors_resource, kwargs.get("links", None))
         return JSONAPIResponseFactory.make_response(resource, **kwargs)
 

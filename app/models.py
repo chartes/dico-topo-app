@@ -25,7 +25,7 @@ class Placename(db.Model):
     country = db.Column(db.String(2), nullable=False)
     dpt = db.Column(db.String(2), nullable=False)
     # not null if the placename is known as being commune
-    commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'))
+    commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
     # not null if the placename is localized somewhere
     localization_commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
     localization_placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), index=True)
@@ -33,7 +33,7 @@ class Placename(db.Model):
     # description of the placename
     desc = db.Column(db.Text)
     # first num of the page where the placename appears (within its source)
-    num_start_page = db.Column(db.Integer)
+    num_start_page = db.Column(db.Integer, index=True)
     # comment on the placename
     comment = db.Column(db.Text)
 
@@ -56,7 +56,7 @@ class PlacenameAltLabel(db.Model):
         db.UniqueConstraint('placename_id', 'label', name='_placename_label_uc'),
     )
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    placename_id = db.Column(db.String(10), db.ForeignKey(Placename.placename_id))
+    placename_id = db.Column(db.String(10), db.ForeignKey(Placename.placename_id), index=True)
     label = db.Column(db.String(200))
 
     # relationships
@@ -68,7 +68,7 @@ class PlacenameOldLabel(db.Model):
     __tablename__ = 'placename_old_label'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     old_label_id = db.Column(db.String(13), nullable=False, unique=True)
-    placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), nullable=False)
+    placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), nullable=False, index=True)
     rich_label = db.Column(db.String(250), nullable=False)
     # date with tags
     rich_date = db.Column(db.String(100))
@@ -89,10 +89,10 @@ class InseeCommune(db.Model):
     """ """
     __tablename__ = 'insee_commune'
     insee_code = db.Column(db.String(5), primary_key=True)
-    REG_id = db.Column(db.String(6), db.ForeignKey('insee_ref.id'), nullable=False)
-    DEP_id = db.Column(db.String(7), db.ForeignKey('insee_ref.id'), nullable=False)
-    AR_id = db.Column(db.String(8), db.ForeignKey('insee_ref.id'))
-    CT_id = db.Column(db.String(9), db.ForeignKey('insee_ref.id'))
+    REG_id = db.Column(db.String(6), db.ForeignKey('insee_ref.id'), nullable=False, index=True)
+    DEP_id = db.Column(db.String(7), db.ForeignKey('insee_ref.id'), nullable=False, index=True)
+    AR_id = db.Column(db.String(8), db.ForeignKey('insee_ref.id'), index=True)
+    CT_id = db.Column(db.String(9), db.ForeignKey('insee_ref.id'), index=True)
     NCCENR = db.Column(db.String(70), nullable=False)
     ARTMIN = db.Column(db.String(10))
     longlat = db.Column(db.String(100))
@@ -108,10 +108,10 @@ class InseeRef(db.Model):
     """ """
     __tablename__ = 'insee_ref'
     id = db.Column(db.String(10), primary_key=True)
-    type = db.Column(db.String(4), nullable=False)
-    insee_code = db.Column(db.String(3), nullable=False)
-    parent_id = db.Column(db.String(10), db.ForeignKey('insee_ref.id'))
-    level = db.Column(db.Integer, nullable=False)
+    type = db.Column(db.String(4), nullable=False, index=True)
+    insee_code = db.Column(db.String(3), nullable=False, index=True)
+    parent_id = db.Column(db.String(10), db.ForeignKey('insee_ref.id'), index=True)
+    level = db.Column(db.Integer, nullable=False, index=True)
     label = db.Column(db.String(50), nullable=False)
 
     # relationships
@@ -125,7 +125,7 @@ class FeatureType(db.Model):
         db.UniqueConstraint('placename_id', 'term', name='_placename_term_uc'),
     )
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'),)
+    placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), index=True)
     term = db.Column(db.String(400))
 
     # relationships

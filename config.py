@@ -31,7 +31,10 @@ class DevelopmentConfig(Config):
     ASSETS_DEBUG = True
     SQLALCHEMY_ECHO = False
 
-    DB_DROP_AND_CREATE_ALL = True
+    DB_DROP_AND_CREATE_ALL = False
+    SQLALCHEMY_RECORD_QUERIES = False
+    PROFILE = False
+
     SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo-dev.sqlite')
 
     @staticmethod

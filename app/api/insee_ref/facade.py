@@ -20,43 +20,33 @@ class InseeRefFacade(JSONAPIAbstractFacade):
     def type_plural(self):
         return self.TYPE_PLURAL
 
-    @property
-    def links_parent(self):
-        return self._get_links(rel_name="parent")
-
-    @property
-    def links_children(self):
-        return self._get_links(rel_name="children")
-
-    @property
-    def parent_resource_identifier(self):
+    def get_parent_resource_identifier(self):
         return None if self.obj.parent is None else InseeRefFacade(self.url_prefix, self.obj.parent).resource_identifier
 
-    @property
-    def children_resource_identifiers(self):
-        return [] if self.obj.children is None else [InseeRefFacade(self.url_prefix, c).resource_identifier for c in self.obj.children]
+    def get_children_resource_identifiers(self):
+        return [] if self.obj.children is None else [InseeRefFacade(self.url_prefix, c).resource_identifier
+                                                     for c in self.obj.children]
 
-    @property
-    def parent_resource(self):
+    def get_parent_resource(self):
         return None if self.obj.parent is None else InseeRefFacade(self.url_prefix, self.obj.parent).resource
 
-    @property
-    def children_resource(self):
-        return [] if self.obj.children is None else [InseeRefFacade(self.url_prefix, c).resource for c in self.obj.children]
+    def get_children_resource(self):
+        return [] if self.obj.children is None else [InseeRefFacade(self.url_prefix, c).resource
+                                                     for c in self.obj.children]
 
     @property
     def relationships(self):
         return {
-            #"parent": {
-            #    "links": self.links_parent,
-            #    "resource_identifier": self.parent_resource_identifier,
-            #    "resource": self.parent_resource
-            #},
-            #"children": {
-            #    "links": self.links_children,
-            #    "resource_identifier": self.children_resource_identifiers,
-            #    "resource": self.children_resource
-            #}
+            "parent": {
+                "links": self._get_links(rel_name="parent"),
+                "resource_identifier_getter": self.get_parent_resource_identifier,
+                "resource_getter": self.get_parent_resource
+            },
+            "children": {
+                "links": self._get_links(rel_name="children"),
+                "resource_identifier_getter": self.get_children_resource_identifiers,
+                "resource_getter": self.get_children_resource
+            }
         }
 
     @property
@@ -70,7 +60,7 @@ class InseeRefFacade(JSONAPIAbstractFacade):
                 'level': self.obj.level,
                 'label': self.obj.label
             },
-            "relationships": self._exposed_relationships(),
+            "relationships": self.get_exposed_relationships(),
             "meta": {},
             "links": {
                 "self": self.self_link

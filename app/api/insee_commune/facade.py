@@ -21,92 +21,52 @@ class CommuneFacade(JSONAPIAbstractFacade):
     def type_plural(self):
         return self.TYPE_PLURAL
 
-    @property
-    def links_reg(self):
-        return self._get_links(rel_name="region")
+    def get_region_resource_identifier(self):
+        return None if self.obj.region is None else InseeRefFacade(self.url_prefix, self.obj.region).resource_identifier
 
-    @property
-    def links_dep(self):
-        return self._get_links(rel_name="departement")
+    def get_departement_resource_identifier(self):
+        return None if self.obj.departement is None else InseeRefFacade(self.url_prefix, self.obj.departement).resource_identifier
 
-    @property
-    def links_ar(self):
-        return self._get_links(rel_name="arrondissement")
+    def get_arrondissement_resource_identifier(self):
+        return None if self.obj.arrondissement is None else InseeRefFacade(self.url_prefix, self.obj.arrondissement).resource_identifier
 
-    @property
-    def links_ct(self):
-        return self._get_links(rel_name="canton")
+    def get_canton_resource_identifier(self):
+        return None if self.obj.canton is None else InseeRefFacade(self.url_prefix, self.obj.canton).resource_identifier
 
-    @property
-    def region(self):
-        return self.obj.region
+    def get_region_resource(self):
+        return None if self.obj.region is None else InseeRefFacade(self.url_prefix, self.obj.region).resource
 
-    @property
-    def departement(self):
-        return self.obj.departement
+    def get_departement_resource(self):
+        return None if self.obj.departement is None else InseeRefFacade(self.url_prefix, self.obj.departement).resource
 
-    @property
-    def arrondissement(self):
-        return self.obj.arrondissement
+    def get_arrondissement_resource(self):
+        return None if self.obj.arrondissement is None else InseeRefFacade(self.url_prefix, self.obj.arrondissement).resource
 
-    @property
-    def canton(self):
-        return self.obj.canton
-
-    @property
-    def region_resource_identifier(self):
-        return None if self.region is None else InseeRefFacade(self.url_prefix, self.region).resource_identifier
-
-    @property
-    def departement_resource_identifier(self):
-        return None if self.departement is None else InseeRefFacade(self.url_prefix, self.departement).resource_identifier
-
-    @property
-    def arrondissement_resource_identifier(self):
-        return None if self.arrondissement is None else InseeRefFacade(self.url_prefix, self.arrondissement).resource_identifier
-
-    @property
-    def canton_resource_identifier(self):
-        return None if self.canton is None else InseeRefFacade(self.url_prefix, self.canton).resource_identifier
-
-    @property
-    def region_resource(self):
-        return None if self.region is None else InseeRefFacade(self.url_prefix, self.region).resource
-
-    @property
-    def departement_resource(self):
-        return None if self.departement is None else InseeRefFacade(self.url_prefix, self.departement).resource
-
-    @property
-    def arrondissement_resource(self):
-        return None if self.arrondissement is None else InseeRefFacade(self.url_prefix, self.arrondissement).resource
-
-    @property
-    def canton_resource(self):
-        return None if self.canton is None else InseeRefFacade(self.url_prefix, self.canton).resource
+    def get_canton_resource(self):
+        return None if self.obj.canton is None else InseeRefFacade(self.url_prefix, self.obj.canton).resource
 
     @property
     def relationships(self):
         return {
             "region": {
-                "links": self.links_reg,
-                "resource_identifier": self.region_resource_identifier,
-                "resource": self.region_resource
+                "links": self._get_links(rel_name="region"),
+                "resource_identifier_getter": self.get_region_resource_identifier,
+                "resource_getter": self.get_region_resource
             },
             "departement": {
-                "links": self.links_dep,
-                "resource_identifier": self.departement_resource_identifier,
-                "resource": self.departement_resource
+                "links": self._get_links(rel_name="departement"),
+                "resource_identifier_getter": self.get_departement_resource_identifier,
+                "resource_getter": self.get_departement_resource
             },
             "arrondissement": {
-                "links": self.links_ar,
-                "resource_identifier": self.arrondissement_resource_identifier,
-                "resource": self.arrondissement_resource
+                "links": self._get_links(rel_name="arrondissement"),
+                "resource_identifier_getter": self.get_arrondissement_resource_identifier,
+                "resource_getter": self.get_arrondissement_resource
             },
             "canton": {
-                "links": self.links_ct,
-                "resource_identifier": self.canton_resource_identifier,
-                "resource": self.canton_resource
+                "links": self._get_links(rel_name="canton"),
+                "resource_identifier_getter": self.get_canton_resource_identifier,
+                "resource_getter": self.get_canton_resource
             }
         }
 
@@ -120,7 +80,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'ARTMIN': self.obj.ARTMIN,
                 'longlat': self.obj.longlat
             },
-            "relationships": self._exposed_relationships(),
+            "relationships": self.get_exposed_relationships(),
             "meta": {},
             "links": {
                 "self": self.self_link

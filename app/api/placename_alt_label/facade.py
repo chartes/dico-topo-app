@@ -21,25 +21,19 @@ class PlacenameAltLabelFacade(JSONAPIAbstractFacade):
     def type_plural(self):
         return self.TYPE_PLURAL
 
-    @property
-    def links_placename(self):
-        return self._get_links(rel_name="placename")
-
-    @property
-    def placename_resource_identifier(self):
+    def get_placename_resource_identifier(self):
         return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename).resource_identifier
 
-    @property
-    def placename_resource(self):
+    def get_placename_resource(self):
         return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename).resource
 
     @property
     def relationships(self):
         return {
             "placename": {
-                "links": self.links_placename,
-                "resource_identifier": self.placename_resource_identifier,
-                "resource": self.placename_resource
+                "links": self._get_links(rel_name="placename"),
+                "resource_identifier_getter": self.get_placename_resource_identifier,
+                "resource_getter": self.get_placename_resource
             }
         }
 
@@ -51,7 +45,7 @@ class PlacenameAltLabelFacade(JSONAPIAbstractFacade):
             "attributes": {
                 "label": self.obj.label
             },
-            "relationships": self._exposed_relationships(),
+            "relationships": self.get_exposed_relationships(),
             "meta": {},
             "links": {
                 "self": self.self_link

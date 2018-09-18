@@ -6,3 +6,4 @@ venv
 *.pyc
 db/dicotopo-dev.sqlite
 tests/data/dicotopo-test.sqlite
+app/client/node_modules
