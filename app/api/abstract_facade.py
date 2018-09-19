@@ -62,7 +62,7 @@ class JSONAPIAbstractFacade(object):
         return {
             rel_name: {
                 "links": rel["links"],
-                #"data": rel["resource_identifier_getter"]()
+                "data": rel["resource_identifier_getter"]()
             }
             for rel_name, rel in self.relationships.items()
         }

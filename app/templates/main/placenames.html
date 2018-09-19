@@ -1,22 +1,33 @@
 {% extends 'base.html' %}
 
-{% from 'main/fragments/placename.html' import write_placename %}
-
 {% block content %}
 
-    <section class="section">
-        <div class="container is-fluid">
-            <div class="columns">
-                <div class="column">
-                    <div id="placenames">
-                        <ul id="placenames-list">
-                        {% for placename in placenames %}
-                            {{ write_placename(placename) }}
-                        {% endfor %}
-                    </ul>
+    <section class="section centered-section">
+        <div class="container is-fluid main-container">
+            <div class="container intro-container">
+                <h1 class="title is-primary">Lorem ipsum dolor sit amet</h1>
+                <p>
+                  Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio, cumque nihil impedit, quo minus id, quod maxime placeat, facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet, ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat.
+                </p>
+            </div>
+            <h1 class="title is-primary">Lieux anciens et modernes</h1>
+            <nav class="level pagination" role="navigation" aria-label="pagination">
+                <div class="level-left level-item">
+                    <a id="pagination-prev">Page précédente</a>
+                </div>
+                <div class="level-item">
+                    <label for="num-page">Page: </label>
+                    <div class="field">
+                        <div class="control">
+                            <input id="num-page" class="input is-info is-small" type="text" value="{{num_start_page}}"/>
+                        </div>
                     </div>
                 </div>
-            </div>
+                <div class="level-right level-item">
+                    <a id="pagination-next">Page suivante</a>
+                </div>
+            </nav>
+            <div id="placenames"></div>
         </div>
     </section>
 
@@ -25,5 +36,100 @@
 
 {% block scripts %}
 <script type="text/javascript">
+function makeRequest (method, url, responseType='json') {
+  return new Promise(function (resolve, reject) {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    xhr.responseType = responseType;
+    xhr.onload = function () {
+      if (this.status >= 200 && this.status < 300) {
+        resolve(xhr.response);
+      } else {
+        reject({
+          status: this.status,
+          statusText: xhr.statusText
+        });
+      }
+    };
+    xhr.onerror = function () {
+      reject({
+        status: this.status,
+        statusText: xhr.statusText
+      });
+    };
+    xhr.send();
+  });
+}
+
+function addPlacenameCard(container, placename) {
+    const new_card = `` +
+      `<div class='card'>` +
+      `  <header class='card-header'>` +
+      `    <p class='card-header-title'>${placename.attributes.label}</p>` +
+      `  </header>` +
+      `  <div class='card-content'>` +
+      `    <div class='columns'>` +
+      `      <div class='column'>` +
+      `        <div class='content'>` +
+                  placename.attributes.desc +
+      `        </div>` +
+      `     </div>` +
+      `      <div class='column'>` +
+      `        <div class='content'>` +
+                 (placename.attributes.comment ? placename.attributes.comment : "") +
+      `        </div>` +
+      `     </div>` +
+      `    </div>` +
+      `  </div>` +
+      `</div>`;
+    let el = document.createElement('div');
+    el.innerHTML = new_card;
+    container.appendChild(el.firstChild);
+}
+
+function loadPlacenames(num_page) {
+    const url = "{{url_for('api_bp.placenames_collection_endpoint')}}?filter[num_start_page]="+num_page;
+    makeRequest('GET', url)
+    .then(function (datums) {
+
+      // add placename cards
+      const placename_container = document.getElementById("placenames");
+      placename_container.innerHTML = '';
+      for(let placename of datums.data) {
+        addPlacenameCard(placename_container, placename);
+      }
+
+      // build placenames pagination
+      const page_prev = document.getElementById('pagination-prev');
+      const page_next = document.getElementById('pagination-next');
+      page_prev.onclick = function() {
+          num_page += -1;
+          if (num_page < 1) {
+              num_page = 1;
+          }
+          loadPlacenames(num_page);
+      };
+      page_next.onclick = function() {
+          num_page += 1;
+          loadPlacenames(num_page);
+      };
+      document.getElementById('num-page').value = num_page;
+
+    });
+}
+
+function load_page() {
+    let num_page = document.getElementById('num-page').value;
+    num_page = parseInt(num_page);
+    if (isNaN(num_page)) {
+        num_page = 1;
+    }
+    loadPlacenames(num_page);
+}
+// on load
+(function() {
+    document.getElementById('num-page').onchange = load_page;
+    load_page();
+})();
 </script>
 {% endblock scripts %}
