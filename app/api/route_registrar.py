@@ -1,3 +1,4 @@
+import pprint
 import sqlalchemy
 
 from math import ceil
@@ -30,6 +31,25 @@ class JSONAPIRouteRegistrar(object):
     def make_url(url, args):
         # recompose URL
         return url + "?" + urllib.parse.urlencode(args)
+
+    @staticmethod
+    def get_included_resources(asked_relationships, facade_obj):
+        included_resources = OrderedDict({})
+        relationships = facade_obj.relationships
+        # iter over the relationships to be included
+        for inclusion in asked_relationships:
+            # try bring the related resources and add them to the list
+            related_resources = relationships[inclusion]["resource_getter"]()
+            if isinstance(related_resources, list):
+                for related_resource in related_resources:
+                    unique_key = (related_resource["type"], related_resource["id"])
+                    included_resources[unique_key] = related_resource
+            else:
+                # the resource is a single object
+                if related_resources is not None:
+                    unique_key = (related_resources["type"], related_resources["id"])
+                    included_resources[unique_key] = related_resources
+        return list(included_resources.values())
 
     def register_get_routes(self, obj_getter, model, facade_class):
         """
@@ -66,7 +86,8 @@ class JSONAPIRouteRegistrar(object):
               If the page number is omitted, it is set to 1
               Provide self,first,last,prev,next links for the collection (top-level)
               Omit the prev link if the current page is the first one, omit the next link if it is the last one
-
+            - Related resource inclusion :
+              ?include=relationname1,relationname2
             Return a 400 Bad Request if something goes wrong with the syntax or
              if the sort/filter criteriae are incorrect
             """
@@ -79,13 +100,13 @@ class JSONAPIRouteRegistrar(object):
             objs_query = model.query
             try:
                 # if request has filter parameter
-                # TODO: implement some filtering operators (startswith, endswith, like...)
-                #       using a filter_operator request parameter ?
+                # TODO: implement some filtering operators (startswith, endswith, like..., is None) using a filter_operator request parameter ?
                 filter_criteriae = []
                 filters = [(f, f[len('filter['):-1])  # (filter_param, filter_fieldname)
                            for f in request.args.keys() if f.startswith('filter[') and f.endswith(']')]
                 if len(filters) > 0:
                     for filter_param, filter_fieldname in filters:
+                        filter_fieldname = filter_fieldname.replace("-", "_")
                         for criteria in request.args[filter_param].split(','):
                             new_criteria = "%s.%s=='%s'" % (model.__tablename__, filter_fieldname, criteria)
                             filter_criteriae.append(new_criteria)
@@ -138,19 +159,39 @@ class JSONAPIRouteRegistrar(object):
                     links["self"] = request.url
                     all_objs = objs_query.all()
 
+                # finally retrieve the (eventually filtered, sorted, paginated) resources
                 facade_objs = [facade_class(url_prefix, obj) for obj in all_objs]
+
+                # find out if related resources must be included too
+                included_resources = None
+                if "include" in request.args:
+                    try:
+                        included_resources = []
+                        for facade_obj in facade_objs:
+                            included_resources.extend(
+                                JSONAPIRouteRegistrar.get_included_resources(
+                                    request.args["include"].split(','),
+                                    facade_obj
+                                )
+                            )
+                    except KeyError as e:
+                        return JSONAPIResponseFactory.make_errors_response(
+                            {"status": 400, "details": "Cannot include the relationship %s" % str(e)}, status=400
+                        )
 
                 return JSONAPIResponseFactory.make_data_response(
                     [obj.resource for obj in facade_objs],
-                    links=links
+                    links=links,
+                    included_resources=included_resources
                 )
 
-            except (AttributeError, OperationalError) as e:
+            except (AttributeError, ValueError, OperationalError) as e:
                 return JSONAPIResponseFactory.make_errors_response(
                     {"status": 400, "details": str(e)}, status=400
                 )
 
-        collection_endpoint.__name__ = "%s_%s" % (facade_class.TYPE_PLURAL, collection_endpoint.__name__)
+        collection_endpoint.__name__ = "%s_%s" % (facade_class.TYPE_PLURAL.replace("-", "_"), collection_endpoint.__name__)
+        print("register :", collection_endpoint.__name__)
         # register the rule
         api_bp.add_url_rule(get_collection_rule, endpoint=collection_endpoint.__name__, view_func=collection_endpoint)
 
@@ -172,14 +213,30 @@ class JSONAPIRouteRegistrar(object):
                 links = {
                     "self": request.url
                 }
-                return JSONAPIResponseFactory.make_data_response(f_placename.resource, links=links)
+                included_resources = None
+                if "include" in request.args:
+                    try:
+                        included_resources = JSONAPIRouteRegistrar.get_included_resources(
+                            request.args["include"].split(","),
+                            f_placename
+                        )
+                    except KeyError as e:
+                        return JSONAPIResponseFactory.make_errors_response(
+                            {"status": 400, "details": "Cannot include the relationship %s" % str(e)}, status=400
+                        )
 
-        single_obj_endpoint.__name__ = "%s_%s" % (facade_class.TYPE_PLURAL, single_obj_endpoint.__name__)
+                return JSONAPIResponseFactory.make_data_response(
+                    f_placename.resource, links=links, included_resources=included_resources
+                )
+
+        single_obj_endpoint.__name__ = "%s_%s" % (facade_class.TYPE_PLURAL.replace("-", "_"), single_obj_endpoint.__name__)
         # register the rule
         api_bp.add_url_rule(single_obj_rule, endpoint=single_obj_endpoint.__name__, view_func=single_obj_endpoint)
 
     def register_relationship_get_route(self, obj_getter, facade_class, rel_name):
         """
+            - Related resource inclusion :
+              ?include=relationname1,relationname2
             Support Pagination syntax :
             - Pagination syntax requires page[number], page[size] or both parameters to be supplied in the URL:
               page[number]=1&page[size]=100
@@ -204,51 +261,69 @@ class JSONAPIRouteRegistrar(object):
             if obj is None:
                 return JSONAPIResponseFactory.make_errors_response(errors, **kwargs)
             else:
-                relationship = facade_class(url_prefix, obj).relationships[rel_name]
+                facade_obj = facade_class(url_prefix, obj)
+                relationship = facade_obj.relationships[rel_name]
                 data = relationship["resource_identifier_getter"]()
 
                 links = relationship["links"]
                 paginated_links = {}
 
-                # if request has pagination parameters
-                # add links to the top-level object
-                if 'page[number]' in request.args or 'page[size]' in request.args:
-                    num_page = int(request.args.get('page[number]', 1))
-                    page_size = min(
-                        facade_class.ITEMS_PER_PAGE,
-                        int(request.args.get('page[size]', facade_class.ITEMS_PER_PAGE))
+                try:
+                    # if request has pagination parameters
+                    # add links to the top-level object
+                    if 'page[number]' in request.args or 'page[size]' in request.args:
+                        num_page = int(request.args.get('page[number]', 1))
+                        page_size = min(
+                            facade_class.ITEMS_PER_PAGE,
+                            int(request.args.get('page[size]', facade_class.ITEMS_PER_PAGE))
+                        )
+
+                        args = OrderedDict(request.args)
+                        count = len(data)
+                        nb_pages = max(1, ceil(count / page_size))
+
+                        args["page[size]"] = page_size
+                        paginated_links["self"] = JSONAPIRouteRegistrar.make_url(links["self"], args)
+                        paginated_links["related"] = JSONAPIRouteRegistrar.make_url(links["related"], args)
+                        args["page[number]"] = 1
+                        paginated_links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        args["page[number]"] = nb_pages
+                        paginated_links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        if num_page > 1:
+                            args["page[number]"] = max(1, num_page - 1)
+                            paginated_links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        if num_page < nb_pages:
+                            args["page[number]"] = min(nb_pages, num_page + 1)
+                            paginated_links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+
+                        # perform the pagination
+                        data = data[(num_page - 1) * page_size:min(num_page * page_size, count)]
+                        links.update(paginated_links)
+
+                    # try to include related resources if requested
+                    included_resources = None
+                    if "include" in request.args:
+                        try:
+                            included_resources = JSONAPIRouteRegistrar.get_included_resources(
+                                request.args["include"].split(","),
+                                facade_obj
+                            )
+                        except KeyError as e:
+                            return JSONAPIResponseFactory.make_errors_response(
+                                {"status": 400, "details": "Cannot include the relationship %s" % str(e)}, status=400
+                            )
+
+                    return JSONAPIResponseFactory.make_data_response(
+                        data, links=links, included_resources=included_resources, **kwargs
                     )
 
-                    args = OrderedDict(request.args)
-                    count = len(data)
-                    nb_pages = max(1, ceil(count / page_size))
-
-                    args["page[size]"] = page_size
-                    paginated_links["self"] = JSONAPIRouteRegistrar.make_url(links["self"], args)
-                    paginated_links["related"] = JSONAPIRouteRegistrar.make_url(links["related"], args)
-                    args["page[number]"] = 1
-                    paginated_links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    args["page[number]"] = nb_pages
-                    paginated_links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page > 1:
-                        args["page[number]"] = max(1, num_page - 1)
-                        paginated_links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page < nb_pages:
-                        args["page[number]"] = min(nb_pages, num_page + 1)
-                        paginated_links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-
-                    # perform the pagination
-                    data = data[(num_page - 1) * page_size:min(num_page * page_size, count)]
-                    links.update(paginated_links)
-
-                data = {
-                    "links": links,
-                    "data": data
-                }
-                return JSONAPIResponseFactory.make_response(data, **kwargs)
+                except (AttributeError, ValueError, OperationalError) as e:
+                    return JSONAPIResponseFactory.make_errors_response(
+                        {"status": 400, "details": str(e)}, status=400
+                    )
 
         resource_relationship_endpoint.__name__ = "%s_%s_%s" % (
-            facade_class.TYPE_PLURAL, rel_name.replace("-", "_"), resource_relationship_endpoint.__name__
+            facade_class.TYPE_PLURAL.replace("-", "_"), rel_name.replace("-", "_"), resource_relationship_endpoint.__name__
         )
         # register the rule
         api_bp.add_url_rule(rule, endpoint=resource_relationship_endpoint.__name__,
@@ -264,6 +339,8 @@ class JSONAPIRouteRegistrar(object):
 
         def resource_endpoint(id):
             """
+                - Related resource inclusion :
+                    ?include=relationname1,relationname2
                 Support Pagination syntax :
                 - Pagination syntax requires page[number], page[size] or both parameters to be supplied in the URL:
                   page[number]=1&page[size]=100
@@ -278,48 +355,69 @@ class JSONAPIRouteRegistrar(object):
             if obj is None:
                 return JSONAPIResponseFactory.make_errors_response(errors, **kwargs)
             else:
-                relationship = facade_class(url_prefix, obj).relationships[rel_name]
+                facade_obj = facade_class(url_prefix, obj)
+                relationship = facade_obj.relationships[rel_name]
                 resource_data = relationship["resource_getter"]()
 
                 paginated_links = {}
                 links = {
                     "self": request.url
                 }
+                try:
+                    # if request has pagination parameters
+                    # add links to the top-level object
+                    if 'page[number]' in request.args or 'page[size]' in request.args:
+                        num_page = int(request.args.get('page[number]', 1))
+                        page_size = min(
+                            facade_class.ITEMS_PER_PAGE,
+                            int(request.args.get('page[size]', facade_class.ITEMS_PER_PAGE))
+                        )
 
-                # if request has pagination parameters
-                # add links to the top-level object
-                if 'page[number]' in request.args or 'page[size]' in request.args:
-                    num_page = int(request.args.get('page[number]', 1))
-                    page_size = min(
-                        facade_class.ITEMS_PER_PAGE,
-                        int(request.args.get('page[size]', facade_class.ITEMS_PER_PAGE))
+                        args = OrderedDict(request.args)
+                        count = len(resource_data)
+                        nb_pages = max(1, ceil(count / page_size))
+
+                        args["page[size]"] = page_size
+                        paginated_links["self"] = JSONAPIRouteRegistrar.make_url(links["self"], args)
+                        args["page[number]"] = 1
+                        paginated_links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        args["page[number]"] = nb_pages
+                        paginated_links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        if num_page > 1:
+                            args["page[number]"] = max(1, num_page - 1)
+                            paginated_links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        if num_page < nb_pages:
+                            args["page[number]"] = min(nb_pages, num_page + 1)
+                            paginated_links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+
+                        # perform the pagination
+                        resource_data = resource_data[(num_page - 1) * page_size:min(num_page * page_size, count)]
+                        links.update(paginated_links)
+
+                    # try to include related resources if requested
+                    included_resources = None
+                    if "include" in request.args:
+                        try:
+                            included_resources = JSONAPIRouteRegistrar.get_included_resources(
+                                request.args["include"].split(","),
+                                facade_obj
+                            )
+                        except KeyError as e:
+                            return JSONAPIResponseFactory.make_errors_response(
+                                {"status": 400, "details": "Cannot include the relationship %s" % str(e)}, status=400
+                            )
+
+                    return JSONAPIResponseFactory.make_data_response(
+                        resource_data, links=links, included_resources=included_resources
                     )
 
-                    args = OrderedDict(request.args)
-                    count = len(resource_data)
-                    nb_pages = max(1, ceil(count / page_size))
-
-                    args["page[size]"] = page_size
-                    paginated_links["self"] = JSONAPIRouteRegistrar.make_url(links["self"], args)
-                    args["page[number]"] = 1
-                    paginated_links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    args["page[number]"] = nb_pages
-                    paginated_links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page > 1:
-                        args["page[number]"] = max(1, num_page - 1)
-                        paginated_links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page < nb_pages:
-                        args["page[number]"] = min(nb_pages, num_page + 1)
-                        paginated_links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-
-                    # perform the pagination
-                    resource_data = resource_data[(num_page - 1) * page_size:min(num_page * page_size, count)]
-                    links.update(paginated_links)
-
-                return JSONAPIResponseFactory.make_data_response(resource_data, links=links)
+                except (AttributeError, ValueError, OperationalError) as e:
+                    return JSONAPIResponseFactory.make_errors_response(
+                        {"status": 400, "details": str(e)}, status=400
+                    )
 
         resource_endpoint.__name__ = "%s_%s_%s" % (
-            facade_class.TYPE_PLURAL, rel_name.replace("-", "_"), resource_endpoint.__name__
+            facade_class.TYPE_PLURAL.replace("-", "_"), rel_name.replace("-", "_"), resource_endpoint.__name__
         )
         # register the rule
         api_bp.add_url_rule(rule, endpoint=resource_endpoint.__name__, view_func=resource_endpoint)

@@ -10,24 +10,31 @@
         {% if title %}<title>{{ title }}</title>{% endif %}
     {% endblock %}
 
+    <link href="https://fonts.googleapis.com/css?family=Bitter" rel="stylesheet">
+
     <link rel="stylesheet" href="{{ url_for('app_bp.static', filename='css/dicotopo.css') }}">
     <link rel="stylesheet" href="{{ url_for('app_bp.static', filename='css/main.css') }}">
     <script defer src="https://use.fontawesome.com/releases/v5.2.0/js/all.js"></script>
     {% block head_scripts %}
     {% endblock head_scripts %}
 </head>
-<body>
+<body >
 
 {% block hero %}
-    <section class="hero is-light">
-        <div class="hero-head">
+    <section class="hero">
+        <div class="hero-head has-background-white">
             {% block navbar %}
-                <nav class="navbar is-light" role="navigation" aria-label="main navigation">
+                <nav class="navbar" role="navigation" aria-label="main navigation">
                     <div class="navbar-brand">
                         <a class="navbar-item" href="{{ url_for('app_bp.index') }}">
                             <img src="{{ url_for('app_bp.static', filename='images/logo-ecole-nationale-des-chartes-header.png') }}"
                                  alt="École Nationale des Chartes - PSL" width="130" height="30p">
                         </a>
+                        <a class="navbar-item" href="{{ url_for('app_bp.index') }}">
+                            <img src="http://cths.fr/dico-topo/img/global/logo-cths.png"
+                                 alt="CTHS - PSL" height="30p">
+                        </a>
+
                         <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
                           <span aria-hidden="true"></span>
                           <span aria-hidden="true"></span>
@@ -36,7 +43,7 @@
                     </div>
                     <div class="navbar-menu  is-active">
                         <a class="navbar-item breadcrumb-index" href="">
-                            <div class="title is-size-5 ">Dico Topo</div>
+                            <div class="title website-title">Dictionnaire topographique de la France</div>
                         </a>
                         {% block breadcrumb %} {% endblock %}
                     </div>
@@ -71,12 +78,6 @@
 {% block content %}
     {% block app_content %}{% endblock %}
 {% endblock %}
-
-<script type="text/javascript">
-    document.addEventListener("DOMContentLoaded", function (event) {
-
-    });
-</script>
 
 {% block scripts %}
 {% endblock %}
