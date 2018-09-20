@@ -39,12 +39,14 @@ class Placename(db.Model):
 
     # relationships
     commune = db.relationship(
-        'InseeCommune', backref=db.backref('placenames'),
-        primaryjoin="InseeCommune.insee_code==Placename.commune_insee_code"
+        'InseeCommune', backref=db.backref('placename', uselist=False),
+        primaryjoin="InseeCommune.insee_code==Placename.commune_insee_code",
+        uselist=False
     )
     localization_commune = db.relationship(
         'InseeCommune', backref=db.backref('localized_placenames'),
-        primaryjoin="InseeCommune.insee_code==Placename.localization_commune_insee_code"
+        primaryjoin="InseeCommune.insee_code==Placename.localization_commune_insee_code",
+        uselist=False
     )
     localization_placename = db.relationship('Placename')
 

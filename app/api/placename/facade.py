@@ -120,6 +120,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
         return {
             **self.resource_identifier,
             "attributes": {
+                "placename_id": self.obj.placename_id,
                 "label": self.obj.label,
                 "country": self.obj.country,
                 "dpt": self.obj.dpt,

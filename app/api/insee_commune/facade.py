@@ -45,22 +45,37 @@ class CommuneFacade(JSONAPIAbstractFacade):
     def get_canton_resource(self):
         return None if self.obj.canton is None else InseeRefFacade(self.url_prefix, self.obj.canton).resource
 
-    def get_placenames_resource_identifiers(self):
+    def get_localized_placenames_resource_identifiers(self):
         from app.api.placename.facade import PlacenameFacade
-        return [] if self.obj.placenames is None else [PlacenameFacade(self.url_prefix, c).resource_identifier for c in
-                                                       self.obj.placenames]
+        return [] if self.obj.localized_placenames is None else [PlacenameFacade(self.url_prefix, c).resource_identifier
+                                                                 for c in self.obj.localized_placenames]
 
-    def get_placenames_resource(self):
+    def get_localized_placenames_resource(self):
         from app.api.placename.facade import PlacenameFacade
-        return [] if self.obj.placenames is None else [PlacenameFacade(self.url_prefix, c).resource for c in self.obj.placenames]
+        return [] if self.obj.localized_placenames is None else [PlacenameFacade(self.url_prefix, c).resource
+                                                                 for c in self.obj.localized_placenames]
+
+    def get_placename_resource_identifier(self):
+        from app.api.placename.facade import PlacenameFacade
+        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix,  self.obj.placename).resource_identifier
+
+    def get_placename_resource(self):
+        from app.api.placename.facade import PlacenameFacade
+        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix,  self.obj.placename).resource
+
 
     @property
     def relationships(self):
         return {
-            "placenames": {
-                "links": self._get_links(rel_name="placenames"),
-                "resource_identifier_getter": self.get_placenames_resource_identifiers,
-                "resource_getter": self.get_placenames_resource
+            "localized-placenames": {
+                "links": self._get_links(rel_name="localized-placenames"),
+                "resource_identifier_getter": self.get_localized_placenames_resource_identifiers,
+                "resource_getter": self.get_localized_placenames_resource
+            },
+            "placename": {
+                "links": self._get_links(rel_name="placename"),
+                "resource_identifier_getter": self.get_placename_resource_identifier,
+                "resource_getter": self.get_placename_resource
             },
             "region": {
                 "links": self._get_links(rel_name="region"),
