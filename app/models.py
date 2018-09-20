@@ -98,10 +98,10 @@ class InseeCommune(db.Model):
     longlat = db.Column(db.String(100))
 
     # relationships
-    region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id")
-    departement = db.relationship('InseeRef', primaryjoin="InseeCommune.DEP_id==InseeRef.id")
-    arrondissement = db.relationship('InseeRef', primaryjoin="InseeCommune.AR_id==InseeRef.id")
-    canton = db.relationship('InseeRef', primaryjoin="InseeCommune.CT_id==InseeRef.id")
+    region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id", backref=db.backref('communes_region'))
+    departement = db.relationship('InseeRef', primaryjoin="InseeCommune.DEP_id==InseeRef.id", backref=db.backref('communes_departement'))
+    arrondissement = db.relationship('InseeRef', primaryjoin="InseeCommune.AR_id==InseeRef.id", backref=db.backref('communes_arrondissement'))
+    canton = db.relationship('InseeRef', primaryjoin="InseeCommune.CT_id==InseeRef.id", backref=db.backref('communes_canton'))
 
 
 class InseeRef(db.Model):

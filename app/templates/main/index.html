@@ -26,22 +26,58 @@
 
 
 {% block scripts %}
+
+
 <script type="text/javascript">
+
+    function makeRequest (method, url, responseType='json') {
+      return new Promise(function (resolve, reject) {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        xhr.responseType = responseType;
+        xhr.onload = function () {
+          if (this.status >= 200 && this.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject({
+              status: this.status,
+              statusText: xhr.statusText
+            });
+          }
+        };
+        xhr.onerror = function () {
+          reject({
+            status: this.status,
+            statusText: xhr.statusText
+          });
+        };
+        xhr.send();
+      });
+    }
+
     function go() {
-        const map = L.map("viewerDiv").setView([48.845, 2.424], 5);
+
+        const map = L.map(
+            "viewerDiv", {
+                preferCanvas : true
+            }).setView([48.845, 2.424], 5);
+
         const lyrOSM= L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
+        /*
         const lyrOrtho = L.geoportalLayer.WMTS({
             layer: "ORTHOIMAGERY.ORTHOPHOTOS",
         });
+
         const lyrMaps = L.geoportalLayer.WMTS({
             layer: "GEOGRAPHICALGRIDSYSTEMS.MAPS",
         }, { // leafletParams
             opacity: 0.7
         });
+        */
 
-        map.addLayer(lyrOrtho);
+        //map.addLayer(lyrOrtho);
         map.addLayer(lyrOSM) ;
-        map.addLayer(lyrMaps) ;
+        //map.addLayer(lyrMaps) ;
         const layerSwitcher = L.geoportalControl.LayerSwitcher({
             layers : [{
                 layer : lyrOSM,
@@ -53,10 +89,26 @@
         });
         map.addControl(layerSwitcher);
 
+        /* add placenames markers */
+        const url = "{{url_for('api_bp.placenames_collection_endpoint')}}?include=commune&page[number]=1&page[size]=500";
+        console.log(url);
+        makeRequest('GET', url)
+        .then(function (datums) {
+              for (let commune of datums.included) {
+                  if (commune.attributes.longlat) {
+                      let longlat = commune.attributes.longlat.replace("(", "");
+                      longlat = longlat.replace(")", "");
+                      longlat = longlat.split(",");
+                      let lat = parseFloat(longlat[0].trim());
+                      let long = parseFloat(longlat[1].trim());
+                      L.marker([long, lat], {title: commune.attributes.insee_code}).addTo(map);
+                  }
+              }
+        });
     }
 
     Gp.Services.getConfig({
-        apiKey : "jhyvi0fgmnuxvfv0zjzorvdn",
+        apiKey : "4bgxfnc1ufj44pmxpsloxq6j",
         onSuccess : go
     }) ;
 

@@ -45,9 +45,23 @@ class CommuneFacade(JSONAPIAbstractFacade):
     def get_canton_resource(self):
         return None if self.obj.canton is None else InseeRefFacade(self.url_prefix, self.obj.canton).resource
 
+    def get_placenames_resource_identifiers(self):
+        from app.api.placename.facade import PlacenameFacade
+        return [] if self.obj.placenames is None else [PlacenameFacade(self.url_prefix, c).resource_identifier for c in
+                                                       self.obj.placenames]
+
+    def get_placenames_resource(self):
+        from app.api.placename.facade import PlacenameFacade
+        return [] if self.obj.placenames is None else [PlacenameFacade(self.url_prefix, c).resource for c in self.obj.placenames]
+
     @property
     def relationships(self):
         return {
+            "placenames": {
+                "links": self._get_links(rel_name="placenames"),
+                "resource_identifier_getter": self.get_placenames_resource_identifiers,
+                "resource_getter": self.get_placenames_resource
+            },
             "region": {
                 "links": self._get_links(rel_name="region"),
                 "resource_identifier_getter": self.get_region_resource_identifier,
@@ -76,6 +90,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
         return {
             **self.resource_identifier,
             "attributes": {
+                'insee_code': self.obj.insee_code,
                 'NCCENR': self.obj.NCCENR,
                 'ARTMIN': self.obj.ARTMIN,
                 'longlat': self.obj.longlat

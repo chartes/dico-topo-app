@@ -191,7 +191,6 @@ class JSONAPIRouteRegistrar(object):
                 )
 
         collection_endpoint.__name__ = "%s_%s" % (facade_class.TYPE_PLURAL.replace("-", "_"), collection_endpoint.__name__)
-        print("register :", collection_endpoint.__name__)
         # register the rule
         api_bp.add_url_rule(get_collection_rule, endpoint=collection_endpoint.__name__, view_func=collection_endpoint)
 
