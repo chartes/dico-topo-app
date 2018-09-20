@@ -8,7 +8,7 @@ class JSONAPIAbstractFacade(object):
     TYPE = "ABSTRACT-TYPE"
     TYPE_PLURAL = "ABSTRACT-TYPE-PLURAL"
 
-    ITEMS_PER_PAGE = 500
+    ITEMS_PER_PAGE = 10000
 
     def __init__(self, url_prefix, obj):
         self.obj = obj
