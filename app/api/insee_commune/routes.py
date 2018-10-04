@@ -20,6 +20,9 @@ def register_insee_commune_api_urls(app):
     def register_placename_relationship_url(rel_name):
         return app.api_url_registrar.register_relationship_get_route(get_commune, CommuneFacade, rel_name)
 
+    register_placename_relationship_url('placename')
+    register_placename_relationship_url('localized-placenames')
+
     register_placename_relationship_url('region')
     register_placename_relationship_url('departement')
     register_placename_relationship_url('arrondissement')

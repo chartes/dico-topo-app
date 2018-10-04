@@ -1,0 +1,47 @@
+
+#placename-commentaire {
+  margin-top: 8px;
+}
+
+#placename-old-labels {
+}
+
+#placename-old-labels ul {
+  list-style-type: '\002011';
+}
+
+#placename-old-labels li {
+  padding-left: 8px;
+}
+
+#placename-old-labels li:first-letter {
+  text-transform: capitalize;
+}
+
+#placename-card {
+    border-radius: 6px;
+}
+#placename-card .has-text-grey-light{
+    font-weight: bold;
+}
+
+#placename-compact-cards {
+    margin-top: 12px;
+}
+.placename-compact-card span {
+    padding: 6px;
+}
+.placename-compact-card .description {
+    border-left: 1px solid gainsboro;
+}
+
+#viewer-intro {
+    margin-bottom: 40px;
+}
+
+.placename-compact-card .card:last-child {
+    border-radius: unset unset 6px 6px;
+}
+#linked-placenames-card {
+    border-radius: 6px 6px unset unset;
+}
