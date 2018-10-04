@@ -1,14 +1,8 @@
 {% extends 'base.html' %}
 
     {% block head_scripts %}
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/leaflet.js"></script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/leaflet.css" />
-
-        <link rel="stylesheet" href="{{ url_for('app_bp.static', filename='css/GpPluginLeaflet.css') }}"/>
-        <script src="{{ url_for('app_bp.static', filename='js/GpPluginLeaflet.js') }}"></script>
 
     {% endblock head_scripts %}
-
 
 {% block content %}
 
@@ -20,67 +14,20 @@
                   Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio, cumque nihil impedit, quo minus id, quod maxime placeat, facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet, ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat.
                 </p>
             </div>
-            <div class="columns">
-                <div class="column">
-                    <div id="viewerDiv" style="width:1000px; height:800px;"></div>
-                </div>
-                <div id="placename-column" class="column">
 
-                <div class="box">
-                  <article class="media">
-                    <div class="media-content">
-                      <div class="content">
-                        <p>
-                          <strong>Formulaire de recherche</strong> <small>@johnsmith</small> <small>31m</small>
-                          <br>
-                          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean efficitur sit amet massa fringilla egestas. Nullam condimentum luctus turpis.
-                        </p>
-                      </div>
-                      <nav class="level is-mobile">
-                        <div class="level-left">
-                          <a class="level-item" aria-label="reply">
-                            <span class="icon is-small">
-                              <i class="fas fa-reply" aria-hidden="true"></i>
-                            </span>
-                          </a>
-                          <a class="level-item" aria-label="retweet">
-                            <span class="icon is-small">
-                              <i class="fas fa-retweet" aria-hidden="true"></i>
-                            </span>
-                          </a>
-                          <a class="level-item" aria-label="like">
-                            <span class="icon is-small">
-                              <i class="fas fa-heart" aria-hidden="true"></i>
-                            </span>
-                          </a>
-                        </div>
-                      </nav>
-                    </div>
-                  </article>
-                </div>
+            <!-- react app config -->
+            <input type="hidden" id="enable-placename-map"/>
+            <input type="hidden" id="placename-collection-endpoint" value="{{url_for('api_bp.placenames_collection_endpoint')}}"/>
+            <input type="hidden" id="enable-placename-card"/>
+            <input type="hidden" id="placename-endpoint" value="{{url_for('api_bp.placenames_single_obj_endpoint', id='ID_PLACEHOLDER')}}"/>
+            <!-- react components -->
 
+            <div id="dicotopo-app"></div>
 
-                    <div id="placename-card" class="card is-invisible">
-                        <div class="card-header">
-                           <div id="placename-card-header-title" class="card-header-title is-size-5 has-text-grey-dark"></div>
-                           <a href="#" id="placename-card-export-json" class="card-header-icon has-text-grey-light" aria-label="more options">
-                               <span class="icon">
-                                   <i class="fas fa-file-export" aria-hidden="true"></i>
-                               </span>
-                           </a>
-                        </div>
-                        <div class="card-content">
-                            <p id="placename-description"  class="content"></p>
-                            <p id="placename-commentaire"  class="content"></p>
-                            <div id="placename-old-labels"  class="content"></div>
-                        </div>
-                        <div class="card-footer"></div>
-                    </div>
-                    <div id="placename-compact-cards" class="is-invisible"></div>
-                </div>
-            </div>
         </div>
     </section>
+
+    <script src="{{ url_for('app_bp.static', filename='js/index.bundle.js') }}"></script>
 
 {% endblock content %}
 
@@ -90,186 +37,16 @@
 
 <script type="text/javascript">
 
-    function makeRequest (method, url, responseType='json') {
-      return new Promise(function (resolve, reject) {
-        const xhr = new XMLHttpRequest();
-        xhr.open(method, url);
-        xhr.responseType = responseType;
-        xhr.onload = function () {
-          if (this.status >= 200 && this.status < 300) {
-            resolve(xhr.response);
-          } else {
-            reject({
-              status: this.status,
-              statusText: xhr.statusText
-            });
-          }
-        };
-        xhr.onerror = function () {
-          reject({
-            status: this.status,
-            statusText: xhr.statusText
-          });
-        };
-        xhr.send();
-      });
-    }
-
-    function get_related_resource_from_included_list(data, resource_identifiers) {
-        if (!Array.isArray(resource_identifiers)) {
-            resource_identifiers = [resource_identifiers];
-        }
-        let resources = [];
-        for (let resource_identifier of resource_identifiers) {
-            for (let resource of data) {
-                if (resource.type === resource_identifier.type && resource.id === resource_identifier.id) {
-                    resources.push(resource);
-                    break;
-                }
-            }
-        }
-        return resources;
-    }
-
-    function load_placename_markers(map) {
-        const url = "{{url_for('api_bp.placenames_collection_endpoint')}}?include=commune&page[number]=1&page[size]=250";
-        makeRequest('GET', url)
-        .then(function (json_data) {
-              for (let commune of json_data.included) {
-                  if (commune.attributes.longlat) {
-                      /* unbox the longlat field */
-                      let longlat = commune.attributes.longlat.replace("(", "");
-                      longlat = longlat.replace(")", "");
-                      longlat = longlat.split(",");
-                      let lat = parseFloat(longlat[0].trim());
-                      let long = parseFloat(longlat[1].trim());
-                      /* get the related localized placenames */
-                      const localized_placenames = get_related_resource_from_included_list(
-                          json_data.data,
-                          commune.relationships["localized-placenames"].data
-                      );
-                      const commune_placename =  get_related_resource_from_included_list(
-                          json_data.data,
-                          commune.relationships["placename"].data
-                      );
-                      /* add a new marker */
-                      const new_marker = L.marker([long, lat], {title: commune.attributes.insee_code}).addTo(map);
-                      new_marker.on('mouseover',function(ev) {
-                         display_placename_card(commune, commune_placename[0], localized_placenames);
-                      });
-                  }
-              }
-        });
-    }
-
-    function display_placename_compact_card(placename) {
-        document.getElementById("placename-compact-cards").innerHTML += `
-           <div class="placename-compact-card">
-               <div class="card">
-                   <div class="card-header">
-                       <p class="card-header-title">
-                          <span class="has-text-grey-dark">${placename.attributes.label},</span><span style="font-weight: normal">${placename.attributes.desc}</span>
-                       </p>
-                   </div>
-               </div>
-           </div>
-        `;
-    }
-
-    function display_placename_card(commune, commune_placename, localized_placenames) {
-        const card = document.getElementById("placename-card");
-        const placename_label = document.getElementById("placename-card-header-title");
-        const placename_description = document.getElementById("placename-description");
-        const placename_commentaire = document.getElementById("placename-commentaire");
-        const placename_old_labels = document.getElementById("placename-old-labels");
-        const placename_export_json = document.getElementById("placename-card-export-json");
-
-        card.classList.remove("is-invisible");
-
-        placename_description.innerHTML = '';
-        placename_commentaire.innerHTML = '';
-        placename_old_labels.innerHTML = '';
-
-        // request the commune placename and include some related resources
-        let url = "{{url_for('api_bp.placenames_single_obj_endpoint', id='ID_PLACEHOLDER')}}?include=old-labels,alt-labels";
-        url = url.replace('ID_PLACEHOLDER', commune_placename.attributes.placename_id);
-        makeRequest('GET', url)
-        .then(function (placename_doc) {
-
-            placename_label.innerText = `${placename_doc.data.attributes.label}`;
-            placename_export_json.href = placename_doc.links.self;
-            placename_description.innerHTML = `<u class="has-text-grey-light">Description :</u><p>${placename_doc.data.attributes.desc}</p>`;
-            placename_commentaire.innerHTML = `<u class="has-text-grey-light">Commentaire :</u><p>${placename_doc.data.attributes.comment}</p>`;
-            console.log(placename_doc, placename_doc.data.attributes.label,  placename_label);
-
-            /* old labels */
-            if (placename_doc.data.relationships["old-labels"].data.length > 0) {
-                const old_labels_resources =  get_related_resource_from_included_list(
-                    placename_doc.included,
-                    placename_doc.data.relationships["old-labels"].data
-                );
-                let html = '<u class="has-text-grey-light">Noms anciens :</u><ul>';
-
-                for (let old_label of old_labels_resources) {
-                    const label = old_label.attributes["rich-label"];
-                    let date = old_label.attributes["rich-date"];
-                    let reference = old_label.attributes["rich-reference"];
-                    reference = reference ? `(${reference})` : "";
-                    html += `<li>${label}, ${date} ${reference}</li>`;
-                }
-
-                html += '</ul>';
-                placename_old_labels.innerHTML = html;
-            }
-
-            /* alt labels */
-            if (placename_doc.data.relationships["alt-labels"].data.length > 0) {
-                const alt_label_resources =  get_related_resource_from_included_list(
-                    placename_doc.included,
-                    placename_doc.data.relationships["alt-labels"].data
-                );
-                let alt_labels = [];
-                for (let alt_label of alt_label_resources) {
-                    alt_labels.push(alt_label.attributes.label);
-                }
-                //placename_label.innerText += ` (aussi appelé ${alt_labels.join(",")})`;
-
-            }
-
-        });
-
-        /* load the related placenames info */
-        const compact_placenames_cards = document.getElementById("placename-compact-cards");
-        if (localized_placenames.length > 0) {
-            compact_placenames_cards.innerHTML = `
-            <div class="placename-compact-card">
-                <div id="linked-placenames-card" class="card">
-                    <div class="card-header">
-                        <p class="card-header-title is-size-5 has-text-grey-dark">
-                           Lieux notables sur la commune
-                        </p>
-                    </div>
-                </div>
-            </div>`;
-
-            for (let placename of localized_placenames) {
-                display_placename_compact_card(placename);
-            }
-            compact_placenames_cards.classList.remove('is-invisible');
-        } else {
-            compact_placenames_cards.classList.add('is-invisible');
-        }
-    }
 
     function go() {
-
+         /*
         const map = L.map(
             "viewerDiv", {
                 preferCanvas : true
             }).setView([48.845, 2.424], 5);
 
         const lyrOSM= L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
-        /*
+
         const lyrOrtho = L.geoportalLayer.WMTS({
             layer: "ORTHOIMAGERY.ORTHOPHOTOS",
         });
@@ -279,7 +56,7 @@
         }, { // leafletParams
             opacity: 0.7
         });
-        */
+
 
         //map.addLayer(lyrOrtho);
         map.addLayer(lyrOSM) ;
@@ -294,15 +71,15 @@
             }]
         });
         map.addControl(layerSwitcher);
+        Gp.Services.getConfig({
+            apiKey : "ld0jgrlpaway88fw6u4x3h38",
+            onSuccess : go
+        }) ;
 
-        /* add placenames markers */
-        load_placename_markers(map);
+  */
+        //load_placename_markers(window.API_ENDPOINTS, map, "placename-card", "placename-compact-cards");
     }
 
-    Gp.Services.getConfig({
-        apiKey : "ld0jgrlpaway88fw6u4x3h38",
-        onSuccess : go
-    }) ;
 
 </script>
 {% endblock scripts %}
