@@ -46,7 +46,7 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
                 "term": self.obj.term
             },
             "relationships": self.get_exposed_relationships(),
-            "meta": {},
+            "meta": self.meta,
             "links": {
                 "self": self.self_link
             }

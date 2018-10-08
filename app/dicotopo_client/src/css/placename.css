@@ -20,13 +20,15 @@
 
 #placename-card {
     border-radius: 6px;
+    background-color: #F7F7F7;
+    margin-top: 8px;
+    margin-bottom: 8px;
 }
 #placename-card .has-text-grey-light{
     font-weight: bold;
 }
 
 #placename-compact-cards {
-    margin-top: 12px;
 }
 .placename-compact-card span {
     padding: 6px;

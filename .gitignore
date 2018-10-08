@@ -5,3 +5,5 @@ __pycache__
 venv
 *.pyc
 tests/data/dicotopo-test.sqlite
+/app/dicotopo_client/node_modules/
+/db/dicotopo-dev (copie 1).sqlite

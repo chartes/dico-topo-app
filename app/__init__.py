@@ -1,3 +1,4 @@
+from elasticsearch import Elasticsearch
 from flask import Flask, Blueprint
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
@@ -6,7 +7,6 @@ from sqlalchemy.engine import Engine
 from werkzeug.contrib.profiler import ProfilerMiddleware
 
 from app.api.response_factory import JSONAPIResponseFactory
-from config import config
 
 
 # Initialize Flask extensions
@@ -41,15 +41,22 @@ def create_app(config_name="dev"):
     """ Create the application """
     app = Flask(__name__)
     if not isinstance(config_name, str):
+        from config import config
         app.config.from_object(config)
     else:
+        from dotenv import load_dotenv
+        print("Load environment variables from:", 'dicotopo-%s.env' % config_name)
+        # It is important to load the .env file before parsing the config file
+        load_dotenv('dicotopo-%s.env' % config_name, verbose=True)
+        from config import config
         app.config.from_object(config[config_name])
 
     app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
-    #app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
     db.init_app(app)
     config[config_name].init_app(app)
+
+    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) if app.config['ELASTICSEARCH_URL'] else None
 
     # =====================================
     # Import models & app routes
@@ -64,7 +71,6 @@ def create_app(config_name="dev"):
 
     from app.api.route_registrar import JSONAPIRouteRegistrar
     app.api_url_registrar = JSONAPIRouteRegistrar(app.config["API_VERSION"], app.config["API_URL_PREFIX"])
-    print(app.config["SERVER_NAME"])
 
     from app.api import routes
     from app.api.insee_commune.routes import register_insee_commune_api_urls
@@ -87,8 +93,20 @@ def create_app(config_name="dev"):
     app.register_blueprint(api_bp)
 
     if app.config["DB_DROP_AND_CREATE_ALL"]:
+        print("DB_DROP_AND_CREATE_ALL")
         with app.app_context():
             db.drop_all()
             db.create_all()
+
+    if "REINDEX" in app.config and app.config["REINDEX"]:
+        print("================================")
+        print("REINDEXING.... please be patient")
+        print("================================")
+        with app.app_context():
+            for m in (models.Placename, models.FeatureType, models.InseeCommune,
+                      models.InseeRef, models.PlacenameAltLabel, models.PlacenameOldLabel):
+                print('...%s' % m.__tablename__)
+                app.elasticsearch.indices.delete(index=m.__tablename__, ignore=[404])
+                m.reindex()
 
     return app

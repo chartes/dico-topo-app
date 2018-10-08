@@ -4,6 +4,7 @@ import PlacenameMap from './placename-map'
 
 import "../css/dicotopo-app.css"
 import PlacenameCard from "./placename-card";
+import PlacenameSearchForm from "./placename-search-form";
 
 
 
@@ -77,16 +78,23 @@ class DicotopoApp extends React.Component {
       }
     }
 
+    renderSearchForm() {
+        return (
+          <PlacenameSearchForm />
+        );
+    }
+
 
     render() {
         if (this.state.enablePlacenameMap) {
             return (
                 <div className={"container is-fluid"}>
+                    {this.renderSearchForm()}
                     <div className={"columns"}>
                         <div className={"column"}>
                             <PlacenameMap markersData={this.state.mapMarkers} onMarkerClick={this.setPlacenameCard.bind(this)}/>
                         </div>
-                        <div className={"column"}>
+                        <div className={"column is-half"}>
                             {this.renderPlacenameCard()}
                         </div>
                     </div>
@@ -95,7 +103,8 @@ class DicotopoApp extends React.Component {
         } else {
             return (
                 <div className={"container is-fluid"}>
-                         {this.renderPlacenameCard()}
+                     {this.renderSearchForm()}
+                     {this.renderPlacenameCard()}
                 </div>
             );
         }

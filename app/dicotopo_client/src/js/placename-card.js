@@ -43,10 +43,10 @@ class PlacenameCard extends React.Component {
               }
               return res.json();
           })
-          .then((result) =>
+          .then((result) => {
               this.setState({
                   title: result.data.attributes.label,
-                  placenameId: result.data.attributes.placename_id,
+                  placenameId: result.data.attributes.id,
                   url: result.links.self,
                   numStartPage: result.data.attributes["num-start-page"],
                   description: result.data.attributes.desc,
@@ -57,8 +57,8 @@ class PlacenameCard extends React.Component {
 
                   error: null,
                   isLoaded: true
-              })
-          )
+              });
+          })
           .catch(error => {
               console.log("error while fetching placename:", error);
               this.setState({isLoaded : true, error: error.statusText});
@@ -67,22 +67,27 @@ class PlacenameCard extends React.Component {
 
   renderTitle() {
       return(
-          <div id="placename-card-header-title" className="card-header-title is-size-5 has-text-grey-dark"
+          <div id="placename-card-header-title" className="card-header-title has-text-grey-dark is-size-4"
              dangerouslySetInnerHTML={{__html:`${this.state.title}`}}>
           </div>
       )
   }
 
-  renderDescription() {
+  renderDescription(compact=false) {
       if (!this.state.description)
           return null;
       else {
-          return  (
-              <div id="placename-description" className="content">
-                  <u className="has-text-grey-light">Description :</u>
-                  <p dangerouslySetInnerHTML={{__html: this.state.description}}></p>
-              </div>
-          )
+          if (compact) {
+              return <div dangerouslySetInnerHTML={{__html: this.state.description}}></div>;
+          }
+          else {
+              return  (
+                  <div id="placename-description" className="content">
+                      <u className="has-text-grey-light">Description :</u>
+                      <p dangerouslySetInnerHTML={{__html: this.state.description}}></p>
+                  </div>
+              )
+          }
       }
   }
 
@@ -99,6 +104,11 @@ class PlacenameCard extends React.Component {
       }
   }
 
+  renderAttribute(obj, key) {
+    return  obj.attributes[key] ? obj.attributes[key] : "" ;
+  }
+
+
   renderOldLabels() {
       if (this.state.oldLabels.length === 0) {
           return null;
@@ -108,13 +118,13 @@ class PlacenameCard extends React.Component {
 
           return (
               <div id="placename-old-labels" className="content">
-                  <u className="has-text-grey-light">Noms anciens :</u>
+                  <u className="has-text-grey-light">Formes anciennes :</u>
                   <ul>
                     {this.state.oldLabels.map(oldLabel => (
                       <li key={oldLabel.id}
                           dangerouslySetInnerHTML={{
                         __html: `
-                          ${oldLabel.attributes["rich-label"]}, ${oldLabel.attributes["rich-date"]}
+                          ${this.renderAttribute(oldLabel, "rich-label")}, ${this.renderAttribute(oldLabel, "rich-date")}
                           ${encapsulate_ref(oldLabel.attributes["rich-reference"])}
                         `
                       }}>
@@ -130,53 +140,65 @@ class PlacenameCard extends React.Component {
           return null;
       } else {
           return this.state.linkedPlacenames.map(placename => (
-              <div key={placename.id} className="placename-compact-card">
-                  <div className="card">
-                      <div className="card-header">
-                          <p className="card-header-title">
-                              <span className="has-text-grey-dark">{placename.attributes.label},</span>
-                              <span style={{fontWeight: "normal"}} dangerouslySetInnerHTML={{
-                                  __html: placename.attributes.desc
-                              }}></span>
-                          </p>
-                      </div>
-                  </div>
-              </div>)
-          )
+              <PlacenameCard key={placename.id} url={placename.links.self} compact={true}/>
+          ))
       }
   }
 
-  render () {
-
-      if(this.state.error) {
-          return <div className={"message is-danger"}>{this.state.error}</div>
-      }
-
-      let invisible_classname = "";
-      if(!this.state.isLoaded) {
-        invisible_classname = "is-invisible"
-      }
-
+  renderFullCard() {
       return (
           <div>
-              <div id="placename-card" className={"card " + invisible_classname}>
+              <div id="placename-card" className={"card " + this.state.isLoaded ? "" : "is-invisible"}>
                   <div className="card-header">
                       {this.renderTitle()}
-                      <a className={"is-pulled-right"} href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
+                      <div className={"card-header-title"} style={{display: "block", lineHeight: "40px"}}>
+                        <a className={"is-pulled-right"} href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
+                      </div>
                   </div>
                   <div className="card-content">
-                      {this.state.numStartPage}
                       {this.renderDescription()}
                       {this.renderComment()}
                       {this.renderOldLabels()}
                   </div>
-                  <div className="card-footer"></div>
               </div>
               <div>
                   {this.renderLinkedPlacenames()}
               </div>
           </div>
       );
+  }
+
+  renderCompactCard() {
+      return (
+          <div>
+              <div id="placename-card" className={"card " + this.state.isLoaded ? "" : "is-invisible"}>
+                  <div className="card-header" style={{paddingTop: "0.5em", paddingBottom: "0.5em"}}>
+                      <div id="placename-card-header-title" className="card-header-title has-text-grey-dark is-size-6"
+                            dangerouslySetInnerHTML={{
+                                __html:`${this.state.title}, <span style="font-weight: normal; padding-left: 0.5em">${this.state.description}</span>`
+                            }}>
+                      </div>
+                      <div className={"card-header-title"} style={{display: "block"}}>
+                        <a className={"is-pulled-right"} href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
+                      </div>
+                  </div>
+
+              </div>
+          </div>
+      );
+  }
+
+  render () {
+
+      if (this.state.error) {
+          return <div className={"message is-danger"}>{this.state.error}</div>
+      }
+      if (this.props.compact) {
+          return this.renderCompactCard();
+      }
+      else {
+          return this.renderFullCard();
+      }
   }
 }
 
