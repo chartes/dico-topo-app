@@ -1,3 +1,4 @@
+from app.models import SearchableMixin
 
 
 class JSONAPIAbstractFacade(object):
@@ -51,6 +52,17 @@ class JSONAPIAbstractFacade(object):
     @property
     def relationships(self):
         raise NotImplementedError
+
+    @property
+    def search_fields(self):
+        if isinstance(self.obj, SearchableMixin):
+            return self.obj.__searchable__
+        else:
+            return []
+
+    @property
+    def meta(self):
+        return {}
 
     def _get_links(self, rel_name):
         return {

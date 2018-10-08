@@ -1,7 +1,55 @@
 from app import db
 
+from app.search import add_to_index, remove_from_index, query_index
 
-class Placename(db.Model):
+
+class SearchableMixin(object):
+    @classmethod
+    def search(cls, expression, fields=None, page=None, per_page=None):
+        ids, total = query_index(index=cls.__tablename__, query=expression,
+                                 fields=fields, page=page, per_page=per_page)
+        print(expression, ids, total)
+        if total == 0:
+            return cls.query.filter_by(id=0), 0
+        when = []
+        for i in range(len(ids)):
+            when.append((ids[i], i))
+
+        return cls.query.filter(cls.id.in_(ids)).order_by(
+            db.case(when, value=cls.id)), total
+
+    @classmethod
+    def before_commit(cls, session):
+        session._changes = {
+            'add': list(session.new),
+            'update': list(session.dirty),
+            'delete': list(session.deleted)
+        }
+
+    @classmethod
+    def after_commit(cls, session):
+        for obj in session._changes['add']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        for obj in session._changes['update']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        for obj in session._changes['delete']:
+            if isinstance(obj, SearchableMixin):
+                remove_from_index(obj.__tablename__, obj)
+        session._changes = None
+
+    @classmethod
+    def reindex(cls):
+        for obj in cls.query:
+            add_to_index(cls.__tablename__, obj)
+
+
+db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
+db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
+
+
+class Placename(SearchableMixin, db.Model):
     """Illustrate class-level docstring.
 
     Classes use a special whitespace convention: the opening and closing quotes
@@ -20,7 +68,9 @@ class Placename(db.Model):
     """
 
     __tablename__ = 'placename'
-    placename_id = db.Column(db.String(10), primary_key=True)
+    __searchable__ = ['label', 'desc', 'comment']
+
+    id = db.Column("placename_id", db.String(10), primary_key=True)
     label = db.Column(db.String(200), nullable=False)
     country = db.Column(db.String(2), nullable=False)
     dpt = db.Column(db.String(2), nullable=False)
@@ -40,34 +90,38 @@ class Placename(db.Model):
     # relationships
     commune = db.relationship(
         'InseeCommune', backref=db.backref('placename', uselist=False),
-        primaryjoin="InseeCommune.insee_code==Placename.commune_insee_code",
+        primaryjoin="InseeCommune.id==Placename.commune_insee_code",
         uselist=False
     )
     localization_commune = db.relationship(
         'InseeCommune', backref=db.backref('localized_placenames'),
-        primaryjoin="InseeCommune.insee_code==Placename.localization_commune_insee_code",
+        primaryjoin="InseeCommune.id==Placename.localization_commune_insee_code",
         uselist=False
     )
     localization_placename = db.relationship('Placename')
 
 
-class PlacenameAltLabel(db.Model):
+class PlacenameAltLabel(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'placename_alt_label'
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'label', name='_placename_label_uc'),
     )
+    __searchable__ = ['label']
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    placename_id = db.Column(db.String(10), db.ForeignKey(Placename.placename_id), index=True)
+    placename_id = db.Column(db.String(10), db.ForeignKey(Placename.id), index=True)
     label = db.Column(db.String(200))
 
     # relationships
     placename = db.relationship(Placename, backref=db.backref('alt_labels'))
 
 
-class PlacenameOldLabel(db.Model):
+class PlacenameOldLabel(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'placename_old_label'
+    __searchable__ = ['text_label_node', 'text_date']
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     old_label_id = db.Column(db.String(13), nullable=False, unique=True)
     placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), nullable=False, index=True)
@@ -87,10 +141,12 @@ class PlacenameOldLabel(db.Model):
     placename = db.relationship(Placename, backref=db.backref('old_labels'))
 
 
-class InseeCommune(db.Model):
+class InseeCommune(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'insee_commune'
-    insee_code = db.Column(db.String(5), primary_key=True)
+    __searchable__ = ['NCCENR']
+
+    id = db.Column("insee_code", db.String(5), primary_key=True)
     REG_id = db.Column(db.String(6), db.ForeignKey('insee_ref.id'), nullable=False, index=True)
     DEP_id = db.Column(db.String(7), db.ForeignKey('insee_ref.id'), nullable=False, index=True)
     AR_id = db.Column(db.String(8), db.ForeignKey('insee_ref.id'), index=True)
@@ -106,9 +162,11 @@ class InseeCommune(db.Model):
     canton = db.relationship('InseeRef', primaryjoin="InseeCommune.CT_id==InseeRef.id", backref=db.backref('communes_canton'))
 
 
-class InseeRef(db.Model):
+class InseeRef(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'insee_ref'
+    __searchable__ = ['label']
+
     id = db.Column(db.String(10), primary_key=True)
     type = db.Column(db.String(4), nullable=False, index=True)
     insee_code = db.Column(db.String(3), nullable=False, index=True)
@@ -120,12 +178,14 @@ class InseeRef(db.Model):
     children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
 
 
-class FeatureType(db.Model):
+class FeatureType(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'feature_type'
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'term', name='_placename_term_uc'),
     )
+    __searchable__ = ['term']
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), index=True)
     term = db.Column(db.String(400))

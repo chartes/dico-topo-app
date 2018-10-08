@@ -5,7 +5,7 @@ from app.models import Placename
 
 
 def get_placename(placename_id):
-    e = Placename.query.filter(Placename.placename_id == placename_id).first()
+    e = Placename.query.filter(Placename.id == placename_id).first()
     if e is None:
         kwargs = {"status": 404}
         errors = [{"status": 404, "title": "placename %s does not exist" % placename_id}]

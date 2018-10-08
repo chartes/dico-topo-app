@@ -10,7 +10,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
 
     @property
     def id(self):
-        return self.obj.placename_id
+        return self.obj.id
 
     @property
     def type(self):
@@ -120,7 +120,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
         return {
             **self.resource_identifier,
             "attributes": {
-                "placename_id": self.obj.placename_id,
+                "id": self.obj.id,
                 "label": self.obj.label,
                 "country": self.obj.country,
                 "dpt": self.obj.dpt,
@@ -130,7 +130,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
                 "comment": self.obj.comment
             },
             "relationships": self.get_exposed_relationships(),
-            "meta": {},
+            "meta": self.meta,
             "links": {
                 "self": self.self_link
             }

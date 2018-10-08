@@ -66,7 +66,7 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
                 "text-label-node": self.obj.text_label_node
             },
             "relationships": self.get_exposed_relationships(),
-            "meta": {},
+            "meta": self.meta,
             "links": {
                 "self": self.self_link
             }

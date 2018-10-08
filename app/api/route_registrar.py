@@ -72,6 +72,10 @@ class JSONAPIRouteRegistrar(object):
         def collection_endpoint():
             """
             Support filtering, sorting and pagination
+            - Search syntax:
+              search[fieldname1,fieldname2]=expression
+              or
+              search=expression
             - Filtering syntax :
               filter[field_name]=searched_value
               field_name MUST be a mapped field of the underlying queried model
@@ -98,9 +102,24 @@ class JSONAPIRouteRegistrar(object):
             }
 
             objs_query = model.query
+            count = None
             try:
+
+                # if request has search parameter
+                # (search request arg, search fieldnames)
+                search_parameters = [(f, [field.strip() for field in f[len('search['):-1].split(",")])
+                                      for f in request.args.keys() if f.startswith('search[') and f.endswith(']')]
+                if len(search_parameters) > 0 or "search" in request.args:
+                    if "search" in request.args:
+                        expression = request.args["search"]
+                        search_fields = ["*"]
+                    else:
+                        search_request_param, search_fields = search_parameters[0]
+                        expression = request.args[search_request_param]
+                    print("search parameters: ", search_fields, expression)
+                    objs_query, count = model.search(expression, fields=search_fields)
+
                 # if request has filter parameter
-                # TODO: implement some filtering operators (startswith, endswith, like..., is None) using a filter_operator request parameter ?
                 filter_criteriae = []
                 filters = [(f, f[len('filter['):-1])  # (filter_param, filter_fieldname)
                            for f in request.args.keys() if f.startswith('filter[') and f.endswith(']')]
@@ -121,7 +140,7 @@ class JSONAPIRouteRegistrar(object):
                         if criteria.startswith('-'):
                             sort_order = desc
                             criteria = criteria[1:]
-                        sort_criteriae.append(getattr(model, criteria))
+                        sort_criteriae.append(getattr(model, criteria.replace("-", "_")))
                     print("sort criteriae: ", request.args["sort"], sort_criteriae)
                     objs_query = objs_query.order_by(sort_order(*sort_criteriae))
                     # print(facade_class.get_sort_criteria('commune'))
@@ -139,7 +158,8 @@ class JSONAPIRouteRegistrar(object):
                     all_objs = pagination_obj.items
                     args = OrderedDict(request.args)
 
-                    count = JSONAPIRouteRegistrar.count(model)
+                    if count is None:
+                        count = JSONAPIRouteRegistrar.count(model)
                     nb_pages = max(1, ceil(count / page_size))
 
                     args["page[size]"] = page_size
@@ -182,7 +202,8 @@ class JSONAPIRouteRegistrar(object):
                 return JSONAPIResponseFactory.make_data_response(
                     [obj.resource for obj in facade_objs],
                     links=links,
-                    included_resources=included_resources
+                    included_resources=included_resources,
+                    meta={"search-fields": getattr(model, "__searchable__", [])}
                 )
 
             except (AttributeError, ValueError, OperationalError) as e:
@@ -225,7 +246,7 @@ class JSONAPIRouteRegistrar(object):
                         )
 
                 return JSONAPIResponseFactory.make_data_response(
-                    f_placename.resource, links=links, included_resources=included_resources
+                    f_placename.resource, links=links, included_resources=included_resources, meta=None
                 )
 
         single_obj_endpoint.__name__ = "%s_%s" % (facade_class.TYPE_PLURAL.replace("-", "_"), single_obj_endpoint.__name__)
@@ -242,8 +263,8 @@ class JSONAPIRouteRegistrar(object):
               The size cannot be greater than the limit defined in the corresponding Facade class
               If the page size is omitted, it is set to its default value (defined in the Facade class)
               If the page number is omitted, it is set to 1
-              Provide self,first,last,prev,next links for the collection (top-level)
-              Omit the prev link if the current page is the first one, omit the next link if it is the last one
+              Provides self,first,last,prev,next links for the collection (top-level)
+              Omits the prev link if the current page is the first one, omits the next link if it is the last one
         """
         # ===============================
         # Relationships self link route

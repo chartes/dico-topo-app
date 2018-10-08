@@ -11,7 +11,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
 
     @property
     def id(self):
-        return self.obj.insee_code
+        return self.obj.id
 
     @property
     def type(self):
@@ -105,13 +105,13 @@ class CommuneFacade(JSONAPIAbstractFacade):
         return {
             **self.resource_identifier,
             "attributes": {
-                'insee_code': self.obj.insee_code,
+                'insee-code': self.obj.id,
                 'NCCENR': self.obj.NCCENR,
                 'ARTMIN': self.obj.ARTMIN,
                 'longlat': self.obj.longlat
             },
             "relationships": self.get_exposed_relationships(),
-            "meta": {},
+            "meta": self.meta,
             "links": {
                 "self": self.self_link
             }

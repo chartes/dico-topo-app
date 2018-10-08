@@ -46,7 +46,7 @@ class PlacenameAltLabelFacade(JSONAPIAbstractFacade):
                 "label": self.obj.label
             },
             "relationships": self.get_exposed_relationships(),
-            "meta": {},
+            "meta": self.meta,
             "links": {
                 "self": self.self_link
             }
