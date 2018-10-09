@@ -61,7 +61,7 @@ class PlacenameCard extends React.Component {
           })
           .catch(error => {
               console.log("error while fetching placename:", error);
-              this.setState({isLoaded : true, error: error.statusText});
+              this.setState({isLoaded : true, error: error.statusText, ...this.state});
           });
   }
 
@@ -140,7 +140,7 @@ class PlacenameCard extends React.Component {
           return null;
       } else {
           return this.state.linkedPlacenames.map(placename => (
-              <PlacenameCard key={placename.id} url={placename.links.self} compact={true}/>
+              <PlacenameCard key={placename.id} url={placename.links.self} compact={true} visible={this.props.visible}/>
           ))
       }
   }
@@ -148,11 +148,11 @@ class PlacenameCard extends React.Component {
   renderFullCard() {
       return (
           <div>
-              <div id="placename-card" className={"card " + this.state.isLoaded ? "" : "is-invisible"}>
+              <div id="placename-card" className={"card " + (this.props.visible && this.state.isLoaded ? "" : "is-invisible")}>
                   <div className="card-header">
                       {this.renderTitle()}
-                      <div className={"card-header-title"} style={{display: "block", lineHeight: "40px"}}>
-                        <a className={"is-pulled-right"} href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
+                      <div className={"placename-permalink is-pulled-right"}>
+                        <div className="placename-permalink-label">permalien : </div> <a  href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
                       </div>
                   </div>
                   <div className="card-content">
@@ -171,15 +171,15 @@ class PlacenameCard extends React.Component {
   renderCompactCard() {
       return (
           <div>
-              <div id="placename-card" className={"card " + this.state.isLoaded ? "" : "is-invisible"}>
+              <div id="placename-card" className={"card " + (this.state.isLoaded && this.props.visible ? "" : "is-invisible")}>
                   <div className="card-header" style={{paddingTop: "0.5em", paddingBottom: "0.5em"}}>
                       <div id="placename-card-header-title" className="card-header-title has-text-grey-dark is-size-6"
                             dangerouslySetInnerHTML={{
                                 __html:`${this.state.title}, <span style="font-weight: normal; padding-left: 0.5em">${this.state.description}</span>`
                             }}>
                       </div>
-                      <div className={"card-header-title"} style={{display: "block"}}>
-                        <a className={"is-pulled-right"} href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
+                      <div className={"placename-permalink is-pulled-right"}>
+                          <a  href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
                       </div>
                   </div>
 

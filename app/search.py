@@ -24,7 +24,7 @@ def query_index(index, query, fields=None, page=None, per_page=None):
         return [], 0
     body = {
         'query': {
-            'multi_match': {
+            'query_string': {
                 'query': query,
                 'fields': ['*'] if fields is None or len(fields) == 0 else fields
             }
@@ -37,10 +37,14 @@ def query_index(index, query, fields=None, page=None, per_page=None):
         body["from"] = page
         body["size"] = per_page
 
-    search = current_app.elasticsearch.search(
-        index=index, doc_type=index,
-        body=body)
-    ids = [str(hit['_id']) for hit in search['hits']['hits']]
-    print(search['hits']['total'], index, body)
+    try:
+        search = current_app.elasticsearch.search(
+            index=index, doc_type=index,
+            body=body)
+        ids = [(str(hit['_id']), str(hit['_index'])) for hit in search['hits']['hits']]
+        print(search['hits']['total'], index, body)
+        return ids, search['hits']['total']
 
-    return ids, search['hits']['total']
+    except Exception as e:
+        print(e)
+        return [], 0

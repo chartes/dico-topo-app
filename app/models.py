@@ -5,13 +5,22 @@ from app.search import add_to_index, remove_from_index, query_index
 
 class SearchableMixin(object):
     @classmethod
-    def search(cls, expression, fields=None, page=None, per_page=None):
-        ids, total = query_index(index=cls.__tablename__, query=expression,
+    def search(cls, expression, fields=None, page=None, per_page=None, index=None):
+
+        # by default, search on the model table
+        # custom index allow to use multiple indexes: index="table1,table2,table3..."
+        if index is None:
+            index = cls.__tablename__
+
+        # perform the query
+        ids, total = query_index(index=index, query=expression,
                                  fields=fields, page=page, per_page=per_page)
         print(expression, ids, total)
         if total == 0:
             return cls.query.filter_by(id=0), 0
         when = []
+        #TODO recuperer les indexes et faire les bonnes requetes/jointures
+        ids = [id[0] for id in ids]
         for i in range(len(ids)):
             when.append((ids[i], i))
 
@@ -68,7 +77,7 @@ class Placename(SearchableMixin, db.Model):
     """
 
     __tablename__ = 'placename'
-    __searchable__ = ['label', 'desc', 'comment']
+    __searchable__ = ['label', 'desc']
 
     id = db.Column("placename_id", db.String(10), primary_key=True)
     label = db.Column(db.String(200), nullable=False)
