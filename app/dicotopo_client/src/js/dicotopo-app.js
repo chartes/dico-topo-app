@@ -22,7 +22,10 @@ class DicotopoApp extends React.Component {
             enablePlacenameCard : document.getElementById('enable-placename-card'),
 
             mapMarkers : [],
-            placenameUrl : document.getElementById('placename-endpoint').value
+            placenameUrl : document.getElementById('placename-endpoint').value,
+            placenameCardVisibility: false,
+            searchResultVisibility: false,
+            searchResult: null
         };
 
     }
@@ -51,28 +54,45 @@ class DicotopoApp extends React.Component {
                               placenameId: commune.relationships.placename.data.id
                           });
                       }
-                  }
-
-                  this.setState({
+                   }
+                   this.setState(prevState => ({
+                      ...prevState,
                       mapMarkers: mapMarkers
-                  })
+                   }))
                },
-                   (error) => {
+               (error) => {
 
                });
+       } else {
+           this.setState({
+               ...this.state,
+               placenameCardVisibility: true
+           })
        }
 
     }
 
     setPlacenameCard(placenameId) {
-        this.setState({
-            placenameUrl: get_endpoint_url("placename-endpoint", placenameId)
-        })
+        this.setState(prevState => ({
+            ...prevState,
+            placenameUrl: get_endpoint_url("placename-endpoint", placenameId),
+            placenameCardVisibility : true,
+            searchResultVisibility: false
+        }))
+    }
+
+    setSearchPlacenameResult(searchResult){
+        this.setState(prevState => ({
+            ...prevState,
+            searchResult: searchResult,
+            placenameCardVisibility: false,
+            searchResultVisibility: true
+        }))
     }
 
     renderPlacenameCard() {
       if (this.state.placenameUrl && this.state.placenameUrl.indexOf("ID_PLACEHOLDER") === -1) {
-        return <PlacenameCard url={this.state.placenameUrl}/>
+        return <PlacenameCard url={this.state.placenameUrl} visible={this.state.placenameCardVisibility}/>
       } else {
         return null;
       }
@@ -80,21 +100,55 @@ class DicotopoApp extends React.Component {
 
     renderSearchForm() {
         return (
-          <PlacenameSearchForm />
+            <PlacenameSearchForm onSearch={this.setSearchPlacenameResult.bind(this)}/>
         );
     }
 
+    renderSearchResult() {
+        if (!this.state.searchResult) {
+            return null;
+        }
+        else {
+            return (
+                <div style={{display: (this.state.searchResultVisibility ? "block" : "none")}}>
+                    <div>{this.state.searchResult.data.length} résultat(s)</div>
+                    <table className="table is-fullwidth is-hoverable is-stripped" >
+                        <thead>
+                        <tr>
+                            <th><abbr title="Position">Nom</abbr></th>
+                            <th>Description</th>
+                            <th><abbr title="Won">Permalien</abbr></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            {
+                                this.state.searchResult.data.map(placename  => (
+                                    <tr key={placename.id}>
+                                        <td>{placename.attributes.label}</td>
+                                        <td dangerouslySetInnerHTML={{__html: placename.attributes.desc}}></td>
+                                        <td><a href={"/dico-topo/placenames/"+placename.id}>{placename.id}</a></td>
+                                    </tr>
+                                ))
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+    }
 
     render() {
         if (this.state.enablePlacenameMap) {
             return (
                 <div className={"container is-fluid"}>
-                    {this.renderSearchForm()}
+
                     <div className={"columns"}>
                         <div className={"column"}>
                             <PlacenameMap markersData={this.state.mapMarkers} onMarkerClick={this.setPlacenameCard.bind(this)}/>
                         </div>
                         <div className={"column is-half"}>
+                            {this.renderSearchForm()}
+                            {this.renderSearchResult()}
                             {this.renderPlacenameCard()}
                         </div>
                     </div>
@@ -103,7 +157,6 @@ class DicotopoApp extends React.Component {
         } else {
             return (
                 <div className={"container is-fluid"}>
-                     {this.renderSearchForm()}
                      {this.renderPlacenameCard()}
                 </div>
             );

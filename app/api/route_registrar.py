@@ -76,6 +76,9 @@ class JSONAPIRouteRegistrar(object):
               search[fieldname1,fieldname2]=expression
               or
               search=expression
+              - Search on multiple indexes is available from every endpoint,
+                just provide an additionnal "search-indexes" parameter:
+                search=searched_term&search-indexes=index1,index2
             - Filtering syntax :
               filter[field_name]=searched_value
               field_name MUST be a mapped field of the underlying queried model
@@ -116,8 +119,13 @@ class JSONAPIRouteRegistrar(object):
                     else:
                         search_request_param, search_fields = search_parameters[0]
                         expression = request.args[search_request_param]
+
+                    if "search-indexes" in request.args:
+                        index = request.args["search-indexes"]
+                    else:
+                        index = None
                     print("search parameters: ", search_fields, expression)
-                    objs_query, count = model.search(expression, fields=search_fields)
+                    objs_query, count = model.search(expression, fields=search_fields, index=index)
 
                 # if request has filter parameter
                 filter_criteriae = []
