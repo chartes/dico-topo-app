@@ -2,14 +2,13 @@
 import sqlite3
 from lxml import etree
 from lxml.etree import tostring
-import re
 import io
+import re
 
 
 def insert_placename_values(db, cursor, dt_id):
     """ """
-    print("FILL TABLES placename, placename_alt_label, feature_type"
-          "\n========================================================")
+    print("** TABLE placename, placename_alt_label, feature_type – INSERT")
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
     # on enregistre le code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
@@ -27,7 +26,8 @@ def insert_placename_values(db, cursor, dt_id):
             if entry.xpath('definition/localisation/commune') \
             else None
         # sortir les codes erreur
-        control_vals = ['too_many_insee_codes', 'article_not_found']
+        # TODO: revoir avec CB et JP ces valeurs, en particulier 'commune_is_empty' – documenter.
+        control_vals = ['too_many_insee_codes', 'article_not_found', 'commune_is_empty']
         if placename['localization_commune_insee_code'] in control_vals:
             placename['localization_commune_insee_code'] = None
 
@@ -67,6 +67,8 @@ def insert_placename_values(db, cursor, dt_id):
         placename['num_start_page'] = entry.get('pg')
 
         # la vedette principale (la première)
+        # TODO: voir avec OC les différentes possibilités de ponctuation à la fin de la vedette ([,.…;:]) -> on supprime tout ?
+        # TODO: voir les cas compliqués avec OC, par ex. DT10-02266 (pas de normalisation de la forme alternative)
         placename['label'] = entry.xpath('vedette/sm[1]')[0].text.rstrip(',')
 
         # code insee (si commune, optionnel)
@@ -128,14 +130,17 @@ def insert_placename_values(db, cursor, dt_id):
         # insert feature types
         if placename['feature_types']:
             for feature_type in placename['feature_types']:
-                cursor.execute("INSERT INTO feature_type (placename_id, term) VALUES (?, ?);", (placename['id'], feature_type))
+                try:
+                    cursor.execute("INSERT INTO feature_type (placename_id, term) VALUES (?, ?);", (placename['id'], feature_type))
+                except sqlite3.IntegrityError as e:
+                    print(e, (": placename %s – FT '%s'" % (placename['id'], feature_type)))
                 db.commit()
 
 
 # Ramasser le entry.localization_placename_id (référence interne de la commune de rattachement)
-def update_localization_placename_id(db, cursor):
+def update_localization_placename_id(db, cursor, dpt_code):
     """ """
-    print("TABLE placename: set localization_placename_id\n==============================================")
+    print("** TABLE placename – SET localization_placename_id")
     # MySQL
     add_localization_placename_id = """UPDATE placename AS a
         INNER JOIN placename AS b
@@ -146,16 +151,34 @@ def update_localization_placename_id(db, cursor):
         SET localization_placename_id = (SELECT placename_id
             FROM placename as t2
             WHERE (placename.localization_commune_insee_code = t2.commune_insee_code))
-        WHERE EXISTS (SELECT *
-            FROM placename as t2
-            WHERE (placename.localization_commune_insee_code = t2.commune_insee_code))"""
-    cursor.execute(add_localization_placename_id)
+        WHERE
+            placename.dpt = '%s'
+            AND
+            EXISTS (SELECT * FROM placename as t2
+                WHERE (placename.localization_commune_insee_code = t2.commune_insee_code))""" % dpt_code
+    # on abandonne la résolution 100% sqlite
+    #cursor.execute(add_localization_placename_id)
+    #db.commit()
+
+    # approche 2 / perfs incomparables – todo: valider le résultat
+    # dico: {'insee_code': 'placename_id',…}, ie {'02001': 'DT02-00009', '02002': 'DT02-00017', '02003': 'DT02-00023'}
+    map_DT_insee = {}
+    for row in cursor.execute("""SELECT commune_insee_code, placename_id
+                              FROM placename
+                              WHERE commune_insee_code IS NOT NULL
+                              AND dpt = %s""" % dpt_code):
+        map_DT_insee[row[0]] = row[1]
+    for insee_code, placename_id in map_DT_insee.items():
+        add_localization_placename_id = """UPDATE placename
+            SET localization_placename_id = '%s'
+            WHERE localization_commune_insee_code = '%s'""" % (placename_id, insee_code)
+        cursor.execute(add_localization_placename_id)
     db.commit()
 
 
 def insert_placename_old_label(db, cursor, dt_id):
     """ """
-    print("TABLE placename_old_label: set values\n=====================================")
+    print("** TABLE placename_old_label – INSERT")
     tags = re.compile('<[^>]+>')
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
     # on enregistre le code du dpt
@@ -365,25 +388,28 @@ def insert_placename_old_label(db, cursor, dt_id):
                 # ref = re.sub(tags, '', rich_ref)
                 n += 1
                 i += 1
-                cursor.execute(
-                    "INSERT INTO placename_old_label ("
-                        "old_label_id,"
-                        "placename_id,"
-                        "rich_label,"
-                        "rich_date,"
-                        "text_date,"
-                        "rich_reference,"
-                        "rich_label_node,"
-                        "text_label_node)"
-                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-                        (old_label_id,
-                         placename['id'],
-                         dfn,
-                         rich_date,
-                         date,
-                         rich_ref,
-                         old_label_html_str,
-                         old_label_nude_str))
+                try:
+                    cursor.execute(
+                        "INSERT INTO placename_old_label ("
+                            "old_label_id,"
+                            "placename_id,"
+                            "rich_label,"
+                            "rich_date,"
+                            "text_date,"
+                            "rich_reference,"
+                            "rich_label_node,"
+                            "text_label_node)"
+                        "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                            (old_label_id,
+                             placename['id'],
+                             dfn,
+                             rich_date,
+                             date,
+                             rich_ref,
+                             old_label_html_str,
+                             old_label_nude_str))
+                except sqlite3.IntegrityError as e:
+                    print(e, "placename %s" % (placename['id']))
                 db.commit()
 
         else:
@@ -398,4 +424,4 @@ def insert_placename_old_label(db, cursor, dt_id):
         rich_reference = CASE rich_reference WHEN '' THEN NULL ELSE rich_reference END
     """)
     db.commit()
-    db.close()
+    # db.close()
