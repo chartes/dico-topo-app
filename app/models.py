@@ -13,16 +13,22 @@ class SearchableMixin(object):
             index = cls.__tablename__
 
         # perform the query
-        ids, total = query_index(index=index, query=expression,
+        results, total = query_index(index=index, query=expression,
                                  fields=fields, page=page, per_page=per_page)
-        print(expression, ids, total)
+        print(expression, results, total)
         if total == 0:
             return cls.query.filter_by(id=0), 0
         when = []
         #TODO recuperer les indexes et faire les bonnes requetes/jointures
-        ids = [id[0] for id in ids]
+        ids = [r.id for r in results]
         for i in range(len(ids)):
             when.append((ids[i], i))
+
+        #print("test")
+        #print("when:", when)
+        #for idx in index.split(","):
+        #    obj = db.session.query(MODELS_HASH_TABLE[idx]).filter()
+        #    print(idx, obj)
 
         return cls.query.filter(cls.id.in_(ids)).order_by(
             db.case(when, value=cls.id)), total
@@ -77,7 +83,7 @@ class Placename(SearchableMixin, db.Model):
     """
 
     __tablename__ = 'placename'
-    __searchable__ = ['label', 'desc']
+    __searchable__ = ['label']
 
     id = db.Column("placename_id", db.String(10), primary_key=True)
     label = db.Column(db.String(200), nullable=False)
@@ -201,3 +207,14 @@ class FeatureType(SearchableMixin, db.Model):
 
     # relationships
     placename = db.relationship(Placename, backref=db.backref('feature_types'))
+
+
+# get back from search index name to model class
+#MODELS_HASH_TABLE = {
+#    "placename": Placename,
+#    "placename_old_label": PlacenameOldLabel,
+#    "feature_type": FeatureType,
+#    "placename_alt_label": PlacenameAltLabel,
+#    "insee_commune": InseeCommune,
+#    "insee_ref": InseeRef,
+#}

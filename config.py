@@ -4,6 +4,7 @@ from sqlalchemy_utils import database_exists, create_database
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY')
 
@@ -13,7 +14,7 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
-    REINDEX = False
+    REINDEX = os.environ.get('REINDEX') or False
 
     SCSS_STATIC_DIR = os.path.join(basedir, "app ", "static", "css")
     SCSS_ASSET_DIR = os.path.join(basedir, "app", "assets", "scss")

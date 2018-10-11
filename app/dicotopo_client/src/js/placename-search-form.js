@@ -34,47 +34,66 @@ class PlacenameSearchForm extends React.Component {
         const params = this.state.searchParameters;
         if (params.searchedPlacename && params.searchedPlacename.length >= 2) {
 
-            const api_base_url = "http://localhost:5003/dico-topo/api/1.0";
-            let url = "";
-            let searched_indexes = "";
+            const api_base_url = "/dico-topo/api/1.0";
+            let urls = [];
 
-            if (params.label) {
-                let fields = "label";
-                if (params.desc) {
-                    fields += ",desc";
+
+            if (params.label || params.desc) {
+                let fields = "";
+                if (params.label && params.desc) {
+                    fields = "label,desc";
+                } else if (params.label && !params.desc) {
+                    fields = "label";
+                } else {
+                    fields ="desc";
                 }
-                // search on multiple indexes
-                if (params["old-labels"]) {
-                    searched_indexes = "&search-indexes=placename,placename_old_label";
-                    fields += ",text_label_node"
-                }
-                url = `${api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}${searched_indexes}`;
-            } else if (params["old-labels"]) {
+                urls.push(`${api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}`);
+            }
+            if (params["old-labels"]) {
                 let fields = "text_label_node";
-                url = `${api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}`;
+                urls.push(`${api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}`);
             }
 
-            console.log("search url: ", url);
-            if (url) {
-                fetch(url)
-                .then(res => {
-                    if (!res.ok) {
-                        throw res;
-                    }
-                    return res.json();
-                })
-                .then((result) => {
-                    this.setState({
-                        ...params,
-                        searchResult: result,
-                        error: null
+            //clear results
+            this.setState({
+                ...params,
+                searchResult: [],
+                error: null
+            });
+            this.props.onSearch(this.state.searchResult);
+
+            //fetch new results
+            let results = [];
+            console.log("search urls: ", urls);
+            for(let url of urls) {
+
+                if (url) {
+                    fetch(url)
+                    .then(res => {
+                        if (!res.ok) {
+                            throw res;
+                        }
+                        return res.json();
+                    })
+                    .then((result) => {
+                        const oldResult = this.state.searchResult ? this.state.searchResult : [];
+                        let newResult = result;
+                        console.log("old result:", oldResult);
+                        Array.prototype.push.apply(result, oldResult);
+                        console.log("new result:", newResult);
+                        this.setState({
+                            ...params,
+                            searchResult: newResult,
+                            error: null
+                        });
+                        this.props.onSearch(this.state.searchResult);
+                    })
+                    .catch(error => {
+                        console.log("error while searching placename:", error);
+                        this.setState({error: error.statusText});
                     });
-                    this.props.onSearch(this.state.searchResult);
-                })
-                .catch(error => {
-                    console.log("error while searching placename:", error);
-                    this.setState({error: error.statusText});
-                });
+                }
+
             }
 
         }
