@@ -9,6 +9,7 @@ class PlacenameSearchForm extends React.Component {
         this.handleOldLabelsChange = this.handleOldLabelsChange.bind(this);
         this.handleLabelChange = this.handleLabelChange.bind(this);
         this.handleDescChange = this.handleDescChange.bind(this);
+        this.handleOnKeyPress = this.handleOnKeyPress.bind(this);
 
         this.state = {
             searchParameters: {
@@ -34,7 +35,9 @@ class PlacenameSearchForm extends React.Component {
         const params = this.state.searchParameters;
         if (params.searchedPlacename && params.searchedPlacename.length >= 2) {
 
-            const api_base_url = "/dico-topo/api/1.0";
+            //const api_base_url = "/dico-topo/api/1.0";
+            const api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+
             let urls = [];
 
 
@@ -78,9 +81,9 @@ class PlacenameSearchForm extends React.Component {
                     .then((result) => {
                         const oldResult = this.state.searchResult ? this.state.searchResult : [];
                         let newResult = result;
-                        console.log("old result:", oldResult);
+                        //console.log("old result:", oldResult);
                         Array.prototype.push.apply(result, oldResult);
-                        console.log("new result:", newResult);
+                        //console.log("new result:", newResult);
                         this.setState({
                             ...params,
                             searchResult: newResult,
@@ -141,6 +144,12 @@ class PlacenameSearchForm extends React.Component {
         });
     }
 
+    handleOnKeyPress(e) {
+        if (e.key === 'Enter'){
+            this.handlePlacenameChange(e);
+        }
+    }
+
     componentDidUpdate(prevProps, prevState, snapshot) {
         // check if data has changed
 
@@ -160,14 +169,17 @@ class PlacenameSearchForm extends React.Component {
                                 <label className="label">Nom de lieu</label>
                             </div>
                             <div className="field-body">
-                                <div className="field">
-                                    <p className="control is-expanded has-icons-left">
+                                <div className="field has-addons">
+                                    <div className="control">
+                                        <button className="button is-info" onClick={this.handleLabelChange}>
+                                           <i className="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                    <div className="control">
                                         <input className="input" type="text" placeholder="ex: Abbécourt"
-                                               onChange={this.handlePlacenameChange}/>
-                                        <span className="icon is-small is-left">
-                                          <i className="fas fa-map-marker-alt"></i>
-                                        </span>
-                                    </p>
+                                               onChange={this.handlePlacenameChange}
+                                               onKeyPress={this.handleOnKeyPress}/>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -180,7 +192,9 @@ class PlacenameSearchForm extends React.Component {
                                 <div className="field">
                                     <div className="control">
                                         <label className="checkbox">
-                                            <input type="checkbox" name="member" value="label" onChange={this.handleLabelChange} defaultChecked={this.state.searchParameters.label}/>
+                                            <input type="checkbox" name="member" value="label"
+                                                   onChange={this.handleLabelChange}
+                                                   defaultChecked={this.state.searchParameters.label}/>
                                                Vedette
                                         </label>
                                          {/*

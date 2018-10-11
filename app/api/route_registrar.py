@@ -430,7 +430,7 @@ class JSONAPIRouteRegistrar(object):
                             )
 
                     return JSONAPIResponseFactory.make_data_response(
-                        resource_data, links=links, included_resources=included_resources
+                        resource_data, links=links, included_resources=included_resources, meta=None
                     )
 
                 except (AttributeError, ValueError, OperationalError) as e:

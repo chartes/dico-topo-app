@@ -64,44 +64,61 @@ class DicotopoApp extends React.Component {
         }))
     }
 
+    makeMapMarker(commune) {
+        if (commune) {
+            /* unbox the longlat field */
+            let longlat = commune.attributes.longlat.replace("(", "");
+            longlat = longlat.replace(")", "");
+            longlat = longlat.split(",");
+            let lat = parseFloat(longlat[0].trim());
+            let long = parseFloat(longlat[1].trim());
+            //console.log(commune);
+            return {
+                 latLng: [long, lat],
+                 title: commune.attributes["insee-code"],
+                 label: commune.attributes["NCCENR"],
+                 placenameId: commune.relationships.placename.data.id
+            }
+        }
+        return null;
+    }
+
     updateMarkersOnMap(searchResult){
         //const url = get_endpoint_url("placename-collection-endpoint") + "?include=commune&page[number]=1&page[size]=500";
-
         let promises = [];
         let mapMarkers = [];
-
+        //console.log("=====");
         if (searchResult && searchResult.data) {
            for(let p_res of searchResult.data) {
-                let url = `${p_res.links.self}?include=commune`;
+                let url = `${p_res.links.self}?include=commune,linked-commune`;
+                //console.log("purl:", url);
                 promises.push(
                      fetch(url)
                        .then(res => res.json())
                        .then((result) => {
-
+                           // get the corresponding commune
                            for (let commune of result.included) {
-                              if (commune.attributes.longlat) {
-                                  /* unbox the longlat field */
-                                  let longlat = commune.attributes.longlat.replace("(", "");
-                                  longlat = longlat.replace(")", "");
-                                  longlat = longlat.split(",");
-                                  let lat = parseFloat(longlat[0].trim());
-                                  let long = parseFloat(longlat[1].trim());
-
-                                  /* add a new marker */
-                                  mapMarkers.push({
-                                      latLng: [long, lat],
-                                      title: commune.attributes.insee_code,
-                                      placenameId: commune.relationships.placename.data.id
-                                  });
-                              }
+                               if ((commune.type === "commune" || commune.type === "linked-commune") && commune.attributes.longlat) {
+                                   /* add a new marker */
+                                   //console.log("make marker: ",  commune.type, newMarker);
+                                   const newMarker = this.makeMapMarker(commune);
+                                   if (newMarker){
+                                       let alreadyMarked = false;
+                                       // based on commune.insee_code, try to not add duplicate markers
+                                       for (let m of mapMarkers) {
+                                           //console.log(newMarker);
+                                           if (m.title === newMarker.title){
+                                               alreadyMarked = true;
+                                               break;
+                                           }
+                                       }
+                                       // add the marker
+                                       if (!alreadyMarked) {
+                                           mapMarkers.push(newMarker);
+                                       }
+                                   }
+                               }
                            }
-
-                           /*
-                           this.setState(prevState => ({
-                              ...prevState,
-                              mapMarkers: mapMarkers
-                           }))
-                           */
                        },
                        (error) => {
 
@@ -113,13 +130,12 @@ class DicotopoApp extends React.Component {
 
 
         Promise.all(promises).then(values => {
-            console.log("markers", mapMarkers);
+            //console.log("markers", mapMarkers);
             this.setState(prevState => ({
                 ...prevState,
                 mapMarkers: mapMarkers
             }))
         });
-
 
     }
 
