@@ -41,9 +41,15 @@ def query_index(index, query, fields=None, page=None, per_page=None):
         search = current_app.elasticsearch.search(
             index=index, doc_type=index,
             body=body)
-        ids = [(str(hit['_id']), str(hit['_index'])) for hit in search['hits']['hits']]
+
+        from collections import namedtuple
+        Result = namedtuple("Result", "id index score")
+        results = [Result(str(hit['_id']), str(hit['_index']), str(hit['_score']))
+                   for hit in search['hits']['hits']]
+
         print(search['hits']['total'], index, body)
-        return ids, search['hits']['total']
+
+        return results, search['hits']['total']
 
     except Exception as e:
         print(e)

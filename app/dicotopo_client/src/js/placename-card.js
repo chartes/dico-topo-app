@@ -147,24 +147,24 @@ class PlacenameCard extends React.Component {
 
   renderFullCard() {
       return (
-          <div>
+          <article>
               <div id="placename-card" className={"card " + (this.props.visible && this.state.isLoaded ? "" : "is-invisible")}>
-                  <div className="card-header">
+                  <header className="card-header">
                       {this.renderTitle()}
                       <div className={"placename-permalink is-pulled-right"}>
                         <div className="placename-permalink-label">permalien : </div> <a  href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
                       </div>
-                  </div>
+                  </header>
                   <div className="card-content">
                       {this.renderDescription()}
                       {this.renderComment()}
                       {this.renderOldLabels()}
                   </div>
               </div>
-              <div>
+              <article>
                   {this.renderLinkedPlacenames()}
-              </div>
-          </div>
+              </article>
+          </article>
       );
   }
 

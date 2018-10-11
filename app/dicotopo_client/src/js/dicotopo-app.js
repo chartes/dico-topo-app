@@ -33,7 +33,7 @@ class DicotopoApp extends React.Component {
     componentDidMount() {
 
        if (this.state.enablePlacenameMap) {
-           const url = get_endpoint_url("placename-collection-endpoint") + "?include=commune&page[number]=1&page[size]=500";
+           const url = get_endpoint_url("placename-collection-endpoint") + "?include=commune&page[number]=1&page[size]=2000";
            fetch(url)
                .then(res => res.json())
                .then((result) => {
