@@ -187,12 +187,12 @@ class PlacenameSearchForm extends React.Component {
                                             <input type="checkbox" name="member" value="old-labels" onChange={this.handleOldLabelsChange} defaultChecked={this.state.searchParameters["old-labels"]}/>
                                                 Formes anciennes
                                         </label>
-                                        <!--
+                                        {/*
                                         <label className="checkbox">
                                             <input type="checkbox" name="member" value="desc" onChange={this.handleDescChange} defaultChecked={this.state.searchParameters.desc}/>
                                                 description
                                         </label>
-                                        -->
+                                        */}
                                     </div>
                                 </div>
                             </div>
