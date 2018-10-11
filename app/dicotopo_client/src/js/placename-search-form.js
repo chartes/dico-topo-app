@@ -34,7 +34,7 @@ class PlacenameSearchForm extends React.Component {
         const params = this.state.searchParameters;
         if (params.searchedPlacename && params.searchedPlacename.length >= 2) {
 
-            const api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+            const api_base_url = "/dico-topo/api/1.0";
             let urls = [];
 
 
