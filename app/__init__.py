@@ -98,7 +98,7 @@ def create_app(config_name="dev"):
             db.drop_all()
             db.create_all()
 
-    if "REINDEX" in app.config and app.config["REINDEX"]:
+    if "REINDEX" in app.config and app.config["REINDEX"] is True:
         print("================================")
         print("REINDEXING.... please be patient")
         print("================================")

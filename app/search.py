@@ -37,6 +37,9 @@ def query_index(index, query, fields=None, page=None, per_page=None):
         body["from"] = page
         body["size"] = per_page
 
+    body["from"] = 1
+    body["size"] = 100
+    print("body :", body)
     try:
         search = current_app.elasticsearch.search(
             index=index, doc_type=index,

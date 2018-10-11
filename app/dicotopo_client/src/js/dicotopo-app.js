@@ -33,36 +33,7 @@ class DicotopoApp extends React.Component {
     componentDidMount() {
 
        if (this.state.enablePlacenameMap) {
-           const url = get_endpoint_url("placename-collection-endpoint") + "?include=commune&page[number]=1&page[size]=500";
-           fetch(url)
-               .then(res => res.json())
-               .then((result) => {
-                   let mapMarkers = [];
-                   for (let commune of result.included) {
-                      if (commune.attributes.longlat) {
-                          /* unbox the longlat field */
-                          let longlat = commune.attributes.longlat.replace("(", "");
-                          longlat = longlat.replace(")", "");
-                          longlat = longlat.split(",");
-                          let lat = parseFloat(longlat[0].trim());
-                          let long = parseFloat(longlat[1].trim());
-
-                          /* add a new marker */
-                          mapMarkers.push({
-                              latLng: [long, lat],
-                              title: commune.attributes.insee_code,
-                              placenameId: commune.relationships.placename.data.id
-                          });
-                      }
-                   }
-                   this.setState(prevState => ({
-                      ...prevState,
-                      mapMarkers: mapMarkers
-                   }))
-               },
-               (error) => {
-
-               });
+           //this.updateMarkersOnMap();
        } else {
            this.setState({
                ...this.state,
@@ -82,12 +53,74 @@ class DicotopoApp extends React.Component {
     }
 
     setSearchPlacenameResult(searchResult){
+
+        this.updateMarkersOnMap(searchResult);
+
         this.setState(prevState => ({
             ...prevState,
             searchResult: searchResult,
             placenameCardVisibility: false,
             searchResultVisibility: true
         }))
+    }
+
+    updateMarkersOnMap(searchResult){
+        //const url = get_endpoint_url("placename-collection-endpoint") + "?include=commune&page[number]=1&page[size]=500";
+
+        let promises = [];
+        let mapMarkers = [];
+
+        if (searchResult && searchResult.data) {
+           for(let p_res of searchResult.data) {
+                let url = `${p_res.links.self}?include=commune`;
+                promises.push(
+                     fetch(url)
+                       .then(res => res.json())
+                       .then((result) => {
+
+                           for (let commune of result.included) {
+                              if (commune.attributes.longlat) {
+                                  /* unbox the longlat field */
+                                  let longlat = commune.attributes.longlat.replace("(", "");
+                                  longlat = longlat.replace(")", "");
+                                  longlat = longlat.split(",");
+                                  let lat = parseFloat(longlat[0].trim());
+                                  let long = parseFloat(longlat[1].trim());
+
+                                  /* add a new marker */
+                                  mapMarkers.push({
+                                      latLng: [long, lat],
+                                      title: commune.attributes.insee_code,
+                                      placenameId: commune.relationships.placename.data.id
+                                  });
+                              }
+                           }
+
+                           /*
+                           this.setState(prevState => ({
+                              ...prevState,
+                              mapMarkers: mapMarkers
+                           }))
+                           */
+                       },
+                       (error) => {
+
+                       })
+                );
+
+            }
+        }
+
+
+        Promise.all(promises).then(values => {
+            console.log("markers", mapMarkers);
+            this.setState(prevState => ({
+                ...prevState,
+                mapMarkers: mapMarkers
+            }))
+        });
+
+
     }
 
     renderPlacenameCard() {
@@ -126,7 +159,7 @@ class DicotopoApp extends React.Component {
                                     <tr key={placename.id}>
                                         <td>{placename.attributes.label}</td>
                                         <td dangerouslySetInnerHTML={{__html: placename.attributes.desc}}></td>
-                                        <td><a href={"/dico-topo/placenames/"+placename.id}>{placename.id}</a></td>
+                                        <td><a href={"/dico-topo/placenames/"+placename.id} target="_blank">{placename.id}</a></td>
                                     </tr>
                                 ))
                             }

@@ -33,6 +33,7 @@ class DevelopmentConfig(Config):
     DB_DROP_AND_CREATE_ALL = False
     SQLALCHEMY_RECORD_QUERIES = False
     PROFILE = False
+    REINDEX = False
 
     SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo-dev.sqlite')
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')

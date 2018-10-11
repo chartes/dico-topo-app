@@ -152,7 +152,7 @@ class PlacenameCard extends React.Component {
                   <header className="card-header">
                       {this.renderTitle()}
                       <div className={"placename-permalink is-pulled-right"}>
-                        <div className="placename-permalink-label">permalien : </div> <a  href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
+                        <div className="placename-permalink-label">permalien : </div> <a  href={"/dico-topo/placenames/"+this.state.placenameId} target="_blank">{this.state.placenameId}</a>
                       </div>
                   </header>
                   <div className="card-content">
@@ -179,7 +179,7 @@ class PlacenameCard extends React.Component {
                             }}>
                       </div>
                       <div className={"placename-permalink is-pulled-right"}>
-                          <a  href={"/dico-topo/placenames/"+this.state.placenameId}>{this.state.placenameId}</a>
+                          <a  href={"/dico-topo/placenames/"+this.state.placenameId} target="_blank">{this.state.placenameId}</a>
                       </div>
                   </div>
 

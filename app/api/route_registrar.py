@@ -119,7 +119,7 @@ class JSONAPIRouteRegistrar(object):
 
                     print("search parameters: ", search_fields, expression)
                     objs_query, count = model.search(expression, fields=search_fields)
-
+                print("count: ", count)
                 # if request has filter parameter
                 filter_criteriae = []
                 filters = [(f, f[len('filter['):-1])  # (filter_param, filter_fieldname)
