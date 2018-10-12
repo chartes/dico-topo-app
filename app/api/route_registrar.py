@@ -179,6 +179,7 @@ class JSONAPIRouteRegistrar(object):
                 else:
                     links["self"] = request.url
                     all_objs = objs_query.all()
+                    count = len(all_objs)
 
                 # finally retrieve the (eventually filtered, sorted, paginated) resources
                 facade_objs = [facade_class(url_prefix, obj) for obj in all_objs]
@@ -204,7 +205,7 @@ class JSONAPIRouteRegistrar(object):
                     [obj.resource for obj in facade_objs],
                     links=links,
                     included_resources=included_resources,
-                    meta={"search-fields": getattr(model, "__searchable__", [])}
+                    meta={"search-fields": getattr(model, "__searchable__", []), "total-count": count}
                 )
 
             except (AttributeError, ValueError, OperationalError) as e:
@@ -286,7 +287,7 @@ class JSONAPIRouteRegistrar(object):
                 facade_obj = facade_class(url_prefix, obj)
                 relationship = facade_obj.relationships[rel_name]
                 data = relationship["resource_identifier_getter"]()
-
+                count = len(data)
                 links = relationship["links"]
                 paginated_links = {}
 
@@ -301,7 +302,6 @@ class JSONAPIRouteRegistrar(object):
                         )
 
                         args = OrderedDict(request.args)
-                        count = len(data)
                         nb_pages = max(1, ceil(count / page_size))
 
                         args["page[size]"] = page_size
@@ -336,7 +336,7 @@ class JSONAPIRouteRegistrar(object):
                             )
 
                     return JSONAPIResponseFactory.make_data_response(
-                        data, links=links, included_resources=included_resources, **kwargs
+                        data, links=links, included_resources=included_resources, meta={"total-count": count}, **kwargs
                     )
 
                 except (AttributeError, ValueError, OperationalError) as e:
@@ -380,7 +380,7 @@ class JSONAPIRouteRegistrar(object):
                 facade_obj = facade_class(url_prefix, obj)
                 relationship = facade_obj.relationships[rel_name]
                 resource_data = relationship["resource_getter"]()
-
+                count = len(resource_data)
                 paginated_links = {}
                 links = {
                     "self": request.url
@@ -396,7 +396,6 @@ class JSONAPIRouteRegistrar(object):
                         )
 
                         args = OrderedDict(request.args)
-                        count = len(resource_data)
                         nb_pages = max(1, ceil(count / page_size))
 
                         args["page[size]"] = page_size
@@ -430,7 +429,7 @@ class JSONAPIRouteRegistrar(object):
                             )
 
                     return JSONAPIResponseFactory.make_data_response(
-                        resource_data, links=links, included_resources=included_resources, meta=None
+                        resource_data, links=links, included_resources=included_resources, meta={"total-count": count},
                     )
 
                 except (AttributeError, ValueError, OperationalError) as e:

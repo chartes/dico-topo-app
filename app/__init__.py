@@ -103,10 +103,10 @@ def create_app(config_name="dev"):
         print("REINDEXING.... please be patient")
         print("================================")
         with app.app_context():
-            for m in (models.Placename, models.FeatureType, models.InseeCommune,
-                      models.InseeRef, models.PlacenameAltLabel, models.PlacenameOldLabel):
+            #models.FeatureType, models.InseeRef, models.PlacenameAltLabel,
+            for m in (models.Placename, models.InseeCommune, models.PlacenameOldLabel):
                 print('...%s' % m.__tablename__)
-                app.elasticsearch.indices.delete(index=m.__tablename__, ignore=[404])
+                #app.elasticsearch.indices.delete(index=m.__tablename__, ignore=[404])
                 m.reindex()
 
     return app
