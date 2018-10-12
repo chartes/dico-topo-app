@@ -171,7 +171,7 @@ class PlacenameSearchForm extends React.Component {
                             <div className="field-body">
                                 <div className="field has-addons">
                                     <div className="control">
-                                        <button className="button is-info" onClick={this.performSearch}>
+                                        <button className="button is-info" onClick={this.performSearch.bind(this)}>
                                            <i className="fas fa-search"></i>
                                         </button>
                                     </div>
