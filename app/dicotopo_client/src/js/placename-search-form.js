@@ -35,8 +35,12 @@ class PlacenameSearchForm extends React.Component {
         const params = this.state.searchParameters;
         if (params.searchedPlacename && params.searchedPlacename.length >= 2) {
 
-            const api_base_url = "/dico-topo/api/1.0";
-            //const api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+            document.getElementById("search-button").classList.add("is-loading");
+
+            let api_base_url = "/dico-topo/api/1.0";
+            if (document.getElementById("debug-mode")){
+               api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+            }
 
             let urls = [];
 
@@ -90,6 +94,8 @@ class PlacenameSearchForm extends React.Component {
                             error: null
                         });
                         this.props.onSearch(this.state.searchResult);
+
+                        document.getElementById("search-button").classList.remove("is-loading");
                     })
                     .catch(error => {
                         console.log("error while searching placename:", error);
@@ -171,13 +177,12 @@ class PlacenameSearchForm extends React.Component {
                             <div className="field-body">
                                 <div className="field has-addons">
                                     <div className="control">
-                                        <button className="button is-info" onClick={this.performSearch.bind(this)}>
+                                        <button id="search-button" className="button is-info" onClick={this.performSearch.bind(this)}>
                                            <i className="fas fa-search"></i>
                                         </button>
                                     </div>
                                     <div className="control">
                                         <input className="input" type="text" placeholder="ex: Abbécourt"
-                                               onChange={this.handlePlacenameChange}
                                                onKeyPress={this.handleOnKeyPress}/>
                                     </div>
                                 </div>

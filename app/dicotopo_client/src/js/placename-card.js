@@ -36,6 +36,11 @@ class PlacenameCard extends React.Component {
   }
 
   updateCard(placename_url) {
+      this.setState({
+          ...this.state,
+          isLoaded: false
+      });
+
       fetch(placename_url + "?include=old-labels,linked-placenames")
           .then(res => {
               if (!res.ok) {
@@ -146,26 +151,33 @@ class PlacenameCard extends React.Component {
   }
 
   renderFullCard() {
-      return (
-          <article>
-              <div id="placename-card" className={"card " + (this.props.visible && this.state.isLoaded ? "" : "is-invisible")}>
-                  <header className="card-header">
-                      {this.renderTitle()}
-                      <div className={"placename-permalink is-pulled-right"}>
-                        <div className="placename-permalink-label">permalien : </div> <a  href={"/dico-topo/placenames/"+this.state.placenameId} target="_blank">{this.state.placenameId}</a>
+      if (this.state.isLoaded) {
+          return (
+              <article className={this.props.visible ? "" : "is-invisible"}>
+                  <div id="placename-card"
+                       className="card">
+                      <header className="card-header">
+                          {this.renderTitle()}
+                          <div className={"placename-permalink is-pulled-right"}>
+                              <div className="placename-permalink-label">permalien :</div>
+                              <a href={"/dico-topo/placenames/" + this.state.placenameId}
+                                 target="_blank">{this.state.placenameId}</a>
+                          </div>
+                      </header>
+                      <div className="card-content">
+                          {this.renderDescription()}
+                          {this.renderComment()}
+                          {this.renderOldLabels()}
                       </div>
-                  </header>
-                  <div className="card-content">
-                      {this.renderDescription()}
-                      {this.renderComment()}
-                      {this.renderOldLabels()}
                   </div>
-              </div>
-              <article>
-                  {this.renderLinkedPlacenames()}
+                  <article>
+                      {this.renderLinkedPlacenames()}
+                  </article>
               </article>
-          </article>
-      );
+          );
+      } else {
+          return <div className="is-disabled">Chargement <div className="button is-loading is-white" style={{width: "20px", height: "20px"}}></div></div>
+      }
   }
 
   renderCompactCard() {
