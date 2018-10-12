@@ -164,9 +164,9 @@ class DicotopoApp extends React.Component {
                     <table className="table is-fullwidth is-hoverable is-stripped" >
                         <thead>
                         <tr>
-                            <th><abbr title="Position">Nom</abbr></th>
+                            <th><abbr title="Vedette">Vedette</abbr></th>
                             <th>Description</th>
-                            <th><abbr title="Won">Permalien</abbr></th>
+                            <th><abbr title="Permalien">Permalien</abbr></th>
                         </tr>
                         </thead>
                         <tbody>

@@ -21,6 +21,10 @@ class SearchableMixin(object):
         when = []
         #TODO recuperer les indexes et faire les bonnes requetes/jointures
         ids = [r.id for r in results]
+
+        if len(ids) == 0:
+            return cls.query.filter_by(id=0), 0
+
         for i in range(len(ids)):
             when.append((ids[i], i))
 
@@ -29,7 +33,6 @@ class SearchableMixin(object):
         #for idx in index.split(","):
         #    obj = db.session.query(MODELS_HASH_TABLE[idx]).filter()
         #    print(idx, obj)
-
         return cls.query.filter(cls.id.in_(ids)).order_by(
             db.case(when, value=cls.id)), total
 
