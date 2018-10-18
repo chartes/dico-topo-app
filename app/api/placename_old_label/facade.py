@@ -23,19 +23,23 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
 
     def get_placename_resource_identifier(self):
         from app.api.placename.facade import PlacenameFacade
-        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename).resource_identifier
+        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename, False, False).resource_identifier
 
     def get_old_labels_resource_identifiers(self):
-        return [] if self.obj.placename.old_labels is None else [PlacenameOldLabelFacade(self.url_prefix, ol).resource_identifier
-                                                                 for ol in PlacenameFacade(self.url_prefix, self.obj.placename).obj.old_labels]
+        return [] if self.obj.placename.old_labels is None else [PlacenameOldLabelFacade(self.url_prefix, ol, False, False).resource_identifier
+                                                                 for ol in PlacenameFacade(self.url_prefix, self.obj.placename, False, False).obj.old_labels]
 
     def get_placename_resource(self):
         from app.api.placename.facade import PlacenameFacade
-        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename).resource
+        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename,
+                                                                                self.with_relationships_links,
+                                                                                self.with_relationships_data).resource
 
     def get_old_labels_resource(self):
-        return [] if self.obj.placename.old_labels is None else [PlacenameOldLabelFacade(self.url_prefix, ol).resource
-                                                                 for ol in PlacenameFacade(self.url_prefix, self.obj.placename).obj.old_labels]
+        return [] if self.obj.placename.old_labels is None else [PlacenameOldLabelFacade(self.url_prefix, ol,
+                                                                                self.with_relationships_links,
+                                                                                self.with_relationships_data).resource
+                                                                 for ol in PlacenameFacade(self.url_prefix, self.obj.placename, False, False).obj.old_labels]
 
     @property
     def relationships(self):
@@ -55,7 +59,7 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
     @property
     def resource(self):
         """ """
-        return {
+        res = {
             **self.resource_identifier,
             "attributes": {
                 "rich-label": self.obj.rich_label,
@@ -65,9 +69,12 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
                 "rich-label-node": self.obj.rich_label_node,
                 "text-label-node": self.obj.text_label_node
             },
-            "relationships": self.get_exposed_relationships(),
             "meta": self.meta,
             "links": {
                 "self": self.self_link
             }
         }
+        if self.with_relationships_links:
+            res["relationships"] = self.get_exposed_relationships()
+
+        return res

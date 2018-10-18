@@ -38,7 +38,7 @@ def query_index(index, query, fields=None, page=None, per_page=None):
         body["size"] = per_page
 
     body["from"] = 1
-    body["size"] = 100
+    body["size"] = 8000
     print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
     try:
         search = current_app.elasticsearch.search(

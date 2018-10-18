@@ -9,11 +9,13 @@ class JSONAPIAbstractFacade(object):
     TYPE = "ABSTRACT-TYPE"
     TYPE_PLURAL = "ABSTRACT-TYPE-PLURAL"
 
-    ITEMS_PER_PAGE = 10000
+    ITEMS_PER_PAGE = 1000000
 
-    def __init__(self, url_prefix, obj):
+    def __init__(self, url_prefix, obj, with_relationships_links=True, with_relationships_data=True):
         self.obj = obj
         self.url_prefix = url_prefix
+        self.with_relationships_data = with_relationships_data
+        self.with_relationships_links = with_relationships_links
 
         self.self_link = "{url_prefix}/{type_plural}/{id}".format(
             url_prefix=self.url_prefix, type_plural=self.type_plural, id=self.id
@@ -71,10 +73,18 @@ class JSONAPIAbstractFacade(object):
         }
 
     def get_exposed_relationships(self):
-        return {
-            rel_name: {
-                "links": rel["links"],
-                "data": rel["resource_identifier_getter"]()
+        if self.with_relationships_data:
+            return {
+                rel_name: {
+                    "links": rel["links"],
+                    "data": rel["resource_identifier_getter"]()
+                }
+                for rel_name, rel in self.relationships.items()
             }
-            for rel_name, rel in self.relationships.items()
-        }
+        else:
+            return {
+                rel_name: {
+                    "links": rel["links"],
+                }
+                for rel_name, rel in self.relationships.items()
+            }
