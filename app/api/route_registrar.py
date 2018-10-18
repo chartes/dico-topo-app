@@ -40,6 +40,7 @@ class JSONAPIRouteRegistrar(object):
         for inclusion in asked_relationships:
             # try bring the related resources and add them to the list
             related_resources = relationships[inclusion]["resource_getter"]()
+            # make unique keys to avoid duplicates
             if isinstance(related_resources, list):
                 for related_resource in related_resources:
                     unique_key = (related_resource["type"], related_resource["id"])
@@ -92,6 +93,9 @@ class JSONAPIRouteRegistrar(object):
               Omit the prev link if the current page is the first one, omit the next link if it is the last one
             - Related resource inclusion :
               ?include=relationname1,relationname2
+            - Lightweight version
+              Adding a request parameter named lightweight allows the retrieveing of resources without their relationships
+              It is much, much more efficient to do so.
             Return a 400 Bad Request if something goes wrong with the syntax or
              if the sort/filter criteriae are incorrect
             """
@@ -182,7 +186,11 @@ class JSONAPIRouteRegistrar(object):
                     count = len(all_objs)
 
                 # finally retrieve the (eventually filtered, sorted, paginated) resources
-                facade_objs = [facade_class(url_prefix, obj) for obj in all_objs]
+                lightweight = "lightweight" in request.args
+                with_relationships_links = not lightweight
+                with_relationships_data = not lightweight
+
+                facade_objs = [facade_class(url_prefix, obj, with_relationships_links, with_relationships_data) for obj in all_objs]
 
                 # find out if related resources must be included too
                 included_resources = None

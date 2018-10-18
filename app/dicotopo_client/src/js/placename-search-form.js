@@ -33,7 +33,7 @@ class PlacenameSearchForm extends React.Component {
 
     performSearch() {
         const params = this.state.searchParameters;
-        if (params.searchedPlacename && params.searchedPlacename.length >= 2) {
+        if (params.searchedPlacename && params.searchedPlacename.length >= 3) {
 
             document.getElementById("search-button").classList.add("is-loading");
 
@@ -54,11 +54,11 @@ class PlacenameSearchForm extends React.Component {
                 } else {
                     fields ="desc";
                 }
-                urls.push(`${api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}`);
+                urls.push(`${api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}&include=commune,localization-commune&lightweight`);
             }
             if (params["old-labels"]) {
                 let fields = "text_label_node";
-                urls.push(`${api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}`);
+                urls.push(`${api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&lightweight`);
             }
 
             //clear results

@@ -27,7 +27,6 @@ class DicotopoApp extends React.Component {
             searchResultVisibility: false,
             searchResult: null
         };
-
     }
 
     componentDidMount() {
@@ -75,68 +74,46 @@ class DicotopoApp extends React.Component {
             //console.log(commune);
             return {
                  latLng: [long, lat],
-                 title: commune.attributes["insee-code"],
-                 label: commune.attributes["NCCENR"],
-                 placenameId: commune.relationships.placename.data.id
+                 commune_id: commune.attributes["insee-code"],
+                 title: commune.attributes["NCCENR"],
             }
         }
         return null;
     }
 
     updateMarkersOnMap(searchResult){
-        //const url = get_endpoint_url("placename-collection-endpoint") + "?include=commune&page[number]=1&page[size]=500";
-        let promises = [];
         let mapMarkers = [];
         //console.log("=====");
-        if (searchResult && searchResult.data) {
-           for(let p_res of searchResult.data) {
-                let url = `${p_res.links.self}?include=commune,linked-commune`;
-                //console.log("purl:", url);
-                promises.push(
-                     fetch(url)
-                       .then(res => res.json())
-                       .then((result) => {
-                           // get the corresponding commune
-                           for (let commune of result.included) {
-                               if ((commune.type === "commune" || commune.type === "linked-commune") && commune.attributes.longlat) {
-                                   /* add a new marker */
-                                   //console.log("make marker: ",  commune.type, newMarker);
-                                   const newMarker = this.makeMapMarker(commune);
-                                   if (newMarker){
-                                       let alreadyMarked = false;
-                                       // based on commune.insee_code, try to not add duplicate markers
-                                       for (let m of mapMarkers) {
-                                           //console.log(newMarker);
-                                           if (m.title === newMarker.title){
-                                               alreadyMarked = true;
-                                               break;
-                                           }
-                                       }
-                                       // add the marker
-                                       if (!alreadyMarked) {
-                                           mapMarkers.push(newMarker);
-                                       }
-                                   }
-                               }
-                           }
-                       },
-                       (error) => {
+        if (searchResult && searchResult.included) {
 
-                       })
-                );
-
+            for (let commune of searchResult.included) {
+                if ((commune.type === "commune" || commune.type === "localization-commune") && commune.attributes.longlat) {
+                    /* add a new marker */
+                    //console.log("make marker: ",  commune.type, newMarker);
+                    const newMarker = this.makeMapMarker(commune);
+                    if (newMarker){
+                        let alreadyMarked = false;
+                        // based on commune.insee_code, try to not add duplicate markers
+                        for (let m of mapMarkers) {
+                            //console.log(newMarker);
+                            if (m.commune_id === newMarker.commune_id){
+                                alreadyMarked = true;
+                                break;
+                            }
+                        }
+                        // add the marker
+                        if (!alreadyMarked) {
+                            mapMarkers.push(newMarker);
+                        }
+                    }
+                }
             }
         }
 
-
-        Promise.all(promises).then(values => {
-            //console.log("markers", mapMarkers);
-            this.setState(prevState => ({
-                ...prevState,
-                mapMarkers: mapMarkers
-            }))
-        });
-
+        this.setState(prevState => ({
+            ...prevState,
+            mapMarkers: mapMarkers
+        }));
     }
 
     renderPlacenameCard() {
