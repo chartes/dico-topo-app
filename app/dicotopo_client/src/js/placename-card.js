@@ -28,10 +28,10 @@ class PlacenameCard extends React.Component {
       this.updateCard(this.props.url, this.props.data);
   }
 
-  componentDidUpdate({ url }) {
+  componentDidUpdate({ url, data }) {
       // check if data has changed
-      if (this.props.url !== url) {
-        this.updateCard(this.props.url);
+      if (this.props.url !== url || this.props.data !== data) {
+        this.updateCard(this.props.url, this.props.data);
       }
   }
 
