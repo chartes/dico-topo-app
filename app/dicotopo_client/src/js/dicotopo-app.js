@@ -23,7 +23,7 @@ class DicotopoApp extends React.Component {
 
             mapMarkers : [],
             placenameUrl : null,
-            placenameCardVisibility: document.getElementById('enable-placename-card') !== null,
+            placenameCardVisibility: false,
             searchResultVisibility: false,
             searchResult: null
         };
@@ -109,7 +109,12 @@ class DicotopoApp extends React.Component {
       if (placename_id !== null) {
         return <PlacenameCard url={`${this.api_base_url}/placenames/${placename_id}`} visible={this.state.placenameCardVisibility}/>
       } else {
-        return <PlacenameCard url={this.state.placenameUrl} visible={this.state.placenameCardVisibility}/>
+          if (this.state.placenameUrl === null) {
+              return null
+          }
+          else {
+            return <PlacenameCard url={this.state.placenameUrl} visible={this.state.placenameCardVisibility}/>
+          }
       }
     }
 
