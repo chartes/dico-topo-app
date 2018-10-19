@@ -126,6 +126,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
         -------
             A dict describing the corresponding JSONAPI resource object
         """
+
         res = {
             **self.resource_identifier,
             "attributes": {
@@ -136,6 +137,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
                 "desc": self.obj.desc,
                 "num-start-page": self.obj.num_start_page,
                 "localization-certainty": self.obj.localization_certainty,
+                "localization-insee-code": self.obj.commune_insee_code if self.obj.commune_insee_code else self.obj.localization_commune_insee_code,
                 "comment": self.obj.comment
             },
             "meta": self.meta,

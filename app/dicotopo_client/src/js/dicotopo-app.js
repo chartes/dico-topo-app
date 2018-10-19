@@ -7,47 +7,36 @@ import PlacenameCard from "./placename-card";
 import PlacenameSearchForm from "./placename-search-form";
 
 
-
-function get_endpoint_url(endpoint_id, id) {
-  const url = document.getElementById(endpoint_id).value;
-  return url.replace("ID_PLACEHOLDER", id);
-}
-
-
 class DicotopoApp extends React.Component {
     constructor(props) {
         super(props);
+
+        if (document.getElementById("debug-mode")){
+           this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+        } else {
+           this.api_base_url = "/dico-topo/api/1.0";
+        }
+
         this.state = {
             enablePlacenameMap : document.getElementById('enable-placename-map'),
             enablePlacenameCard : document.getElementById('enable-placename-card'),
 
             mapMarkers : [],
-            placenameUrl : document.getElementById('placename-endpoint').value,
-            placenameCardVisibility: false,
+            placenameUrl : null,
+            placenameCardVisibility: document.getElementById('enable-placename-card') !== null,
             searchResultVisibility: false,
             searchResult: null
         };
     }
 
     componentDidMount() {
-
-       if (this.state.enablePlacenameMap) {
-           //this.updateMarkersOnMap();
-       } else {
-           this.setState({
-               ...this.state,
-               placenameCardVisibility: true
-           })
-       }
-
     }
 
     setPlacenameCard(placenameId) {
         this.setState(prevState => ({
             ...prevState,
-            placenameUrl: get_endpoint_url("placename-endpoint", placenameId),
-            placenameCardVisibility : true,
-            searchResultVisibility: false
+            placenameUrl: `${this.api_base_url}/placenames/${placenameId}`,
+            placenameCardVisibility : true
         }))
     }
 
@@ -116,11 +105,11 @@ class DicotopoApp extends React.Component {
         }));
     }
 
-    renderPlacenameCard() {
-      if (this.state.placenameUrl && this.state.placenameUrl.indexOf("ID_PLACEHOLDER") === -1) {
-        return <PlacenameCard url={this.state.placenameUrl} visible={this.state.placenameCardVisibility}/>
+    renderPlacenameCard(placename_id=null) {
+      if (placename_id !== null) {
+        return <PlacenameCard url={`${this.api_base_url}/placenames/${placename_id}`} visible={this.state.placenameCardVisibility}/>
       } else {
-        return null;
+        return <PlacenameCard url={this.state.placenameUrl} visible={this.state.placenameCardVisibility}/>
       }
     }
 
@@ -137,13 +126,15 @@ class DicotopoApp extends React.Component {
         else {
             return (
                 <div style={{display: (this.state.searchResultVisibility ? "block" : "none")}}>
-                    <div>{this.state.searchResult.data.length} résultat(s)</div>
+                    <p>{this.state.searchResult.meta["total-count"]} résultat(s)</p>
                     <table className="table is-fullwidth is-hoverable is-stripped" >
                         <thead>
                         <tr>
-                            <th><abbr title="Vedette">Vedette</abbr></th>
+                            <th style={{minWidth: "200px"}}>Vedette</th>
                             <th>Description</th>
-                            <th><abbr title="Permalien">Permalien</abbr></th>
+                            <th>Département</th>
+                            <th style={{minWidth: "100px"}}>Code INSEE</th>
+                            <th style={{minWidth: "120px"}}>Permalien</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -152,6 +143,8 @@ class DicotopoApp extends React.Component {
                                     <tr key={placename.id}>
                                         <td>{placename.attributes.label}</td>
                                         <td dangerouslySetInnerHTML={{__html: placename.attributes.desc}}></td>
+                                        <td>{placename.attributes.dpt}</td>
+                                        <td>{placename.attributes["localization-insee-code"]}</td>
                                         <td><a href={"/dico-topo/placenames/"+placename.id} target="_blank">{placename.id}</a></td>
                                     </tr>
                                 ))
@@ -167,14 +160,13 @@ class DicotopoApp extends React.Component {
         if (this.state.enablePlacenameMap) {
             return (
                 <div className={"container is-fluid"}>
-
+                    <PlacenameMap markersData={this.state.mapMarkers} onMarkerClick={this.setPlacenameCard.bind(this)}/>
                     <div className={"columns"}>
                         <div className={"column"}>
-                            <PlacenameMap markersData={this.state.mapMarkers} onMarkerClick={this.setPlacenameCard.bind(this)}/>
-                        </div>
-                        <div className={"column is-half"}>
                             {this.renderSearchForm()}
                             {this.renderSearchResult()}
+                        </div>
+                        <div className={"column is-two-fifths"} style={{display: (this.state.placenameCardVisibility ? "block" : "none")}}>
                             {this.renderPlacenameCard()}
                         </div>
                     </div>
@@ -183,7 +175,7 @@ class DicotopoApp extends React.Component {
         } else {
             return (
                 <div className={"container is-fluid"}>
-                     {this.renderPlacenameCard()}
+                     {this.renderPlacenameCard(window.location.href.split("/").pop())}
                 </div>
             );
         }

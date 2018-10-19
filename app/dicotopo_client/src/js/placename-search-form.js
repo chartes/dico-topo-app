@@ -12,6 +12,12 @@ class PlacenameSearchForm extends React.Component {
         this.handleOnKeyPress = this.handleOnKeyPress.bind(this);
         this.handleOnSearchClick = this.handleOnSearchClick.bind(this);
 
+        if (document.getElementById("debug-mode")){
+           this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+        } else {
+           this.api_base_url = "/dico-topo/api/1.0";
+        }
+
         this.state = {
             searchParameters: {
                 searchedPlacename: null,
@@ -38,10 +44,7 @@ class PlacenameSearchForm extends React.Component {
 
             document.getElementById("search-button").classList.add("is-loading");
 
-            let api_base_url = "/dico-topo/api/1.0";
-            if (document.getElementById("debug-mode")){
-               api_base_url = "http://localhost:5003/dico-topo/api/1.0";
-            }
+
 
             let urls = [];
 
@@ -54,11 +57,11 @@ class PlacenameSearchForm extends React.Component {
                 } else {
                     fields ="desc";
                 }
-                urls.push(`${api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}&include=commune,localization-commune&lightweight`);
+                urls.push(`${this.api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}&include=commune,localization-commune&sort=label&lightweight`);
             }
             if (params["old-labels"]) {
                 let fields = "text_label_node";
-                urls.push(`${api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&lightweight`);
+                urls.push(`${this.api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&lightweight`);
             }
 
             //clear results
@@ -70,7 +73,6 @@ class PlacenameSearchForm extends React.Component {
             this.props.onSearch(this.state.searchResult);
 
             //fetch new results
-            let results = [];
             console.log("search urls: ", urls);
             for(let url of urls) {
 

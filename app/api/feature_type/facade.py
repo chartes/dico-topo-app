@@ -22,10 +22,13 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
         return self.TYPE_PLURAL
 
     def get_placename_resource_identifier(self):
-        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename).resource_identifier
+        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix,
+                                                                       self.obj.placename).resource_identifier
 
     def get_placename_resource(self):
-        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename).resource
+        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename,
+                                                                       self.with_relationships_links,
+                                                                       self.with_relationships_data).resource
 
     @property
     def relationships(self):
@@ -40,14 +43,18 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
     @property
     def resource(self):
         """ """
-        return {
+        res = {
             **self.resource_identifier,
             "attributes": {
                 "term": self.obj.term
             },
-            "relationships": self.get_exposed_relationships(),
             "meta": self.meta,
             "links": {
                 "self": self.self_link
             }
         }
+
+        if self.with_relationships_links:
+            res["relationships"] = self.get_exposed_relationships()
+
+        return res
