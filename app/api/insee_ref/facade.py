@@ -58,20 +58,29 @@ class InseeRefFacade(JSONAPIAbstractFacade):
                                                 placenames]
 
     def get_parent_resource(self):
-        return None if self.obj.parent is None else InseeRefFacade(self.url_prefix, self.obj.parent).resource
+        return None if self.obj.parent is None else InseeRefFacade(self.url_prefix, self.obj.parent,
+                                                                   self.with_relationships_links,
+                                                                   self.with_relationships_data).resource
 
     def get_children_resource(self):
-        return [] if self.obj.children is None else [InseeRefFacade(self.url_prefix, c).resource
+        return [] if self.obj.children is None else [InseeRefFacade(self.url_prefix, c,
+                                                                    self.with_relationships_links,
+                                                                    self.with_relationships_data).resource
                                                      for c in self.obj.children]
 
     def get_communes_resource(self):
         communes = self.get_communes()
         from app.api.insee_commune.facade import CommuneFacade
-        return [] if len(communes) == 0 else [CommuneFacade(self.url_prefix, c).resource for c in communes]
+        return [] if len(communes) == 0 else [CommuneFacade(self.url_prefix, c,
+                                                            self.with_relationships_links,
+                                                            self.with_relationships_data).resource for c in communes]
 
     def get_placenames_resource(self):
         placenames = self.get_placenames()
-        return [] if len(placenames) == 0 else [PlacenameFacade(self.url_prefix, p).resource for p in placenames]
+        return [] if len(placenames) == 0 else [PlacenameFacade(self.url_prefix, p,
+                                                                self.with_relationships_links,
+                                                                self.with_relationships_data).resource
+                                                for p in placenames]
 
     @property
     def relationships(self):
@@ -101,7 +110,7 @@ class InseeRefFacade(JSONAPIAbstractFacade):
     @property
     def resource(self):
         """ """
-        return {
+        res = {
             **self.resource_identifier,
             "attributes": {
                 'id': self.obj.id,
@@ -117,4 +126,7 @@ class InseeRefFacade(JSONAPIAbstractFacade):
             }
         }
 
+        if self.with_relationships_links:
+            res["relationships"] = self.get_exposed_relationships()
 
+        return res

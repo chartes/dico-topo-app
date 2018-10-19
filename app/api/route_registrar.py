@@ -72,7 +72,7 @@ class JSONAPIRouteRegistrar(object):
 
         def collection_endpoint():
             """
-            Support filtering, sorting and pagination
+            Support the following parameters:
             - Search syntax:
               search[fieldname1,fieldname2]=expression
               or
@@ -147,8 +147,10 @@ class JSONAPIRouteRegistrar(object):
                             criteria = criteria[1:]
                         sort_criteriae.append(getattr(model, criteria.replace("-", "_")))
                     print("sort criteriae: ", request.args["sort"], sort_criteriae)
+                    # reset the order clause
+                    objs_query = objs_query.order_by(False)
+                    # then apply the user order criteriae
                     objs_query = objs_query.order_by(sort_order(*sort_criteriae))
-                    # print(facade_class.get_sort_criteria('commune'))
 
                 # if request has pagination parameters
                 # add links to the top-level object
@@ -190,7 +192,8 @@ class JSONAPIRouteRegistrar(object):
                 with_relationships_links = not lightweight
                 with_relationships_data = not lightweight
 
-                facade_objs = [facade_class(url_prefix, obj, with_relationships_links, with_relationships_data) for obj in all_objs]
+                facade_objs = [facade_class(url_prefix, obj, with_relationships_links, with_relationships_data)
+                               for obj in all_objs]
 
                 # find out if related resources must be included too
                 included_resources = None
@@ -235,12 +238,25 @@ class JSONAPIRouteRegistrar(object):
         )
 
         def single_obj_endpoint(id):
+            """
+            Support the following parameters:
+            - Related resource inclusion :
+              ?include=relationname1,relationname2
+            - Lightweight version
+              Adding a request parameter named lightweight allows the retrieveing of resources without their relationships
+              It is much, much more efficient to do so.
+            Return a 400 Bad Request if something goes wrong with the syntax or
+             if the sort/filter criteriae are incorrect
+            """
             url_prefix = request.host_url[:-1] + self.url_prefix
             obj, kwargs, errors = obj_getter(id)
             if obj is None:
                 return JSONAPIResponseFactory.make_errors_response(errors, **kwargs)
             else:
-                f_placename = facade_class(url_prefix, obj)
+                lightweight = "lightweight" in request.args
+                with_relationships_links = not lightweight
+                with_relationships_data = not lightweight
+                f_placename = facade_class(url_prefix, obj, with_relationships_links, with_relationships_data)
                 links = {
                     "self": request.url
                 }

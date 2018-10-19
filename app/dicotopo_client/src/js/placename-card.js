@@ -25,7 +25,7 @@ class PlacenameCard extends React.Component {
   }
 
   componentDidMount() {
-      this.updateCard(this.props.url);
+      this.updateCard(this.props.url, this.props.data);
   }
 
   componentDidUpdate({ url }) {
@@ -35,39 +35,55 @@ class PlacenameCard extends React.Component {
       }
   }
 
-  updateCard(placename_url) {
+  updateCard(placename_url, data=null) {
       this.setState({
           ...this.state,
           isLoaded: false
       });
 
-      fetch(placename_url + "?include=old-labels,linked-placenames")
-          .then(res => {
-              if (!res.ok) {
-                  throw res;
-              }
-              return res.json();
-          })
-          .then((result) => {
-              this.setState({
-                  title: result.data.attributes.label,
-                  placenameId: result.data.attributes.id,
-                  url: result.links.self,
-                  numStartPage: result.data.attributes["num-start-page"],
-                  description: result.data.attributes.desc,
-                  comment: result.data.attributes.comment,
-
-                  oldLabels: result.included.filter((res) => res.type === "placename-old-label"),
-                  linkedPlacenames: result.included.filter((res) => res.type === "placename"),
-
-                  error: null,
-                  isLoaded: true
-              });
-          })
-          .catch(error => {
-              console.log("error while fetching placename:", error);
-              this.setState({isLoaded : true, error: error.statusText, ...this.state});
+      if (data !== null) {
+          this.setState({
+              title: data.attributes.label,
+              placenameId: data.attributes.id,
+              url: data.links.self,
+              numStartPage: data.attributes["num-start-page"],
+              description: data.attributes.desc,
+              comment: data.attributes.comment,
+              oldLabels: data.included ? data.included.filter((res) => res.type === "placename-old-label") : [],
+              linkedPlacenames:  data.included ? data.included.filter((res) => res.type === "placename") : [],
+              error: null,
+              isLoaded: true
           });
+      }
+      else {
+          fetch(placename_url + "?include=old-labels,linked-placenames&lightweight")
+            .then(res => {
+                if (!res.ok) {
+                    throw res;
+                }
+                return res.json();
+            })
+            .then((result) => {
+                this.setState({
+                    title: result.data.attributes.label,
+                    placenameId: result.data.attributes.id,
+                    url: result.links.self,
+                    numStartPage: result.data.attributes["num-start-page"],
+                    description: result.data.attributes.desc,
+                    comment: result.data.attributes.comment,
+
+                    oldLabels: result.included.filter((res) => res.type === "placename-old-label"),
+                    linkedPlacenames: result.included.filter((res) => res.type === "placename"),
+
+                    error: null,
+                    isLoaded: true
+                });
+            })
+            .catch(error => {
+                console.log("error while fetching placename:", error);
+                this.setState({isLoaded : true, error: error.statusText, ...this.state});
+            });
+      }
   }
 
   renderTitle() {
@@ -145,7 +161,7 @@ class PlacenameCard extends React.Component {
           return null;
       } else {
           return this.state.linkedPlacenames.map(placename => (
-              <PlacenameCard key={placename.id} url={placename.links.self} compact={true} visible={this.props.visible}/>
+              <PlacenameCard key={placename.id} url={placename.links.self} data={placename} compact={true} visible={this.props.visible}/>
           ))
       }
   }
@@ -170,9 +186,9 @@ class PlacenameCard extends React.Component {
                           {this.renderOldLabels()}
                       </div>
                   </div>
-                  <article>
+                  <div>
                       {this.renderLinkedPlacenames()}
-                  </article>
+                  </div>
               </article>
           );
       } else {
@@ -182,7 +198,7 @@ class PlacenameCard extends React.Component {
 
   renderCompactCard() {
       return (
-          <div>
+          <article>
               <div id="placename-card" className={"card " + (this.state.isLoaded && this.props.visible ? "" : "is-invisible")}>
                   <div className="card-header" style={{paddingTop: "0.5em", paddingBottom: "0.5em"}}>
                       <div id="placename-card-header-title" className="card-header-title has-text-grey-dark is-size-6"
@@ -196,7 +212,7 @@ class PlacenameCard extends React.Component {
                   </div>
 
               </div>
-          </div>
+          </article>
       );
   }
 
