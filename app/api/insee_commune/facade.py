@@ -53,12 +53,12 @@ class CommuneFacade(JSONAPIAbstractFacade):
                                                                                 self.with_relationships_links,
                                                                                 self.with_relationships_data).resource
 
-    def get_linked_placenames_resource_identifiers(self):
+    def get_localized_placenames_resource_identifiers(self):
         from app.api.placename.facade import PlacenameFacade
         return [] if self.obj.localized_placenames is None else [PlacenameFacade(self.url_prefix, c, False, False).resource_identifier
                                                                  for c in self.obj.localized_placenames]
 
-    def get_linked_placenames_resource(self):
+    def get_localized_placenames_resource(self):
         from app.api.placename.facade import PlacenameFacade
         return [] if self.obj.localized_placenames is None else [PlacenameFacade(self.url_prefix, c,
                                                                                 self.with_relationships_links,
@@ -79,10 +79,10 @@ class CommuneFacade(JSONAPIAbstractFacade):
     @property
     def relationships(self):
         return {
-            "linked-placenames": {
-                "links": self._get_links(rel_name="linked-placenames"),
-                "resource_identifier_getter": self.get_linked_placenames_resource_identifiers,
-                "resource_getter": self.get_linked_placenames_resource
+            "localized-placenames": {
+                "links": self._get_links(rel_name="localized-placenames"),
+                "resource_identifier_getter": self.get_localized_placenames_resource_identifiers,
+                "resource_getter": self.get_localized_placenames_resource
             },
             "placename": {
                 "links": self._get_links(rel_name="placename"),

@@ -10,6 +10,7 @@ class PlacenameSearchForm extends React.Component {
         this.handleLabelChange = this.handleLabelChange.bind(this);
         this.handleDescChange = this.handleDescChange.bind(this);
         this.handleOnKeyPress = this.handleOnKeyPress.bind(this);
+        this.handleOnSearchClick = this.handleOnSearchClick.bind(this);
 
         this.state = {
             searchParameters: {
@@ -43,7 +44,6 @@ class PlacenameSearchForm extends React.Component {
             }
 
             let urls = [];
-
 
             if (params.label || params.desc) {
                 let fields = "";
@@ -85,9 +85,7 @@ class PlacenameSearchForm extends React.Component {
                     .then((result) => {
                         const oldResult = this.state.searchResult ? this.state.searchResult : [];
                         let newResult = result;
-                        //console.log("old result:", oldResult);
                         Array.prototype.push.apply(result, oldResult);
-                        //console.log("new result:", newResult);
                         this.setState({
                             ...params,
                             searchResult: newResult,
@@ -110,6 +108,9 @@ class PlacenameSearchForm extends React.Component {
 
 
     handleLabelChange(e){
+        /*
+            when the state of the Label checkbox changes
+        */
         this.setState({
             ...this.state,
             searchParameters : {
@@ -121,6 +122,9 @@ class PlacenameSearchForm extends React.Component {
 
 
     handleOldLabelsChange(e){
+        /*
+            when the state of the OldLabel checkbox changes
+        */
         this.setState({
             ...this.state,
             searchParameters : {
@@ -140,25 +144,31 @@ class PlacenameSearchForm extends React.Component {
         });
     }
 
-    handlePlacenameChange(e){
+    handlePlacenameChange(){
         this.setState({
-             ...this.state,
+            ...this.state,
             searchParameters : {
                 ...this.state.searchParameters,
-                searchedPlacename: e.target.value
+                searchedPlacename: document.getElementById("placenameInput").value
             }
         });
     }
 
     handleOnKeyPress(e) {
+        /*
+            When the user press Enter in the placename search box
+        */
         if (e.key === 'Enter'){
-            this.handlePlacenameChange(e);
+            this.handlePlacenameChange();
         }
     }
 
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        // check if data has changed
+    handleOnSearchClick() {
+        this.handlePlacenameChange();
+    }
 
+    componentDidUpdate(prevProps, prevState) {
+        // check if data has changed
         if (this.state.searchParameters !== prevState.searchParameters) {
             this.performSearch();
         }
@@ -177,12 +187,12 @@ class PlacenameSearchForm extends React.Component {
                             <div className="field-body">
                                 <div className="field has-addons">
                                     <div className="control">
-                                        <button id="search-button" className="button is-info" onClick={this.performSearch.bind(this)}>
+                                        <button id="search-button" className="button is-info" onClick={this.handleOnSearchClick}>
                                            <i className="fas fa-search"></i>
                                         </button>
                                     </div>
                                     <div className="control">
-                                        <input className="input" type="text" placeholder="ex: Abbécourt"
+                                        <input id="placenameInput" className="input" type="text" placeholder="ex: Abbécourt"
                                                onKeyPress={this.handleOnKeyPress}/>
                                     </div>
                                 </div>

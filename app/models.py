@@ -116,7 +116,7 @@ class Placename(SearchableMixin, db.Model):
         primaryjoin="InseeCommune.id==Placename.localization_commune_insee_code",
         uselist=False
     )
-    localization_placename = db.relationship('Placename')
+    linked_placenames = db.relationship('Placename')
 
 
 class PlacenameAltLabel(SearchableMixin, db.Model):
