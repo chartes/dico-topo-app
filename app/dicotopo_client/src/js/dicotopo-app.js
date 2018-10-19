@@ -30,6 +30,9 @@ class DicotopoApp extends React.Component {
     }
 
     componentDidMount() {
+        if (!this.state.enablePlacenameMap && !this.state.placenameUrl) {
+            this.setPlacenameCard(window.location.href.split("/").pop());
+        }
     }
 
     setPlacenameCard(placenameId) {
@@ -37,7 +40,8 @@ class DicotopoApp extends React.Component {
             ...prevState,
             placenameUrl: `${this.api_base_url}/placenames/${placenameId}`,
             placenameCardVisibility : true
-        }))
+        }));
+        console.log("set placenamecard to:", this.state.placenameUrl);
     }
 
     setSearchPlacenameResult(searchResult){
@@ -105,17 +109,14 @@ class DicotopoApp extends React.Component {
         }));
     }
 
-    renderPlacenameCard(placename_id=null) {
-      if (placename_id !== null) {
-        return <PlacenameCard url={`${this.api_base_url}/placenames/${placename_id}`} visible={this.state.placenameCardVisibility}/>
-      } else {
-          if (this.state.placenameUrl === null) {
-              return null
-          }
-          else {
+    renderPlacenameCard() {
+        if (this.state.placenameUrl === null) {
+            return null
+        }
+        else {
             return <PlacenameCard url={this.state.placenameUrl} visible={this.state.placenameCardVisibility}/>
-          }
-      }
+        }
+
     }
 
     renderSearchForm() {
@@ -180,7 +181,7 @@ class DicotopoApp extends React.Component {
         } else {
             return (
                 <div className={"container is-fluid"}>
-                     {this.renderPlacenameCard(window.location.href.split("/").pop())}
+                     {this.renderPlacenameCard()}
                 </div>
             );
         }

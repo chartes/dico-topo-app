@@ -93,7 +93,6 @@ class PlacenameMap extends React.Component {
                         return res.json();
                     })
                     .then((result) => {
-                        console.log(result);
                         onMarkerClick(result.data.relationships["placename"].data.id);
                     })
                     .catch(error => {
