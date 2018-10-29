@@ -61,7 +61,7 @@ class PlacenameSearchForm extends React.Component {
             }
             if (params["old-labels"]) {
                 let fields = "text_label_node";
-                urls.push(`${this.api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&lightweight`);
+                urls.push(`${this.api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&include=placename,commune,localization-commune&sort=text-label-node&lightweight`);
             }
 
             //clear results
@@ -87,13 +87,20 @@ class PlacenameSearchForm extends React.Component {
                     .then((result) => {
                         const oldResult = this.state.searchResult ? this.state.searchResult : [];
                         let newResult = result;
-                        Array.prototype.push.apply(result, oldResult);
+
+                        console.log(oldResult, newResult);
+
+                        Array.prototype.push.apply(newResult, oldResult);
+
+                        console.log(oldResult, newResult);
+
                         this.setState({
                             ...params,
                             searchResult: newResult,
                             error: null
                         });
                         this.props.onSearch(this.state.searchResult);
+                        console.log(newResult.data.length);
 
                         document.getElementById("search-button").classList.remove("is-loading");
                     })
@@ -194,7 +201,7 @@ class PlacenameSearchForm extends React.Component {
                                         </button>
                                     </div>
                                     <div className="control">
-                                        <input id="placenameInput" className="input" type="text" placeholder="ex: Abbécourt"
+                                        <input id="placenameInput" className="input" type="text" placeholder="ex: Abancourt"
                                                onKeyPress={this.handleOnKeyPress}/>
                                     </div>
                                 </div>
@@ -214,7 +221,7 @@ class PlacenameSearchForm extends React.Component {
                                                    defaultChecked={this.state.searchParameters.label}/>
                                                Vedette
                                         </label>
-                                         {/*
+                                        {/*
                                         <label className="checkbox">
                                             <input type="checkbox" name="member" value="old-labels" onChange={this.handleOldLabelsChange} defaultChecked={this.state.searchParameters["old-labels"]}/>
                                                 Formes anciennes

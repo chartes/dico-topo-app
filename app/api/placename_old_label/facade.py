@@ -1,4 +1,5 @@
 from app.api.abstract_facade import JSONAPIAbstractFacade
+from app.api.insee_commune.facade import CommuneFacade
 from app.api.placename.facade import PlacenameFacade
 
 
@@ -25,6 +26,17 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
         return None if self.obj.placename is None else PlacenameFacade(self.url_prefix,
                                                                        self.obj.placename).resource_identifier
 
+    def get_commune_resource_identifier(self):
+        return None if self.obj.placename is None else CommuneFacade(self.url_prefix,
+                                                                     self.obj.placename.commune).resource_identifier
+
+    def get_localization_commune_resource_identifier(self):
+        return None if (
+           self.obj.placename is None or self.obj.placename.localization_commune is None
+        ) else CommuneFacade(
+            self.url_prefix,
+            self.obj.placename.localization_commune).resource_identifier
+
     def get_old_labels_resource_identifiers(self):
         if self.obj.placename.old_labels is None:
             return []
@@ -36,6 +48,21 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
         return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename,
                                                                        self.with_relationships_links,
                                                                        self.with_relationships_data).resource
+
+    def get_commune_resource(self):
+        return None if (self.obj.placename is None or self.obj.placename.commune is None) else CommuneFacade(
+            self.url_prefix, self.obj.placename.commune,
+            self.with_relationships_links,
+            self.with_relationships_data
+        ).resource
+
+    def get_localization_commune_resource(self):
+        return None if (
+                    self.obj.placename is None or self.obj.placename.localization_commune is None) else CommuneFacade(
+            self.url_prefix, self.obj.placename.localization_commune,
+            self.with_relationships_links,
+            self.with_relationships_data
+        ).resource
 
     def get_old_labels_resource(self):
         if self.obj.placename.old_labels is None:
@@ -58,6 +85,16 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
                 "links": self._get_links(rel_name="placename"),
                 "resource_identifier_getter": self.get_placename_resource_identifier,
                 "resource_getter": self.get_placename_resource
+            },
+            "commune": {
+                "links": self._get_links(rel_name="commune"),
+                "resource_identifier_getter": self.get_commune_resource_identifier,
+                "resource_getter": self.get_commune_resource
+            },
+            "localization-commune": {
+                "links": self._get_links(rel_name="localization-commune"),
+                "resource_identifier_getter": self.get_localization_commune_resource_identifier,
+                "resource_getter": self.get_localization_commune_resource
             }
         }
 

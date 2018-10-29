@@ -136,7 +136,7 @@ class DicotopoApp extends React.Component {
                     <table className="table is-fullwidth is-hoverable is-stripped" >
                         <thead>
                         <tr>
-                            <th style={{minWidth: "200px"}}>Vedette</th>
+                            <th style={{minWidth: "200px"}}>Forme</th>
                             <th>Description</th>
                             <th>Département</th>
                             <th style={{minWidth: "100px"}}>Code INSEE</th>

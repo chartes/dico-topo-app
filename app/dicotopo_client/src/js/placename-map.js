@@ -3,7 +3,7 @@ import React from "react";
 import L from 'leaflet';
 
 import  '../css/GpPluginLeaflet.css';
-import  '../js/lib/GpPluginLeaflet';
+import * as Gp from '../js/lib/GpPluginLeaflet-src';
 
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -36,7 +36,7 @@ class PlacenameMap extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-
+            loaded : false
         };
 
         if (document.getElementById("debug-mode")){
@@ -44,25 +44,58 @@ class PlacenameMap extends React.Component {
         } else {
            this.api_base_url = "/dico-topo/api/1.0";
         }
+
+
     }
 
-    componentDidMount() {
+    initMap() {
+
         L.Marker.prototype.options.icon= L.icon({
             iconUrl: icon,
             shadowUrl: iconShadow
         });
 
-       this.map = L.map(
-           "map", {
-                preferCanvas : true
-            }
-       ).setView([48.845, 2.424], 5);
+        this.map = L.map(
+            "map", {
+                 preferCanvas : true
+             }
+        ).setView([48.845, 2.424], 5);
 
-       const lyrOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
-       this.map.addLayer(lyrOSM);
+        const lyrOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
 
-       this.markerLayer = L.markerClusterGroup().addTo(this.map);
-       this.updateMarkers(this.props.markersData);
+        const lyrOrtho = L.geoportalLayer.WMTS({
+            layer: "ORTHOIMAGERY.ORTHOPHOTOS",
+        });
+        const lyrCassini = L.geoportalLayer.WMTS({
+            layer: "GEOGRAPHICALGRIDSYSTEMS.CASSINI",
+        });
+        this.map.addLayer(lyrOSM);
+        this.map.addLayer(lyrOrtho);
+        this.map.addLayer(lyrCassini);
+
+        const layerSwitcher = L.geoportalControl.LayerSwitcher({
+            layers : [{
+                layer : lyrOSM,
+                config : {
+                    title : "OSM",
+                    description : "Couche Open Street Maps"
+                }
+            }]
+        });
+
+        this.map.addControl(layerSwitcher);
+
+        this.markerLayer = L.markerClusterGroup().addTo(this.map);
+        this.updateMarkers(this.props.markersData);
+
+        this.setState({loaded: true});
+    }
+
+    componentDidMount() {
+        Gp.Services.getConfig({
+           apiKey : "4bgxfnc1ufj44pmxpsloxq6j",
+           onSuccess : this.initMap.bind(this)
+        }) ;
     }
 
     componentDidUpdate({ markersData }) {
@@ -73,9 +106,10 @@ class PlacenameMap extends React.Component {
     }
 
     updateMarkers(markersData) {
-        const onMarkerClick =  this.props.onMarkerClick;
-        const api_url = this.api_base_url;
-        if (markersData) {
+        if (this.state.loaded && markersData) {
+            const onMarkerClick =  this.props.onMarkerClick;
+            const api_url = this.api_base_url;
+
             this.markerLayer.clearLayers();
             let markers = [];
             for (let m of markersData) {
