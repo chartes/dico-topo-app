@@ -1,13 +1,12 @@
-from app import JSONAPIResponseFactory as RF, api_bp
 from app.api.placename_old_label.facade import PlacenameOldLabelFacade
 from app.models import PlacenameOldLabel
 
 
-def get_placename_old_label(placename_id):
-    e = PlacenameOldLabel.query.filter(PlacenameOldLabel.placename_id == placename_id).first()
+def get_placename_old_label(id):
+    e = PlacenameOldLabel.query.filter(PlacenameOldLabel.id == int(id)).first()
     if e is None:
         kwargs = {"status": 404}
-        errors = [{"status": 404, "title": "placename older label '%s' does not exist" % placename_id}]
+        errors = [{"status": 404, "title": "placename old label '%s' does not exist" % id}]
     else:
         kwargs = {}
         errors = []
