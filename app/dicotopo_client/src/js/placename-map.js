@@ -3,7 +3,7 @@ import React from "react";
 import L from 'leaflet';
 
 import  '../css/GpPluginLeaflet.css';
-import * as Gp from '../js/lib/GpPluginLeaflet-src';
+import * as Gp from '../js/lib/GpPluginLeaflet';
 
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -69,9 +69,10 @@ class PlacenameMap extends React.Component {
         const lyrCassini = L.geoportalLayer.WMTS({
             layer: "GEOGRAPHICALGRIDSYSTEMS.CASSINI",
         });
-        this.map.addLayer(lyrOSM);
-        this.map.addLayer(lyrOrtho);
+
         this.map.addLayer(lyrCassini);
+        this.map.addLayer(lyrOrtho);
+        this.map.addLayer(lyrOSM);
 
         const layerSwitcher = L.geoportalControl.LayerSwitcher({
             layers : [{

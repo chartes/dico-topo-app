@@ -76,11 +76,11 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
     @property
     def relationships(self):
         return {
-            "old-labels": {
-                "links": self._get_links(rel_name="old-labels"),
-                "resource_identifier_getter": self.get_old_labels_resource_identifiers,
-                "resource_getter": self.get_old_labels_resource
-            },
+            #"old-labels": {
+            #    "links": self._get_links(rel_name="old-labels"),
+            #    "resource_identifier_getter": self.get_old_labels_resource_identifiers,
+            #    "resource_getter": self.get_old_labels_resource
+            #},
             "placename": {
                 "links": self._get_links(rel_name="placename"),
                 "resource_identifier_getter": self.get_placename_resource_identifier,
