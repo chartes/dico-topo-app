@@ -1,14 +1,11 @@
-import pprint
-import sqlalchemy
 
-from math import ceil
 
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
 
 import urllib
-from copy import copy
+
 from flask import request
-from sqlalchemy import select, func, desc, asc
+from sqlalchemy import func, desc, asc
 from sqlalchemy.exc import OperationalError
 
 from app import JSONAPIResponseFactory, api_bp, db
@@ -282,9 +279,9 @@ class JSONAPIRouteRegistrar(object):
 
     def register_relationship_get_route(self, obj_getter, facade_class, rel_name):
         """
+        Supported request parameters :
             - Related resource inclusion :
               ?include=relationname1,relationname2
-            Support Pagination syntax :
             - Pagination syntax requires page[number], page[size] or both parameters to be supplied in the URL:
               page[number]=1&page[size]=100
               The size cannot be greater than the limit defined in the corresponding Facade class
@@ -292,6 +289,7 @@ class JSONAPIRouteRegistrar(object):
               If the page number is omitted, it is set to 1
               Provides self,first,last,prev,next links for the collection (top-level)
               Omits the prev link if the current page is the first one, omits the next link if it is the last one
+
         """
         # ===============================
         # Relationships self link route

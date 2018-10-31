@@ -14,6 +14,7 @@ def add_to_index(index, model):
 
 def remove_from_index(index, model):
     if not current_app.elasticsearch:
+        print("WARNING: elasticsearch not properly configured")
         return
     current_app.elasticsearch.delete(index=index, doc_type=index, id=model.id)
 
@@ -33,23 +34,24 @@ def query_index(index, query, fields=None, page=None, per_page=None):
 
     if per_page is not None:
         if page is None:
-            page = 1
+            page = 0
         body["from"] = page
         body["size"] = per_page
 
-    body["from"] = 1
-    body["size"] = 8000
+    body["from"] = 0
+    body["size"] = 5000
     print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
+
     try:
-        search = current_app.elasticsearch.search(
-            index=index, doc_type=index,
-            body=body)
+        search = current_app.elasticsearch.search(index=index, doc_type=index, body=body)
 
         from collections import namedtuple
         Result = namedtuple("Result", "id index score")
+
         results = [Result(str(hit['_id']), str(hit['_index']), str(hit['_score']))
                    for hit in search['hits']['hits']]
 
+        print(search)
         print(search['hits']['total'], index, body)
 
         return results, search['hits']['total']

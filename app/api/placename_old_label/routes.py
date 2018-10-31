@@ -16,4 +16,7 @@ def get_placename_old_label(id):
 def register_placename_old_label_api_urls(app):
     app.api_url_registrar.register_get_routes(get_placename_old_label, PlacenameOldLabel, PlacenameOldLabelFacade)
     app.api_url_registrar.register_relationship_get_route(get_placename_old_label, PlacenameOldLabelFacade, 'placename')
-    app.api_url_registrar.register_relationship_get_route(get_placename_old_label, PlacenameOldLabelFacade, 'old-labels')
+    app.api_url_registrar.register_relationship_get_route(get_placename_old_label, PlacenameOldLabelFacade, 'commune')
+    app.api_url_registrar.register_relationship_get_route(get_placename_old_label, PlacenameOldLabelFacade, 'localization-commune')
+
+    #app.api_url_registrar.register_relationship_get_route(get_placename_old_label, PlacenameOldLabelFacade, 'old-labels')

@@ -95,16 +95,16 @@ class InseeRefFacade(JSONAPIAbstractFacade):
                 "resource_identifier_getter": self.get_children_resource_identifiers,
                 "resource_getter": self.get_children_resource
             },
-            "communes": {
-                "links": self._get_links(rel_name="communes"),
-                "resource_identifier_getter": self.get_communes_resource_identifiers,
-                "resource_getter": self.get_communes_resource
-            },
-            "placenames": {
-                "links": self._get_links(rel_name="placenames"),
-                "resource_identifier_getter": self.get_placenames_resource_identifiers,
-                "resource_getter": self.get_placenames_resource
-            }
+            #"communes": {
+            #    "links": self._get_links(rel_name="communes"),
+            #    "resource_identifier_getter": self.get_communes_resource_identifiers,
+            #    "resource_getter": self.get_communes_resource
+            #},
+            #"placenames": {
+            #    "links": self._get_links(rel_name="placenames"),
+            #    "resource_identifier_getter": self.get_placenames_resource_identifiers,
+            #    "resource_getter": self.get_placenames_resource
+            #}
         }
 
     @property
