@@ -1,4 +1,3 @@
-from app import JSONAPIResponseFactory as RF, api_bp
 from app.api.insee_commune.facade import CommuneFacade
 from app.models import InseeCommune
 

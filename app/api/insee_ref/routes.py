@@ -1,4 +1,3 @@
-from app import JSONAPIResponseFactory as RF, api_bp
 from app.api.insee_ref.facade import InseeRefFacade
 from app.models import InseeRef
 
