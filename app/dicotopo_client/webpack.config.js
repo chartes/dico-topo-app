@@ -1,15 +1,23 @@
 const HtmlWebPackPlugin = require("html-webpack-plugin");
 const path = require('path');
 
-const htmlPlugin = new HtmlWebPackPlugin({
+const dicotopoAppDevPage = new HtmlWebPackPlugin({
   template: "./src/index.html",
-  filename: "./index.html"
+  filename: "./index.html",
+  chunks: ["index"]
+});
+
+const dicotopoDocsAppDevPage = new HtmlWebPackPlugin({
+  template: "./src/docs.html",
+  filename: "./docs.html",
+  chunks: ["docs"]
 });
 
 module.exports = {
   mode: 'development',
   entry: {
-    index: './src/index.js'
+    index: './src/index.js',
+    docs: './src/docs.js'
   },
   output: {
     path: path.resolve('../static/js'),
@@ -35,7 +43,7 @@ module.exports = {
       }
     ]
   },
-  plugins: [htmlPlugin],
+  plugins: [dicotopoAppDevPage, dicotopoDocsAppDevPage],
   node: {
     fs: 'empty'
   }

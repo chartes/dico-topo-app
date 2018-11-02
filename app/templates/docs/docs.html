@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block head_scripts %}
+
+{% endblock head_scripts %}
+
+{% block content %}
+    <section class="section">
+        <div class="container is-fluid">
+            <div id="dicotopo-docs-app"></div>
+        </div>
+    </section>
+
+    <script src="{{ url_for('app_bp.static', filename='js/docs.bundle.js') }}"></script>
+{% endblock content %}
+
+{% block scripts %}
+<script type="text/javascript">
+</script>
+{% endblock scripts %}
