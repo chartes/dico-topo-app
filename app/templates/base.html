@@ -42,13 +42,17 @@
                         </a>
                     </div>
                     <div class="navbar-menu  is-active">
-                        <a class="navbar-item breadcrumb-index" href="">
+                        <a class="navbar-item breadcrumb-index" href="{{ url_for('app_bp.index') }}">
                             <div class="title website-title">Dictionnaire topographique de la France</div>
                         </a>
                         {% block breadcrumb %} {% endblock %}
                     </div>
 
                     <div class="navbar-end">
+                         <a class="navbar-item link" href="{{ url_for('app_bp.documentation') }}">
+                            <span><i class="fas fa-book"></i></span>
+                            <span class="is-size-5" style="margin-left: 12px; margin-right: 12px;">Documentation</span>
+                        </a>
                     </div>
                 </nav>
             {% endblock %}

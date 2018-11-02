@@ -8,6 +8,11 @@ def index():
     return render_template("main/index.html")
 
 
+@app_bp.route("/documentation")
+def documentation():
+    return render_template("docs/docs.html")
+
+
 @app_bp.route('/placenames')
 def get_placename_collection():
     num_start_page = request.args.get("filter[num_start_page]", 1)
