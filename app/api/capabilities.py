@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, current_app
 
 from app import api_bp, JSONAPIResponseFactory
 
@@ -6,6 +6,7 @@ from app import api_bp, JSONAPIResponseFactory
 @api_bp.route("/api/<api_version>")
 def api_get_capabilities(api_version):
     if "capabilities" in request.args:
+        url_prefix = request.host_url[:-1] + current_app.config["API_URL_PREFIX"]
         capabilities = [
             {
                 "type": "capability",
@@ -14,38 +15,32 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints":  {
                         "resource": {
-                            "url": "/api/%s/placename" % api_version,
-                            "parameters": {}
+                            "url": "%s/placename/<id>" % url_prefix,
+                            "parameters": {},
+                            "attributes": [
+                                {"name": "id", "description": ""},
+                                {"name": "label", "description": ""},
+                                {"name": "country", "description": ""},
+                                {"name": "dpt", "description": ""},
+                                {"name": "desc", "description": ""},
+                                {"name": "num-start-page", "description": ""},
+                                {"name": "localization-certainty", "description": ""},
+                                {"name": "localization-insee-code", "description": ""},
+                                {"name": "comment", "description": ""},
+                            ],
+                            "relationships": [
+                                {"name": "commune", "description": ""},
+                                {"name": "localization-commune", "description": ""},
+                                {"name": "linked-placenames", "description": ""},
+                                {"name": "alt-labels", "description": ""},
+                                {"name": "old-labels", "description": ""}
+                            ]
                         },
                         "collection": {
-                            "url": "/api/%s/placenames" % api_version,
+                            "url": "%s/placenames" % url_prefix,
                             "parameters": {}
                         }
                     },
-                    "resource-parameters": {
-
-                    },
-                    "collection-parameters": {
-
-                    },
-                    "resource-attributes": [
-                        {"name": "id", "description": ""},
-                        {"name": "label", "description": ""},
-                        {"name": "country", "description": ""},
-                        {"name": "dpt", "description": ""},
-                        {"name": "desc", "description": ""},
-                        {"name": "num-start-page", "description": ""},
-                        {"name": "localization-certainty", "description": ""},
-                        {"name": "localization-insee-code", "description": ""},
-                        {"name": "comment", "description": ""},
-                    ],
-                    "resource-relationships": [
-                        {"name": "commune", "description": ""},
-                        {"name": "localization-commune", "description": ""},
-                        {"name": "linked-placenames", "description": ""},
-                        {"name": "alt-labels", "description": ""},
-                        {"name": "old-labels", "description": ""}
-                    ]
                 },
                 "usage": []
             },
@@ -57,28 +52,28 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints":  {
                         "resource": {
-                            "url": "/api/%s/commune" % api_version,
-                            "parameters": {}
+                            "url": "%s/commune/<insee-code>" % url_prefix,
+                            "parameters": {},
+                            "attributes": [
+                                {"name": "insee-code", "description": ""},
+                                {"name": "NCCENR", "description": ""},
+                                {"name": "ARTMIN", "description": ""},
+                                {"name": "longlat", "description": ""}
+                            ],
+                            "relationships": [
+                                {"name": "localized-placenames", "description": ""},
+                                {"name": "placename", "description": ""},
+                                {"name": "region", "description": ""},
+                                {"name": "departement", "description": ""},
+                                {"name": "arrondissement", "description": ""},
+                                {"name": "canton", "description": ""}
+                            ]
                         },
                         "collection": {
-                            "url": "/api/%s/communes" % api_version,
+                            "url": "%s/communes" % url_prefix,
                             "parameters": {}
                         }
-                    },
-                    "resource-attributes": [
-                        {"name": "insee-code", "description": ""},
-                        {"name": "NCCENR", "description": ""},
-                        {"name": "ARTMIN", "description": ""},
-                        {"name": "longlat", "description": ""}
-                    ],
-                    "resource-relationships": [
-                        {"name": "localized-placenames", "description": ""},
-                        {"name": "placename", "description": ""},
-                        {"name": "region", "description": ""},
-                        {"name": "departement", "description": ""},
-                        {"name": "arrondissement", "description": ""},
-                        {"name": "canton", "description": ""}
-                    ]
+                    }
                 },
                 "usage": []
             },
@@ -90,20 +85,21 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "/api/%s/feature-type" % api_version,
-                            "parameters": {}
+                            "url": "%s/feature-type/<id>" % url_prefix,
+                            "parameters": {},
+                            "attributes": [
+                                {"name": "id", "description": ""},
+                                {"name": "term", "description": ""},
+                            ],
+                            "relationships": [
+                                {"name": "placename", "description": ""},
+                            ]
                         },
                         "collection": {
-                            "url": "/api/%s/feature-types" % api_version,
+                            "url": "%s/feature-types" % url_prefix,
                             "parameters": {}
                         }
-                    },
-                    "resource-attributes": [
-                        {"name": "term", "description": ""},
-                    ],
-                    "resource-relationships": [
-                        {"name": "placename", "description": ""},
-                    ]
+                    }
                 },
                 "usage": []
             },
@@ -115,25 +111,25 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "/api/%s/insee-ref" % api_version,
-                            "parameters": {}
+                            "url": "%s/insee-ref/<id>" % url_prefix,
+                            "parameters": {},
+                            "attributes": [
+                                {"name": "id", "description": ""},
+                                {"name": "reference-type", "description": ""},
+                                {"name": "insee-code", "description": ""},
+                                {"name": "level", "description": ""},
+                                {"name": "label", "description": ""},
+                            ],
+                            "relationships": [
+                                {"name": "parent", "description": ""},
+                                {"name": "children", "description": ""},
+                            ]
                         },
                         "collection": {
-                            "url": "/api/%s/insee-refs" % api_version,
+                            "url": "%s/insee-refs" % url_prefix,
                             "parameters": {}
                         }
-                    },
-                    "resource-attributes": [
-                        {"name": "id", "description": ""},
-                        {"name": "reference-type", "description": ""},
-                        {"name": "insee-code", "description": ""},
-                        {"name": "level", "description": ""},
-                        {"name": "label", "description": ""},
-                    ],
-                    "resource-relationships": [
-                        {"name": "parent", "description": ""},
-                        {"name": "children", "description": ""},
-                    ]
+                    }
                 },
                 "usage": []
             },
@@ -145,27 +141,27 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "/api/%s/placename-old-label" % api_version,
-                            "parameters": {}
+                            "url": "%s/placename-old-label/<id>" % url_prefix,
+                            "parameters": {},
+                            "attributes": [
+                                {"name": "rich-label", "description": ""},
+                                {"name": "rich-date", "description": ""},
+                                {"name": "text-date", "description": ""},
+                                {"name": "rich-reference", "description": ""},
+                                {"name": "rich-label-node", "description": ""},
+                                {"name": "text-label-node", "description": ""},
+                            ],
+                            "relationships": [
+                                {"name": "placename", "description": ""},
+                                {"name": "commune", "description": ""},
+                                {"name": "localization-commune", "description": ""},
+                            ]
                         },
                         "collection": {
-                            "url": "/api/%s/placename-old-labels" % api_version,
+                            "url": "%s/placename-old-labels" % url_prefix,
                             "parameters": {}
                         }
-                    },
-                    "resource-attributes": [
-                        {"name": "rich-label", "description": ""},
-                        {"name": "rich-date", "description": ""},
-                        {"name": "text-date", "description": ""},
-                        {"name": "rich-reference", "description": ""},
-                        {"name": "rich-label-node", "description": ""},
-                        {"name": "text-label-node", "description": ""},
-                    ],
-                    "resource-relationships": [
-                        {"name": "placename", "description": ""},
-                        {"name": "commune", "description": ""},
-                        {"name": "localization-commune", "description": ""},
-                    ]
+                    }
                 },
                 "usage": []
             },
@@ -177,20 +173,20 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "/api/%s/placename-alt-label" % api_version,
-                            "parameters": {}
+                            "url": "%s/placename-alt-label/<id>" % url_prefix,
+                            "parameters": {},
+                            "attributes": [
+                                {"name": "label", "description": ""},
+                            ],
+                            "relationships": [
+                                {"name": "placename", "description": ""},
+                            ]
                         },
                         "collection": {
-                            "url": "/api/%s/placename-alt-labels" % api_version,
+                            "url": "%s/placename-alt-labels" % url_prefix,
                             "parameters": {}
                         }
-                    },
-                    "resource-attributes": [
-                        {"name": "label", "description": ""},
-                    ],
-                    "resource-relationships": [
-                        {"name": "placename", "description": ""},
-                    ]
+                    }
                 },
                 "usage": []
             },
