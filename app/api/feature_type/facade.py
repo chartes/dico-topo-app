@@ -46,6 +46,7 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
         res = {
             **self.resource_identifier,
             "attributes": {
+                "id": self.obj.id,
                 "term": self.obj.term
             },
             "meta": self.meta,
