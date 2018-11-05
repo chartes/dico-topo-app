@@ -402,7 +402,10 @@ class JSONAPIRouteRegistrar(object):
                 facade_obj = facade_class(url_prefix, obj)
                 relationship = facade_obj.relationships[rel_name]
                 resource_data = relationship["resource_getter"]()
-                count = len(resource_data)
+                if resource_data is None:
+                    count = 0
+                else:
+                    count = 1
                 paginated_links = {}
                 links = {
                     "self": request.url
