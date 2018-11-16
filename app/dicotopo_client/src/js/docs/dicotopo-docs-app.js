@@ -50,7 +50,7 @@ class DicotopoDocsApp extends React.Component {
                     </header>
                     <ul>{
                     this.state.capabilities.map(capability => (
-                        <li key={capability.id}><a>{capability.id}</a></li>
+                        <li key={capability.id}><a href={"#"+capability.id}>{capability.id}</a></li>
                     ))
                     }
                     </ul>
@@ -60,7 +60,7 @@ class DicotopoDocsApp extends React.Component {
                 <h1 className="title">Documentation de l'API Dicotopo (en cours de rédaction)</h1>
                 <div className="">{
                    this.state.capabilities.map(capability => (
-                       <div key={capability.id}><CapabilityCard data={capability}/></div>
+                       <div id={capability.id} key={capability.id}><CapabilityCard data={capability}/></div>
                    ))
                 }
                 </div>
