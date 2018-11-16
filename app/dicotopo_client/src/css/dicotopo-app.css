@@ -1,4 +1,8 @@
 
+.hero {
+    margin-bottom: 20px;
+}
+
 #map {
     width: 100%;
     height: 600px;
@@ -27,4 +31,16 @@ label.checkbox input {
     display: flex;
     line-height: 60px;
     margin-right: 12px;
+}
+
+#main-navbar {
+    position: fixed;
+    width: 100%;
+    background: whitesmoke;
+    z-index: 99999;
+}
+
+h1 {
+    font-weight: normal;
+    color: #444444;
 }

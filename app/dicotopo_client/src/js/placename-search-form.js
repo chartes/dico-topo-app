@@ -207,7 +207,7 @@ class PlacenameSearchForm extends React.Component {
                                 </div>
                             </div>
                         </div>
-
+                         {/*
                         <div className="field is-horizontal">
                             <div className="field-label">
                                 <label className="label">Inclure</label>
@@ -215,13 +215,14 @@ class PlacenameSearchForm extends React.Component {
                             <div className="field-body">
                                 <div className="field">
                                     <div className="control">
+
                                         <label className="checkbox">
                                             <input type="checkbox" name="member" value="label"
                                                    onChange={this.handleLabelChange}
                                                    defaultChecked={this.state.searchParameters.label}/>
                                                Vedette
                                         </label>
-                                        {/*
+
                                         <label className="checkbox">
                                             <input type="checkbox" name="member" value="old-labels" onChange={this.handleOldLabelsChange} defaultChecked={this.state.searchParameters["old-labels"]}/>
                                                 Formes anciennes
@@ -231,11 +232,12 @@ class PlacenameSearchForm extends React.Component {
                                             <input type="checkbox" name="member" value="desc" onChange={this.handleDescChange} defaultChecked={this.state.searchParameters.desc}/>
                                                 description
                                         </label>
-                                        */}
+
                                     </div>
                                 </div>
                             </div>
                         </div>
+                         */}
 
                     </div>
 

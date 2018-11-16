@@ -106,6 +106,18 @@ class JSONAPIRouteRegistrar(object):
             count = None
             try:
 
+                # if request has pagination parameters
+                # add links to the top-level object
+                if 'page[number]' in request.args or 'page[size]' in request.args:
+                    num_page = int(request.args.get('page[number]', 1))
+                    page_size = min(
+                        facade_class.ITEMS_PER_PAGE,
+                        int(request.args.get('page[size]', facade_class.ITEMS_PER_PAGE))
+                    )
+                else:
+                    num_page = 1
+                    page_size = facade_class.ITEMS_PER_PAGE
+
                 # if request has search parameter
                 # (search request arg, search fieldnames)
                 search_parameters = [(f, [field.strip() for field in f[len('search['):-1].split(",")])
@@ -119,8 +131,8 @@ class JSONAPIRouteRegistrar(object):
                         expression = request.args[search_request_param]
 
                     print("search parameters: ", search_fields, expression)
-                    objs_query, count = model.search(expression, fields=search_fields)
-                print("count: ", count)
+                    objs_query, count = model.search(expression, fields=search_fields, page=num_page, per_page=page_size)
+
                 # if request has filter parameter
                 filter_criteriae = []
                 filters = [(f, f[len('filter['):-1])  # (filter_param, filter_fieldname)
@@ -149,40 +161,37 @@ class JSONAPIRouteRegistrar(object):
                     # then apply the user order criteriae
                     objs_query = objs_query.order_by(sort_order(*sort_criteriae))
 
-                # if request has pagination parameters
-                # add links to the top-level object
-                if 'page[number]' in request.args or 'page[size]' in request.args:
-                    num_page = int(request.args.get('page[number]', 1))
-                    page_size = min(
-                        facade_class.ITEMS_PER_PAGE,
-                        int(request.args.get('page[size]', facade_class.ITEMS_PER_PAGE))
-                    )
-
+                # apply the pagination after an eventual sort
+                if "search" in request.args:
+                    all_objs = objs_query.all()  # the search feature has already paginated the results for us
+                    #TODO : this is bad because it is dependent on the search system (eg. good for us that elasticsearch provides pagination)
+                else:
                     pagination_obj = objs_query.paginate(num_page, page_size, False)
                     all_objs = pagination_obj.items
-                    args = OrderedDict(request.args)
+                args = OrderedDict(request.args)
+                print(len(all_objs))
 
-                    if count is None:
-                        count = JSONAPIRouteRegistrar.count(model)
-                    nb_pages = max(1, ceil(count / page_size))
+                if count is None:
+                    count = JSONAPIRouteRegistrar.count(model)
+                nb_pages = max(1, ceil(count / page_size))
 
-                    args["page[size]"] = page_size
-                    links["self"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    args["page[number]"] = 1
-                    links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    args["page[number]"] = nb_pages
-                    links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page > 1:
-                        args["page[number]"] = max(1, num_page - 1)
-                        links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page < nb_pages:
-                        args["page[number]"] = min(nb_pages, num_page + 1)
-                        links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                args["page[size]"] = page_size
+                links["self"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                args["page[number]"] = 1
+                links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                args["page[number]"] = nb_pages
+                links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                if num_page > 1:
+                    args["page[number]"] = max(1, num_page - 1)
+                    links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                if num_page < nb_pages:
+                    args["page[number]"] = min(nb_pages, num_page + 1)
+                    links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
                 # else it is not paginated
-                else:
-                    links["self"] = request.url
-                    all_objs = objs_query.all()
-                    count = len(all_objs)
+                #else:
+                #    links["self"] = request.url
+                #    all_objs = objs_query.all()
+                #    count = len(all_objs)
 
                 # finally retrieve the (eventually filtered, sorted, paginated) resources
                 lightweight = "lightweight" in request.args

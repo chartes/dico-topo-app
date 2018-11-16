@@ -9,7 +9,7 @@ class JSONAPIAbstractFacade(object):
     TYPE = "ABSTRACT-TYPE"
     TYPE_PLURAL = "ABSTRACT-TYPE-PLURAL"
 
-    ITEMS_PER_PAGE = 1000000
+    ITEMS_PER_PAGE = 10000 #TODO: au delà il faut passer par l'api scroll d'elastic search
 
     def __init__(self, url_prefix, obj, with_relationships_links=True, with_relationships_data=True):
         self.obj = obj
