@@ -35,12 +35,14 @@ def query_index(index, query, fields=None, page=None, per_page=None):
     if per_page is not None:
         if page is None:
             page = 0
-        body["from"] = page
+        else:
+            page = page - 1  # is it correct ?
+        body["from"] = page * per_page
         body["size"] = per_page
-
-    body["from"] = 0
-    body["size"] = 5000
-    print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
+    else:
+        body["from"] = 0 * per_page
+        body["size"] = per_page
+        #print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
 
     try:
         search = current_app.elasticsearch.search(index=index, doc_type=index, body=body)
@@ -52,7 +54,7 @@ def query_index(index, query, fields=None, page=None, per_page=None):
                    for hit in search['hits']['hits']]
 
         print(search)
-        print(search['hits']['total'], index, body)
+        print(len(results), search['hits']['total'], index, body)
 
         return results, search['hits']['total']
 

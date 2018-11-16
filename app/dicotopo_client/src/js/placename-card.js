@@ -136,6 +136,7 @@ class PlacenameCard extends React.Component {
       }
       else {
           let encapsulate_ref = (ref) => ref ? `(${ref})` : "";
+          const comma = (oldLabel) => oldLabel.length > 0 ? "," : "";
 
           return (
               <div id="placename-old-labels" className="content">
@@ -145,7 +146,7 @@ class PlacenameCard extends React.Component {
                       <li key={oldLabel.id}
                           dangerouslySetInnerHTML={{
                         __html: `
-                          ${this.renderAttribute(oldLabel, "rich-label")}, ${this.renderAttribute(oldLabel, "rich-date")}
+                          ${this.renderAttribute(oldLabel, "rich-label")}${comma(oldLabel)} ${this.renderAttribute(oldLabel, "rich-date")}
                           ${encapsulate_ref(oldLabel.attributes["rich-reference"])}
                         `
                       }}>

@@ -13,6 +13,7 @@ class SearchableMixin(object):
             index = cls.__tablename__
 
         # perform the query
+        print(page, per_page)
         results, total = query_index(index=index, query=expression,
                                  fields=fields, page=page, per_page=per_page)
         print(expression, results, total)
