@@ -1,4 +1,10 @@
 from app import db
+from app.api.feature_type.facade import FeatureTypeFacade
+from app.api.insee_commune.facade import CommuneFacade
+from app.api.insee_ref.facade import InseeRefFacade
+from app.api.placename.facade import PlacenameFacade
+from app.api.placename_alt_label.facade import PlacenameAltLabelFacade
+from app.api.placename_old_label.facade import PlacenameOldLabelFacade
 
 from app.search import add_to_index, remove_from_index, query_index
 
@@ -13,15 +19,15 @@ class SearchableMixin(object):
             index = cls.__tablename__
 
         # perform the query
-        print(page, per_page)
+        #print(page, per_page)
         results, total = query_index(index=index, query=expression,
                                  fields=fields, page=page, per_page=per_page)
-        print(expression, results, total)
+        #print(expression, results, total)
         if total == 0:
             return cls.query.filter_by(id=0), 0
         when = []
-        #TODO recuperer les indexes et faire les bonnes requetes/jointures
-        ids = [r.id for r in results]
+
+        ids = [r["id"] for r in results[index]]
 
         if len(ids) == 0:
             return cls.query.filter_by(id=0), 0
@@ -88,6 +94,7 @@ class Placename(SearchableMixin, db.Model):
 
     __tablename__ = 'placename'
     __searchable__ = ['label']
+    __jsonapi_facade__ = PlacenameFacade
 
     id = db.Column("placename_id", db.String(10), primary_key=True)
     label = db.Column(db.String(200), nullable=False)
@@ -123,6 +130,8 @@ class Placename(SearchableMixin, db.Model):
 class PlacenameAltLabel(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'placename_alt_label'
+    __jsonapi_facade__ = PlacenameAltLabelFacade
+
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'label', name='_placename_label_uc'),
     )
@@ -139,6 +148,8 @@ class PlacenameAltLabel(SearchableMixin, db.Model):
 class PlacenameOldLabel(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'placename_old_label'
+    __jsonapi_facade__ = PlacenameOldLabelFacade
+
     __searchable__ = ['text_label_node', 'text_date']
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -163,6 +174,8 @@ class PlacenameOldLabel(SearchableMixin, db.Model):
 class InseeCommune(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'insee_commune'
+    __jsonapi_facade__ = CommuneFacade
+
     __searchable__ = ['NCCENR']
 
     id = db.Column("insee_code", db.String(5), primary_key=True)
@@ -184,6 +197,8 @@ class InseeCommune(SearchableMixin, db.Model):
 class InseeRef(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'insee_ref'
+    __jsonapi_facade__ = InseeRefFacade
+
     __searchable__ = ['label']
 
     id = db.Column(db.String(10), primary_key=True)
@@ -200,6 +215,8 @@ class InseeRef(SearchableMixin, db.Model):
 class FeatureType(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'feature_type'
+    __jsonapi_facade__ = FeatureTypeFacade
+
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'term', name='_placename_term_uc'),
     )
@@ -211,14 +228,3 @@ class FeatureType(SearchableMixin, db.Model):
 
     # relationships
     placename = db.relationship(Placename, backref=db.backref('feature_types'))
-
-
-# get back from search index name to model class
-#MODELS_HASH_TABLE = {
-#    "placename": Placename,
-#    "placename_old_label": PlacenameOldLabel,
-#    "feature_type": FeatureType,
-#    "placename_alt_label": PlacenameAltLabel,
-#    "insee_commune": InseeCommune,
-#    "insee_ref": InseeRef,
-#}

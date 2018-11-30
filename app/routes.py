@@ -1,4 +1,4 @@
-from flask import render_template, request, url_for
+from flask import render_template, request, url_for, current_app
 
 from app import app_bp, api_bp
 
@@ -27,42 +27,10 @@ def get_placename(placename_id):
 
 @api_bp.route('/api/1.0/dev/search/<term>')
 def dev_search_without_facade(term):
-    from app.models import Placename
     from app import JSONAPIResponseFactory
 
-    p = Placename.query.filter(Placename.label.ilike(term)).all()
-
+    res, total = current_app.api_url_registrar.search(index="placename,placename_old_label", expression=term, fields=["label", "rich_label_node"])
+    print(len(res["placename_old_label"]))
     return JSONAPIResponseFactory.make_data_response(
-                        [(pl.label, pl.desc) for pl in p], links=[], included_resources=[], meta={"total-count": len(p)}
-                    )
-
-
-@api_bp.route('/api/1.0/dev/search-without-rel-data/<term>')
-def dev_search_with_facade_without_rel_data(term):
-    from app.models import Placename
-    from app.api.placename.facade import PlacenameFacade
-    from app import JSONAPIResponseFactory
-
-    placenames = Placename.query.filter(Placename.label.ilike(term)).all()
-    data = [obj.resource for obj in [PlacenameFacade("url/prefix", p, with_relationships_data=False) for p in placenames]]
-
-    return JSONAPIResponseFactory.make_data_response(
-                        data, links=[], included_resources=[], meta={"total-count": len(data)}
-    )
-
-
-@api_bp.route('/api/1.0/dev/search-without-rel/<term>')
-def dev_search_with_facade_without_rel(term):
-    from app.models import Placename
-    from app.api.placename.facade import PlacenameFacade
-    from app import JSONAPIResponseFactory
-
-    placenames = Placename.query.filter(Placename.label.ilike(term)).all()
-    data = [obj.resource for obj in [PlacenameFacade("url/prefix", p,
-                                                     with_relationships_links=False,
-                                                     with_relationships_data=False)
-                                     for p in placenames]]
-
-    return JSONAPIResponseFactory.make_data_response(
-        data, links=[], included_resources=[], meta={"total-count": len(data)}
+        { **dict([(idx, [o.id for o in r]) for idx, r in res.items()])}, links=[], included_resources=[], meta={"total-if-it-was-not-capped-to-10000": total}
     )

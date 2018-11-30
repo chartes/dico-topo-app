@@ -81,13 +81,15 @@ def create_app(config_name="dev"):
     from app.api.feature_type.routes import register_feature_type_api_urls
 
     with app.app_context():
-        # generate GET routes for the API
+        # generate resources endpoints
         register_placename_api_urls(app)
         register_placename_alt_label_api_urls(app)
         register_placename_old_label_api_urls(app)
         register_insee_commune_api_urls(app)
         register_insee_ref_api_urls(app)
         register_feature_type_api_urls(app)
+        # generate search endpoint
+        app.api_url_registrar.register_search_route()
 
     app.register_blueprint(app_bp)
     app.register_blueprint(api_bp)

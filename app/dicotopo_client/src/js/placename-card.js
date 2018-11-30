@@ -56,7 +56,7 @@ class PlacenameCard extends React.Component {
           });
       }
       else {
-          fetch(placename_url + "?include=old-labels,linked-placenames&lightweight")
+          fetch(placename_url + "?include=old-labels,linked-placenames&without-relationships")
             .then(res => {
                 if (!res.ok) {
                     throw res;

@@ -1,5 +1,6 @@
+import pprint
 from flask import current_app
-
+from collections import namedtuple
 
 def add_to_index(index, model):
     if not current_app.elasticsearch:
@@ -22,12 +23,12 @@ def remove_from_index(index, model):
 def query_index(index, query, fields=None, page=None, per_page=None):
     if not current_app.elasticsearch:
         print("WARNING: elasticsearch not properly configured")
-        return [], 0
+        return {}, 0
     body = {
         'query': {
             'query_string': {
                 'query': query,
-                'fields': ['*'] if fields is None or len(fields) == 0 else fields
+                #'fields': ['*'] if fields is None or len(fields) == 0 else fields
             }
         },
     }
@@ -40,24 +41,27 @@ def query_index(index, query, fields=None, page=None, per_page=None):
         body["from"] = page * per_page
         body["size"] = per_page
     else:
-        body["from"] = 0 * per_page
-        body["size"] = per_page
+        body["from"] = 0
+        body["size"] = 10000
         #print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
 
     try:
         search = current_app.elasticsearch.search(index=index, doc_type=index, body=body)
 
-        from collections import namedtuple
-        Result = namedtuple("Result", "id index score")
+        results = {}
+        for hit in search['hits']['hits']:
+            _idx = str(hit['_index'])
 
-        results = [Result(str(hit['_id']), str(hit['_index']), str(hit['_score']))
-                   for hit in search['hits']['hits']]
+            if _idx not in results:
+                results[_idx] = []
 
-        print(search)
-        print(len(results), search['hits']['total'], index, body)
+            results[_idx].append({
+                "id": str(hit['_id']),
+                "score": str(hit['_score'])
+            })
 
         return results, search['hits']['total']
 
     except Exception as e:
         print(e)
-        return [], 0
+        return {}, 0
