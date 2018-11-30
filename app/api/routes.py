@@ -10,8 +10,3 @@ def api_init(api_version):
     return Response("init ok")
 
 
-@api_bp.route("/api/<api_version>/search/<index>")
-def api_search(api_version, index="_all"):
-    pass
-
-

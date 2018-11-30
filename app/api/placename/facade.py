@@ -12,100 +12,19 @@ class PlacenameFacade(JSONAPIAbstractFacade):
     def id(self):
         return self.obj.id
 
-    @property
-    def type(self):
-        return self.TYPE
+    @staticmethod
+    def get_resource_facade(url_prefix, id, **kwargs):
+        from app.models import Placename
 
-    @property
-    def type_plural(self):
-        return self.TYPE_PLURAL
-
-    def get_commune_resource_identifier(self):
-        from app.api.insee_commune.facade import CommuneFacade
-        return None if self.obj.commune is None else CommuneFacade(self.url_prefix,
-                                                                   self.obj.commune).resource_identifier
-
-    def get_localization_commune_resource_identifier(self):
-        from app.api.insee_commune.facade import CommuneFacade
-        return None if self.obj.localization_commune is None else CommuneFacade(self.url_prefix,
-                                                                                self.obj.localization_commune).resource_identifier
-
-    def get_linked_placenames_resource_identifiers(self):
-        return [] if self.obj.linked_placenames is None else [PlacenameFacade(self.url_prefix, p).resource_identifier
-                                                              for p in self.obj.linked_placenames]
-
-    def get_alt_labels_resource_identifiers(self):
-        from app.api.placename_alt_label.facade import PlacenameAltLabelFacade
-        return [] if self.obj.alt_labels is None else [PlacenameAltLabelFacade(self.url_prefix, _as).resource_identifier
-                                                       for _as in self.obj.alt_labels]
-
-    def get_old_labels_resource_identifiers(self):
-        from app.api.placename_old_label.facade import PlacenameOldLabelFacade
-        return [] if self.obj.old_labels is None else [PlacenameOldLabelFacade(self.url_prefix, _os).resource_identifier
-                                                       for _os in self.obj.old_labels]
-
-    def get_commune_resource(self):
-        from app.api.insee_commune.facade import CommuneFacade
-        return None if self.obj.commune is None else CommuneFacade(self.url_prefix, self.obj.commune,
-                                                                   self.with_relationships_links,
-                                                                   self.with_relationships_data).resource
-
-    def get_localization_commune_resource(self):
-        from app.api.insee_commune.facade import CommuneFacade
-        return None if self.obj.localization_commune is None else CommuneFacade(self.url_prefix,
-                                                                                self.obj.localization_commune,
-                                                                                self.with_relationships_links,
-                                                                                self.with_relationships_data).resource
-
-    def get_linked_placenames_resources(self):
-        return [] if self.obj.linked_placenames is None else [PlacenameFacade(self.url_prefix, p,
-                                                                              self.with_relationships_links,
-                                                                              self.with_relationships_data).resource
-                                                              for p in self.obj.linked_placenames]
-
-    def get_alt_labels_resources(self):
-        from app.api.placename_alt_label.facade import PlacenameAltLabelFacade
-        return [] if self.obj.alt_labels is None else [PlacenameAltLabelFacade(self.url_prefix, _as,
-                                                                               self.with_relationships_links,
-                                                                               self.with_relationships_data).resource
-                                                       for _as in self.obj.alt_labels]
-
-    def get_old_labels_resources(self):
-        from app.api.placename_old_label.facade import PlacenameOldLabelFacade
-        return [] if self.obj.old_labels is None else [PlacenameOldLabelFacade(self.url_prefix, _os,
-                                                                               self.with_relationships_links,
-                                                                               self.with_relationships_data).resource
-                                                       for _os in self.obj.old_labels]
-
-    @property
-    def relationships(self):
-        return {
-            "commune": {
-                "links": self._get_links(rel_name="commune"),
-                "resource_identifier_getter": self.get_commune_resource_identifier,
-                "resource_getter": self.get_commune_resource
-            },
-            "localization-commune": {
-                "links": self._get_links(rel_name="localization-commune"),
-                "resource_identifier_getter": self.get_localization_commune_resource_identifier,
-                "resource_getter": self.get_localization_commune_resource
-            },
-            "linked-placenames": {
-                "links": self._get_links(rel_name="linked-placenames"),
-                "resource_identifier_getter": self.get_linked_placenames_resource_identifiers,
-                "resource_getter": self.get_linked_placenames_resources
-            },
-            "alt-labels": {
-                "links": self._get_links(rel_name="alt-labels"),
-                "resource_identifier_getter": self.get_alt_labels_resource_identifiers,
-                "resource_getter": self.get_alt_labels_resources
-            },
-            "old-labels": {
-                "links": self._get_links(rel_name="old-labels"),
-                "resource_identifier_getter": self.get_old_labels_resource_identifiers,
-                "resource_getter": self.get_old_labels_resources
-            },
-        }
+        e = Placename.query.filter(Placename.id == id).first()
+        if e is None:
+            kwargs = {"status": 404}
+            errors = [{"status": 404, "title": "Placename %s does not exist" % id}]
+        else:
+            e = PlacenameFacade(url_prefix, e, **kwargs)
+            kwargs = {}
+            errors = []
+        return e, kwargs, errors
 
     @property
     def resource(self):
@@ -150,3 +69,27 @@ class PlacenameFacade(JSONAPIAbstractFacade):
             res["relationships"] = self.get_exposed_relationships()
 
         return res
+
+    def __init__(self, *args, **kwargs):
+        super(PlacenameFacade, self).__init__(*args, **kwargs)
+
+        from app.api.insee_commune.facade import CommuneFacade
+        from app.api.placename_alt_label.facade import PlacenameAltLabelFacade
+        from app.api.placename_old_label.facade import PlacenameOldLabelFacade
+
+        self.relationships = {}
+
+        for rel_name, (rel_facade, to_many) in {
+            "commune": (CommuneFacade, False),
+            "localization-commune": (CommuneFacade, False),
+            "linked-placenames": (PlacenameFacade, True),
+            "alt-labels": (PlacenameAltLabelFacade, True),
+            "old-labels": (PlacenameOldLabelFacade, True),
+        }.items():
+            u_rel_name = rel_name.replace("-", "_")
+
+            self.relationships[rel_name] = {
+                "links": self._get_links(rel_name=rel_name),
+                "resource_identifier_getter": self.get_related_resource_identifiers(rel_facade, u_rel_name, to_many),
+                "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
+            }

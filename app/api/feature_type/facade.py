@@ -1,5 +1,4 @@
 from app.api.abstract_facade import JSONAPIAbstractFacade
-from app.api.placename.facade import PlacenameFacade
 
 
 class FeatureTypeFacade(JSONAPIAbstractFacade):
@@ -13,32 +12,19 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
     def id(self):
         return self.obj.id
 
-    @property
-    def type(self):
-        return self.TYPE
+    @staticmethod
+    def get_resource_facade(url_prefix, id, **kwargs):
+        from app.models import FeatureType
 
-    @property
-    def type_plural(self):
-        return self.TYPE_PLURAL
-
-    def get_placename_resource_identifier(self):
-        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix,
-                                                                       self.obj.placename).resource_identifier
-
-    def get_placename_resource(self):
-        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename,
-                                                                       self.with_relationships_links,
-                                                                       self.with_relationships_data).resource
-
-    @property
-    def relationships(self):
-        return {
-            "placename": {
-                "links": self._get_links(rel_name="placename"),
-                "resource_identifier_getter": self.get_placename_resource_identifier,
-                "resource_getter": self.get_placename_resource
-            }
-        }
+        e = FeatureType.query.filter(FeatureType.id == id).first()
+        if e is None:
+            kwargs = {"status": 404}
+            errors = [{"status": 404, "title": "FeatureType %s does not exist" % id}]
+        else:
+            e = FeatureTypeFacade(url_prefix, e, **kwargs)
+            kwargs = {}
+            errors = []
+        return e, kwargs, errors
 
     @property
     def resource(self):
@@ -46,7 +32,7 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
         res = {
             **self.resource_identifier,
             "attributes": {
-                "id": self.obj.id,
+                #"id": self.obj.id,
                 "term": self.obj.term
             },
             "meta": self.meta,
@@ -59,3 +45,17 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
             res["relationships"] = self.get_exposed_relationships()
 
         return res
+
+    def __init__(self, *args, **kwargs):
+        super(FeatureTypeFacade, self).__init__(*args, **kwargs)
+        """Make a JSONAPI resource object describing what is a Feature Type
+        """
+
+        from app.api.placename.facade import PlacenameFacade
+        self.relationships = {
+            "placename": {
+                "links": self._get_links(rel_name="placename"),
+                "resource_identifier_getter": self.get_related_resource_identifiers(PlacenameFacade, "placename"),
+                "resource_getter": self.get_related_resources(PlacenameFacade, "placename"),
+            }
+        }

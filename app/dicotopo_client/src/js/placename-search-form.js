@@ -57,11 +57,11 @@ class PlacenameSearchForm extends React.Component {
                 } else {
                     fields ="desc";
                 }
-                urls.push(`${this.api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}&include=commune,localization-commune&sort=label&lightweight`);
+                urls.push(`${this.api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}&include=commune,localization-commune&sort=label&without-relationships`);
             }
             if (params["old-labels"]) {
                 let fields = "text_label_node";
-                urls.push(`${this.api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&include=placename,commune,localization-commune&sort=text-label-node&lightweight`);
+                urls.push(`${this.api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&include=placename,commune,localization-commune&sort=text-label-node&without-relationships`);
             }
 
             //clear results

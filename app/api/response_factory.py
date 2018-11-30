@@ -34,10 +34,14 @@ class JSONAPIResponseFactory:
 
     @classmethod
     def make_response(cls, resource, **kwargs):
+        headers = kwargs.get("headers", {})
+        headers.update(JSONAPIResponseFactory.HEADERS)
+        if "headers" in kwargs:
+            kwargs.pop("headers")
         return Response(
             json.dumps(resource, indent=2, ensure_ascii=False),
             content_type=JSONAPIResponseFactory.CONTENT_TYPE,
-            headers=JSONAPIResponseFactory.HEADERS,
+            headers=headers,
             **kwargs
         )
 
