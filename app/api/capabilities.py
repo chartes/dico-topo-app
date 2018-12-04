@@ -4,12 +4,11 @@ from app import api_bp, JSONAPIResponseFactory
 
 
 COLLECTIONS_PARAMETERS = {
-    "search": "search[fieldname1,fieldname2]=expression ou search=expression pour chercher parmis tous les champs indexés",
     "filter": "filter[field_name]=searched_value. Le nom du champs DOIT être un des champs du model",
-    "sort": "sort=field1,field2,field3. Le tri respecte l'ordre des champs. Utiliser - pour effectuer un tri descendant",
+    "sort": "sort=model.field1,model.field2. Le tri respecte l'ordre des champs. Utiliser - pour effectuer un tri descendant",
     "page": "page[number]=3&page[size]=10. La pagination nécessite page[number], page[size] ou les deux paramètres en même temps. La taille ne peut pas excéder la limite inscrite dans la facade correspondante. La pagination produit des liens de navigation prev,next,self,first,last dans tous les cas où cela a du sens.",
     "include": "include=relation1,relation2. Le document retourné incluera les ressources liées à la présente ressource. Il n'est pas possible d'inclure une relation indirecte (ex: model.relation1.relation2)",
-    "lightweight": "Ce paramètre n'a pas de valeur. Sa seule présence dans l'URL permet d'obtenir une version allégée du document (les relations ne sont pas incluses dans la réponse)."
+    "without-relationships": "Ce paramètre n'a pas de valeur. Sa seule présence dans l'URL permet d'obtenir une version allégée du document (les relations ne sont pas incluses dans la réponse)."
 }
 
 
@@ -47,7 +46,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/placenames" % url_prefix,
+                            "url": "%s/placenames?page[size]=25" % url_prefix,
                             "parameters": COLLECTIONS_PARAMETERS
                         }
                     },
@@ -80,7 +79,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/communes" % url_prefix,
+                            "url": "%s/communes?page[size]=25" % url_prefix,
                             "parameters": COLLECTIONS_PARAMETERS
                         }
                     }
@@ -106,7 +105,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/feature-types" % url_prefix,
+                            "url": "%s/feature-types?page[size]=25" % url_prefix,
                             "parameters": COLLECTIONS_PARAMETERS
                         }
                     }
@@ -136,7 +135,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/insee-refs" % url_prefix,
+                            "url": "%s/insee-refs?page[size]=25" % url_prefix,
                             "parameters": COLLECTIONS_PARAMETERS
                         }
                     }
@@ -168,7 +167,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/placename-old-labels" % url_prefix,
+                            "url": "%s/placename-old-labels?page[size]=25" % url_prefix,
                             "parameters": COLLECTIONS_PARAMETERS
                         }
                     }
@@ -193,7 +192,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/placename-alt-labels" % url_prefix,
+                            "url": "%s/placename-alt-labels?page[size]=25" % url_prefix,
                             "parameters": COLLECTIONS_PARAMETERS
                         }
                     }

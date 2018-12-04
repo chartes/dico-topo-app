@@ -66,7 +66,7 @@ class PlacenameCard extends React.Component {
             .then((result) => {
                 this.setState({
                     title: result.data.attributes.label,
-                    placenameId: result.data.attributes.id,
+                    placenameId: result.data.id,
                     url: result.links.self,
                     numStartPage: result.data.attributes["num-start-page"],
                     description: result.data.attributes.desc,

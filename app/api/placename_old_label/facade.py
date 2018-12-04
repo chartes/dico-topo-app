@@ -69,12 +69,9 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
     @property
     def resource(self):
         """ """
-        co = self.get_localization_commune_resource_identifier()
         res = {
             **self.resource_identifier,
             "attributes": {
-                "placename-id": self.get_placename_resource_identifier().get("id"),
-                "localization-insee-code": co.get("id") if co else None,
                 "rich-label": self.obj.rich_label,
                 "rich-date": self.obj.rich_date,
                 "text-date": self.obj.text_date,
@@ -132,6 +129,9 @@ class PlacenameOldLabelSearchFacade(PlacenameOldLabelFacade):
                 "longlat": co.longlat if co else None,
                 "rich-label": self.obj.rich_label,
                 "rich-date": self.obj.rich_date,
+            },
+            "links": {
+                "self": self.self_link
             }
         }
         return res

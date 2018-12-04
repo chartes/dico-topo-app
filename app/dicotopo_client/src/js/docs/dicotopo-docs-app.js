@@ -58,6 +58,13 @@ class DicotopoDocsApp extends React.Component {
             </aside>
             <div id="docs-main">
                 <h1 className="title">Documentation de l'API Dicotopo (en cours de rédaction)</h1>
+                <img src={"/dico-topo/static/images/json-api-logo-300x113.png"}/>
+                <p>
+                    La présente API a été conçue conformément à la spécification <a href="https://jsonapi.org/format/" target="_blank">json:api 1.0</a>
+                </p>
+                <h2 className="title">Service de recherche</h2>
+                TBD;
+                <h2 className="title">Collections de ressources</h2>
                 <div className="">{
                    this.state.capabilities.map(capability => (
                        <div id={capability.id} key={capability.id}><CapabilityCard data={capability}/></div>

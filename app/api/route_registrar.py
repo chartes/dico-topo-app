@@ -103,9 +103,9 @@ class JSONAPIRouteRegistrar(object):
                           }
         return related_model.query.filter(related_model.id == resource_identifer["id"]).first(), None
 
-    def search(self, index, query, fields=None, page=None, per_page=None):
+    def search(self, index, query):
         # query the search engine
-        results, total = query_index(index=index, query=query, page=page, per_page=per_page)
+        results, total = query_index(index=index, query=query)
         if total == 0:
             return {}, 0
 
@@ -119,8 +119,7 @@ class JSONAPIRouteRegistrar(object):
 
             m = self.models[_idx]
             # query database from the results of the search engine
-            objs = db.session.query(m).filter(m.id.in_(ids)).order_by(db.case(when, value=m.id))
-            res_dict[_idx] = objs.paginate(page, per_page, False).items
+            res_dict[_idx] = db.session.query(m).filter(m.id.in_(ids)).order_by(db.case(when, value=m.id))
 
         return res_dict, total
 
@@ -156,8 +155,42 @@ class JSONAPIRouteRegistrar(object):
                 num_page = 1
                 page_size = current_app.config["SEARCH_RESULT_PER_PAGE"]
 
-            res, count = self.search(index=index, query=query, page=num_page,  per_page=page_size)
+            # Search, retrieve and paginate objs
+            res, count = self.search(index=index, query=query)
             print(query, count)
+
+            # if request has sorting parameter
+            if "sort" in request.args:
+                sort_criteriae = {}
+                sort_order = asc
+                for criteria in request.args["sort"].split(','):
+                    # prefixing with minus means a DESC order
+                    if criteria.startswith('-'):
+                        sort_order = desc
+                        criteria = criteria[1:]
+                    # try to add criteria
+                    c = criteria.split(".")
+                    if len(c) == 2:
+                        m = self.models.get(c[0])
+                        if m:
+                            if hasattr(m, c[1]):
+                                if c[0] not in sort_criteriae:
+                                    sort_criteriae[c[0]] = []
+                                sort_criteriae[c[0]].append(getattr(m, c[1]))
+
+                print("sort criteriae: ", request.args["sort"], sort_criteriae)
+                s = []
+                for criteria_table_name in sort_criteriae.keys():
+                    # reset the order clause
+                    if criteria_table_name in res.keys():
+                        res[criteria_table_name] = res[criteria_table_name].order_by(False)
+                        # then apply the user order criteriae
+                        for c in sort_criteriae[criteria_table_name]:
+                            res[criteria_table_name] = res[criteria_table_name].order_by(sort_order(c))
+
+            # paginate
+            for idx in res.keys():
+                res[idx] = res[idx].paginate(num_page, page_size, False).items
 
             args = OrderedDict(request.args)
             nb_pages = max(1, ceil(count / page_size))
@@ -185,7 +218,7 @@ class JSONAPIRouteRegistrar(object):
             # should we retrieve relationships too ?
             w_rel_links, w_rel_data = JSONAPIRouteRegistrar.get_relationships_mode(request.args)
 
-            # finally retrieve the  resources
+            # finally make the facades
             facade_objs = []
             for idx, r in res.items():
                 for obj in r:
