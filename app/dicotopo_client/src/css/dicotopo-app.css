@@ -44,3 +44,54 @@ h1 {
     font-weight: normal;
     color: #444444;
 }
+
+table td:first-child dfn {
+    font-style: normal;
+}
+
+.placename-result-row {
+
+}
+
+.old-label-result-row {
+    background: #EFEFEF;
+}
+
+#old-label-legend {
+    min-width: 24px;
+    width: 24px;
+    height: 18px;
+    margin-left: 18px;
+    background: #EFEFEF;
+    display: inline-block;
+    border: 1px solid lightgrey;
+}
+
+#main-section {
+    margin-top: 3em;
+}
+
+#data-container {
+    margin: 1em;
+}
+
+body:after {
+    z-index: 100000;
+    content: 'beta';
+    position: fixed;
+    width: 100px;
+    height: 30px;
+    background: #EE8E4A;
+    top: 7px;
+    left: -28px;
+    text-align: center;
+    font-size: 15px;
+    font-family: sans-serif;
+    text-transform: uppercase;
+    font-weight: bold;
+    color: #fff;
+    line-height: 30px;
+    -ms-transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    transform: rotate(-45deg);
+}

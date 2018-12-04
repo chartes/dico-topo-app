@@ -1,11 +1,12 @@
 import json
+import pprint
 import urllib
 import sys
 
 from math import ceil
 from collections import OrderedDict
 
-from flask import request
+from flask import request, current_app
 from sqlalchemy import func, desc, asc
 from sqlalchemy.exc import OperationalError
 
@@ -56,28 +57,28 @@ class JSONAPIRouteRegistrar(object):
 
     @staticmethod
     def get_included_resources(asked_relationships, facade_obj):
-        try:
+            errors = []
             included_resources = OrderedDict({})
             relationships = facade_obj.relationships
             # iter over the relationships to be included
             for inclusion in asked_relationships:
-                # try bring the related resources and add them to the list
-                related_resources = relationships[inclusion]["resource_getter"]()
-                # make unique keys to avoid duplicates
-                if isinstance(related_resources, list):
-                    for related_resource in related_resources:
-                        unique_key = (related_resource["type"], related_resource["id"])
-                        included_resources[unique_key] = related_resource
-                else:
-                    # the resource is a single object
-                    if related_resources is not None:
-                        unique_key = (related_resources["type"], related_resources["id"])
-                        included_resources[unique_key] = related_resources
+                try:
+                    # try bring the related resources and add them to the list
+                    related_resources = relationships[inclusion]["resource_getter"]()
+                    # make unique keys to avoid duplicates
+                    if isinstance(related_resources, list):
+                        for related_resource in related_resources:
+                            unique_key = (related_resource["type"], related_resource["id"])
+                            included_resources[unique_key] = related_resource
+                    else:
+                        # the resource is a single object
+                        if related_resources is not None:
+                            unique_key = (related_resources["type"], related_resources["id"])
+                            included_resources[unique_key] = related_resources
+                except KeyError as e:
+                    errors.append({"status": 403, "title": "Cannot include the relationship %s" % str(e)})
             return list(included_resources.values()), None
-        except KeyError as e:
-            return None, JSONAPIResponseFactory.make_errors_response(
-                {"status": 404, "title": "Cannot include the relationship %s" % str(e)}, status=404
-            )
+
 
     @staticmethod
     def count(model):
@@ -102,10 +103,9 @@ class JSONAPIRouteRegistrar(object):
                           }
         return related_model.query.filter(related_model.id == resource_identifer["id"]).first(), None
 
-    def search(self, index, expression, fields=None, page=None, per_page=None):
+    def search(self, index, query, fields=None, page=None, per_page=None):
         # query the search engine
-        results, total = query_index(index=index, query=expression, page=page, per_page=per_page)
-
+        results, total = query_index(index=index, query=query, page=page, per_page=per_page)
         if total == 0:
             return {}, 0
 
@@ -119,50 +119,103 @@ class JSONAPIRouteRegistrar(object):
 
             m = self.models[_idx]
             # query database from the results of the search engine
-            #TODO pagination
-            res_dict[_idx] = db.session.query(m).filter(m.id.in_(ids)).order_by(db.case(when, value=m.id)).all()
+            objs = db.session.query(m).filter(m.id.in_(ids)).order_by(db.case(when, value=m.id))
+            res_dict[_idx] = objs.paginate(page, per_page, False).items
 
         return res_dict, total
 
     def register_search_route(self):
 
-        search_rule = '/api/{api_version}/search'.format(
-            api_version=self.api_version
-        )
+        search_rule = '/api/{api_version}/search'.format(api_version=self.api_version)
 
         def search_endpoint():
             # TODO: implementer la pagination et le include resources
             # TODO: attention pour le total-count: il est ok dans l'absolu MAIS les résultats eux sont cappés à 10.000
+            # TODO: le self dans links
 
             if "query" not in request.args:
                 return JSONAPIResponseFactory.make_errors_response(
                     {"status": 403, "title": "Missing 'query' parameter"}, status=403
                 )
 
-            indexes = request.args.get("indexes", "")
-            query = request.args["query"]
-
-            res, total = self.search(index=indexes, expression=query)
-            print(query, total)
-
             url_prefix = request.host_url[:-1] + self.url_prefix
 
-            resources = []
+            # PARAMETERS
+            index = request.args.get("index", "")
+            query = request.args["query"]
+
+            # if request has pagination parameters
+            # add links to the top-level object
+            if 'page[number]' in request.args or 'page[size]' in request.args:
+                num_page = int(request.args.get('page[number]', 1))
+                page_size = min(
+                    current_app.config["SEARCH_RESULT_PER_PAGE"],
+                    int(request.args.get('page[size]', current_app.config["SEARCH_RESULT_PER_PAGE"]))
+                )
+            else:
+                num_page = 1
+                page_size = current_app.config["SEARCH_RESULT_PER_PAGE"]
+
+            res, count = self.search(index=index, query=query, page=num_page,  per_page=page_size)
+            print(query, count)
+
+            args = OrderedDict(request.args)
+            nb_pages = max(1, ceil(count / page_size))
+
+            links = {}
+            keep_pagination = "page[size]" in args or "page[number]" in args or count > page_size
+            if keep_pagination:
+                args["page[size]"] = page_size
+            links["self"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+
+            if keep_pagination:
+                args["page[number]"] = 1
+                links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                args["page[number]"] = nb_pages
+                links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                if num_page > 1:
+                    n = max(1, num_page - 1)
+                    if n * page_size <= count:
+                        args["page[number]"] = max(1, num_page - 1)
+                        links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                if num_page < nb_pages:
+                    args["page[number]"] = min(nb_pages, num_page + 1)
+                    links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+
+            # should we retrieve relationships too ?
+            w_rel_links, w_rel_data = JSONAPIRouteRegistrar.get_relationships_mode(request.args)
+
+            # finally retrieve the  resources
+            facade_objs = []
             for idx, r in res.items():
                 for obj in r:
-                    facade_class = obj.__jsonapi_facade__
-                    f_obj = facade_class(url_prefix, obj, with_relationships_links=False, with_relationships_data=False)
-                    resources.append(f_obj.resource)
+                    facade_class = obj.__jsonapi_search_facade__
+                    f_obj = facade_class(url_prefix, obj, with_relationships_links=w_rel_links, with_relationships_data=w_rel_data)
+                    facade_objs.append(f_obj)
+
+            # find out if related resources must be included too
+            included_resources = None
+            if "include" in request.args:
+                included_resources = []
+                for facade_obj in facade_objs:
+                    included_res, errors = JSONAPIRouteRegistrar.get_included_resources(
+                        request.args["include"].split(','),
+                        facade_obj
+                    )
+                    if errors:
+                        pass
+                        #return errors
+                    included_resources.extend(included_res)
 
             return JSONAPIResponseFactory.make_data_response(
-                resources,
-                links=[],
-                included_resources=[], meta={"total-if-it-was-not-capped-by-elastic": total}
+                [f.resource for f in facade_objs],
+                links=links,
+                included_resources=included_resources,
+                # TODO: Scroll API: total-if-it-was-not-capped-by-elastic
+                meta={"total-count": count}
             )
-
         # register the rule
         api_bp.add_url_rule(search_rule, endpoint=search_endpoint.__name__, view_func=search_endpoint)
-
 
     def register_get_routes(self, model, facade_class):
         """
@@ -239,22 +292,6 @@ class JSONAPIRouteRegistrar(object):
                     num_page = 1
                     page_size = facade_class.ITEMS_PER_PAGE
 
-                # if request has search parameter
-                # (search request arg, search fieldnames)
-                search_parameters = [(f, [field.strip() for field in f[len('search['):-1].split(",")])
-                                     for f in request.args.keys() if f.startswith('search[') and f.endswith(']')]
-                if len(search_parameters) > 0 or "search" in request.args:
-                    if "search" in request.args:
-                        expression = request.args["search"]
-                        search_fields = ["*"]
-                    else:
-                        search_request_param, search_fields = search_parameters[0]
-                        expression = request.args[search_request_param]
-
-                    print("search parameters: ", search_fields, expression)
-                    objs_query, count = model.search(expression, fields=search_fields, page=num_page,
-                                                     per_page=page_size)
-
                 # if request has filter parameter
                 filter_criteriae = []
                 filters = [(f, f[len('filter['):-1])  # (filter_param, filter_fieldname)
@@ -283,13 +320,8 @@ class JSONAPIRouteRegistrar(object):
                     # then apply the user order criteriae
                     objs_query = objs_query.order_by(sort_order(*sort_criteriae))
 
-                # apply the pagination after an eventual sort
-                if "search" in request.args:
-                    all_objs = objs_query.all()  # the search feature has already paginated the results for us
-                    # TODO : this is bad because it is dependent on the search system (eg. good for us that elasticsearch provides pagination)
-                else:
-                    pagination_obj = objs_query.paginate(num_page, page_size, False)
-                    all_objs = pagination_obj.items
+                pagination_obj = objs_query.paginate(num_page, page_size, False)
+                all_objs = pagination_obj.items
                 args = OrderedDict(request.args)
 
                 if count is None:

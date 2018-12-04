@@ -56,10 +56,10 @@ class DicotopoApp extends React.Component {
         }))
     }
 
-    makeMapMarker(commune) {
-        if (commune) {
+    makeMapMarker(resource) {
+        if (resource) {
             /* unbox the longlat field */
-            let longlat = commune.attributes.longlat.replace("(", "");
+            let longlat = resource.attributes.longlat.replace("(", "");
             longlat = longlat.replace(")", "");
             longlat = longlat.split(",");
             let lat = parseFloat(longlat[0].trim());
@@ -67,8 +67,8 @@ class DicotopoApp extends React.Component {
             //console.log(commune);
             return {
                  latLng: [long, lat],
-                 commune_id: commune.attributes["insee-code"],
-                 title: commune.attributes["NCCENR"],
+                 commune_id: resource.attributes["localization-insee-code"],
+                // title: commune.attributes["NCCENR"],
             }
         }
         return null;
@@ -77,19 +77,18 @@ class DicotopoApp extends React.Component {
     updateMarkersOnMap(searchResult){
         let mapMarkers = [];
         //console.log("=====");
-        if (searchResult && searchResult.included) {
-
-            for (let commune of searchResult.included) {
-                if ((commune.type === "commune" || commune.type === "localization-commune") && commune.attributes.longlat) {
+        if (searchResult) {
+            for (let resource of searchResult.data) {
+                if (resource.attributes.longlat) {
                     /* add a new marker */
                     //console.log("make marker: ",  commune.type, newMarker);
-                    const newMarker = this.makeMapMarker(commune);
+                    const newMarker = this.makeMapMarker(resource);
                     if (newMarker){
                         let alreadyMarked = false;
                         // based on commune.insee_code, try to not add duplicate markers
                         for (let m of mapMarkers) {
                             //console.log(newMarker);
-                            if (m.commune_id === newMarker.commune_id){
+                            if (m.commune_id === resource.commune_id){
                                 alreadyMarked = true;
                                 break;
                             }
@@ -100,7 +99,7 @@ class DicotopoApp extends React.Component {
                         }
                     }
                 }
-            }
+             }
         }
 
         this.setState(prevState => ({
@@ -125,6 +124,26 @@ class DicotopoApp extends React.Component {
         );
     }
 
+    renderPlacenameResult(placename) {
+        return   <tr key={placename.id} className={"placename-result-row"}>
+                     <td>{placename.attributes["placename-label"]}</td>
+                     <td dangerouslySetInnerHTML={{__html: placename.attributes.desc}}></td>
+                     <td>{placename.attributes.dpt}</td>
+                     <td>{placename.attributes.region}</td>
+                     <td><a href={"/dico-topo/placenames/"+placename.id} target="_blank">{placename.id}</a></td>
+                 </tr>
+    }
+
+    renderOldLabelResult(oldLabel) {
+        return   <tr key={oldLabel.id} className={"old-label-result-row"}>
+                     <td dangerouslySetInnerHTML={{__html: oldLabel.attributes["rich-label"]}}></td>
+                     <td>Forme ancienne de <a href={"/dico-topo/placenames/"+oldLabel.attributes["placename-id"]} target="_blank" dangerouslySetInnerHTML={{__html: oldLabel.attributes["placename-label"]}}></a></td>
+                     <td>{oldLabel.attributes.dpt}</td>
+                     <td>{oldLabel.attributes.region}</td>
+                     <td><a href={"/dico-topo/placenames/"+oldLabel.attributes["placename-id"]} target="_blank">{oldLabel.attributes["placename-id"]}</a></td>
+                 </tr>
+    }
+
     renderSearchResult() {
         if (!this.state.searchResult) {
             return null;
@@ -136,23 +155,17 @@ class DicotopoApp extends React.Component {
                     <table className="table is-fullwidth is-hoverable is-stripped" >
                         <thead>
                         <tr>
-                            <th style={{minWidth: "200px"}}>Forme</th>
-                            <th>Description</th>
+                            <th style={{width: "260px"}}>Forme</th>
+                            <th style={{minWidth: "480px"}}>Description</th>
                             <th>Département</th>
-                            <th style={{minWidth: "100px"}}>Code INSEE</th>
-                            <th style={{minWidth: "120px"}}>Permalien</th>
+                            <th style={{minWidth: "160px"}}>Région</th>
+                            <th style={{minWidth: "140px"}}>Permalien</th>
                         </tr>
                         </thead>
                         <tbody>
                             {
-                                this.state.searchResult.data.map(placename  => (
-                                    <tr key={placename.id}>
-                                        <td>{placename.attributes.label}</td>
-                                        <td dangerouslySetInnerHTML={{__html: placename.attributes.desc}}></td>
-                                        <td>{placename.attributes.dpt}</td>
-                                        <td>{placename.attributes["localization-insee-code"]}</td>
-                                        <td><a href={"/dico-topo/placenames/"+placename.id} target="_blank">{placename.id}</a></td>
-                                    </tr>
+                                this.state.searchResult.data.map(res  => (
+                                    res.type === "placename" ? this.renderPlacenameResult(res) : this.renderOldLabelResult(res)
                                 ))
                             }
                         </tbody>
@@ -165,9 +178,9 @@ class DicotopoApp extends React.Component {
     render() {
         if (this.state.enablePlacenameMap) {
             return (
-                <div className={"container is-fluid"}>
+                <div >
                     <PlacenameMap markersData={this.state.mapMarkers} onMarkerClick={this.setPlacenameCard.bind(this)}/>
-                    <div className={"columns"}>
+                    <div id="data-container" className={"columns"}>
                         <div className={"column"}>
                             {this.renderSearchForm()}
                             {this.renderSearchResult()}

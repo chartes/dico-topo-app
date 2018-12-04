@@ -14,6 +14,7 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+    SEARCH_RESULT_PER_PAGE = 1000
     REINDEX = os.environ.get('REINDEX') or False
 
     SCSS_STATIC_DIR = os.path.join(basedir, "app ", "static", "css")

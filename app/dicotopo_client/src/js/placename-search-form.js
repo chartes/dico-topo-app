@@ -24,7 +24,7 @@ class PlacenameSearchForm extends React.Component {
 
                 // checkboxes
                 label: true,
-                "old-labels": false,
+                "old-labels": true,
                 desc: false
             },
             searchResult: null,
@@ -42,26 +42,14 @@ class PlacenameSearchForm extends React.Component {
         const params = this.state.searchParameters;
         if (params.searchedPlacename && params.searchedPlacename.length >= 3) {
 
-            document.getElementById("search-button").classList.add("is-loading");
+            document.getElementById("search-button").classList.remove("is-loading");
+            let url = null;
 
 
-
-            let urls = [];
-
-            if (params.label || params.desc) {
-                let fields = "";
-                if (params.label && params.desc) {
-                    fields = "label,desc";
-                } else if (params.label && !params.desc) {
-                    fields = "label";
-                } else {
-                    fields ="desc";
-                }
-                urls.push(`${this.api_base_url}/placenames?search[${fields}]=${params.searchedPlacename}&include=commune,localization-commune&sort=label&without-relationships`);
-            }
             if (params["old-labels"]) {
-                let fields = "text_label_node";
-                urls.push(`${this.api_base_url}/placename-old-labels?search[${fields}]=${params.searchedPlacename}&include=placename,commune,localization-commune&sort=text-label-node&without-relationships`);
+                url = `${this.api_base_url}/search?index=placename,placename_old_label&query=${params.searchedPlacename}`;
+            } else {
+                url = `${this.api_base_url}/search?index=placename&query=${params.searchedPlacename}`;
             }
 
             //clear results
@@ -73,43 +61,42 @@ class PlacenameSearchForm extends React.Component {
             this.props.onSearch(this.state.searchResult);
 
             //fetch new results
-            console.log("search urls: ", urls);
-            for(let url of urls) {
+            console.log("search urls: ", url);
 
-                if (url) {
-                    fetch(url)
-                    .then(res => {
-                        if (!res.ok) {
-                            throw res;
-                        }
-                        return res.json();
-                    })
-                    .then((result) => {
-                        const oldResult = this.state.searchResult ? this.state.searchResult : [];
-                        let newResult = result;
+            if (url) {
+                document.getElementById("search-button").classList.add("is-loading");
+                fetch(url)
+                .then(res => {
+                    if (!res.ok) {
+                        throw res;
+                    }
+                    return res.json();
+                })
+                .then((result) => {
+                    const oldResult = this.state.searchResult ? this.state.searchResult : [];
+                    let newResult = result;
 
-                        console.log(oldResult, newResult);
+                    //console.log(oldResult, newResult);
 
-                        Array.prototype.push.apply(newResult, oldResult);
+                    Array.prototype.push.apply(newResult, oldResult);
 
-                        console.log(oldResult, newResult);
+                    //console.log(oldResult, newResult);
 
-                        this.setState({
-                            ...params,
-                            searchResult: newResult,
-                            error: null
-                        });
-                        this.props.onSearch(this.state.searchResult);
-                        console.log(newResult.data.length);
-
-                        document.getElementById("search-button").classList.remove("is-loading");
-                    })
-                    .catch(error => {
-                        console.log("error while searching placename:", error);
-                        this.setState({error: error.statusText});
+                    this.setState({
+                        ...params,
+                        searchResult: newResult,
+                        error: null
                     });
-                }
+                    this.props.onSearch(this.state.searchResult);
+                    console.log(newResult.data.length);
 
+                    document.getElementById("search-button").classList.remove("is-loading");
+                })
+                .catch(error => {
+                    console.log("error while searching placename:", error);
+                    document.getElementById("search-button").classList.remove("is-loading");
+                    this.setState({error: error.statusText});
+                });
             }
 
         }
@@ -186,13 +173,10 @@ class PlacenameSearchForm extends React.Component {
     render() {
         return (
             <div id="search-form-container">
-                <h1 className="is-size-4">Recherche :</h1>
+
                 <div className="columns">
                     <div className="column">
                         <div className="field is-horizontal">
-                            <div className="field-label is-normal">
-                                <label className="label">Nom de lieu</label>
-                            </div>
                             <div className="field-body">
                                 <div className="field has-addons">
                                     <div className="control">
@@ -226,6 +210,7 @@ class PlacenameSearchForm extends React.Component {
                                         <label className="checkbox">
                                             <input type="checkbox" name="member" value="old-labels" onChange={this.handleOldLabelsChange} defaultChecked={this.state.searchParameters["old-labels"]}/>
                                                 Formes anciennes
+                                            <span id="old-label-legend"></span>
                                         </label>
 
                                         <label className="checkbox">
@@ -237,7 +222,7 @@ class PlacenameSearchForm extends React.Component {
                                 </div>
                             </div>
                         </div>
-                         */}
+                        */}
 
                     </div>
 
