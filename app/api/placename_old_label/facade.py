@@ -66,13 +66,15 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
             self.with_relationships_data
         ).resource
 
-
     @property
     def resource(self):
         """ """
+        co = self.get_localization_commune_resource_identifier()
         res = {
             **self.resource_identifier,
             "attributes": {
+                "placename-id": self.get_placename_resource_identifier().get("id"),
+                "localization-insee-code": co.get("id") if co else None,
                 "rich-label": self.obj.rich_label,
                 "rich-date": self.obj.rich_date,
                 "text-date": self.obj.text_date,
@@ -111,3 +113,29 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
                 "resource_getter": self.get_localization_commune_resource
             }
         }
+
+
+class PlacenameOldLabelSearchFacade(PlacenameOldLabelFacade):
+
+    @property
+    def resource(self):
+        """ """
+        co = self.obj.placename.localization_commune
+        res = {
+            **self.resource_identifier,
+            "attributes": {
+                "placename-id": self.obj.placename.id,
+                "placename-label": self.obj.placename.label,
+                "localization-insee-code": co.id if co else None,
+                "dpt": self.obj.placename.dpt,
+                "region": co.region.label if co else None,
+                "longlat": co.longlat if co else None,
+                "rich-label": self.obj.rich_label,
+                "rich-date": self.obj.rich_date,
+            }
+        }
+        return res
+
+    def __init__(self, *args, **kwargs):
+        super(PlacenameOldLabelSearchFacade, self).__init__(*args, **kwargs)
+        self.relationships = {}

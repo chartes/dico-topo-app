@@ -1,7 +1,7 @@
 import multiprocessing
 
 bind = "localhost:5003"
-workers = 5
+workers = 8
 #worker_class = 'eventlet'
 timeout = 1000000000
 reload = True

@@ -26,9 +26,10 @@
             {% block navbar %}
                 <nav id="main-navbar" class="navbar" role="navigation" aria-label="main navigation">
                     <div class="navbar-brand">
+
                         <a class="navbar-item" href="{{ url_for('app_bp.index') }}">
                             <img src="{{ url_for('app_bp.static', filename='images/logo-ecole-nationale-des-chartes-header.png') }}"
-                                 alt="École Nationale des Chartes - PSL" width="130" height="30p">
+                                 alt="École Nationale des Chartes - PSL" width="130" height="30p" style="margin-left: 60px">
                         </a>
                         <a class="navbar-item" href="{{ url_for('app_bp.index') }}">
                             <img src="http://cths.fr/dico-topo/img/global/logo-cths.png"
@@ -51,7 +52,7 @@
                     <div class="navbar-end">
                          <a class="navbar-item link" href="{{ url_for('app_bp.documentation') }}">
                             <span><i class="fas fa-book"></i></span>
-                            <span class="is-size-5" style="margin-left: 12px; margin-right: 12px;">Documentation</span>
+                            <span class="is-size-5" style="margin-left: 12px; margin-right: 12px;">API</span>
                         </a>
                     </div>
                 </nav>

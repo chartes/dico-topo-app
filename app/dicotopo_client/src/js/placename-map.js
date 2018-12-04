@@ -116,7 +116,7 @@ class PlacenameMap extends React.Component {
             for (let m of markersData) {
                 let newMarker = L.marker(
                     m.latLng,
-                    { title: m.title }
+                   // { title: m.title }
                 );
                 newMarker.on('click',function(ev) {
 

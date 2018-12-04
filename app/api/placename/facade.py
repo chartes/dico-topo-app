@@ -93,3 +93,28 @@ class PlacenameFacade(JSONAPIAbstractFacade):
                 "resource_identifier_getter": self.get_related_resource_identifiers(rel_facade, u_rel_name, to_many),
                 "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
             }
+
+
+class PlacenameSearchFacade(PlacenameFacade):
+
+    @property
+    def resource(self):
+        """ """
+        co = self.obj.localization_commune
+        res = {
+            **self.resource_identifier,
+            "attributes": {
+                "placename-id": self.obj.id,
+                "placename-label": self.obj.label,
+                "localization-insee-code": co.id if co else None,
+                "dpt": self.obj.dpt,
+                "region": co.region.label if co else None,
+                "longlat": co.longlat if co else None,
+                "desc": self.obj.desc
+            }
+        }
+        return res
+
+    def __init__(self, *args, **kwargs):
+        super(PlacenameSearchFacade, self).__init__(*args, **kwargs)
+        self.relationships = {}
