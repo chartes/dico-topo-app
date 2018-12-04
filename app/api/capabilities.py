@@ -5,7 +5,7 @@ from app import api_bp, JSONAPIResponseFactory
 
 COLLECTIONS_PARAMETERS = {
     "filter": "filter[field_name]=searched_value. Le nom du champs DOIT être un des champs du model",
-    "sort": "sort=model.field1,model.field2. Le tri respecte l'ordre des champs. Utiliser - pour effectuer un tri descendant",
+    "sort": "sort=field1,field2. Le tri respecte l'ordre des champs. Utiliser - pour effectuer un tri descendant",
     "page": "page[number]=3&page[size]=10. La pagination nécessite page[number], page[size] ou les deux paramètres en même temps. La taille ne peut pas excéder la limite inscrite dans la facade correspondante. La pagination produit des liens de navigation prev,next,self,first,last dans tous les cas où cela a du sens.",
     "include": "include=relation1,relation2. Le document retourné incluera les ressources liées à la présente ressource. Il n'est pas possible d'inclure une relation indirecte (ex: model.relation1.relation2)",
     "without-relationships": "Ce paramètre n'a pas de valeur. Sa seule présence dans l'URL permet d'obtenir une version allégée du document (les relations ne sont pas incluses dans la réponse)."
