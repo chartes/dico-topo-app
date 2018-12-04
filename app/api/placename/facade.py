@@ -49,7 +49,6 @@ class PlacenameFacade(JSONAPIAbstractFacade):
         res = {
             **self.resource_identifier,
             "attributes": {
-                "id": self.obj.id,
                 "label": self.obj.label,
                 "country": self.obj.country,
                 "dpt": self.obj.dpt,
@@ -111,6 +110,9 @@ class PlacenameSearchFacade(PlacenameFacade):
                 "region": co.region.label if co else None,
                 "longlat": co.longlat if co else None,
                 "desc": self.obj.desc
+            },
+            "links": {
+                "self": self.self_link
             }
         }
         return res

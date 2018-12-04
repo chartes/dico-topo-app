@@ -47,9 +47,9 @@ class PlacenameSearchForm extends React.Component {
 
 
             if (params["old-labels"]) {
-                url = `${this.api_base_url}/search?index=placename,placename_old_label&query=${params.searchedPlacename}`;
+                url = `${this.api_base_url}/search?index=placename,placename_old_label&query=${params.searchedPlacename}&sort=placename.label,placename_old_label.rich_label`;
             } else {
-                url = `${this.api_base_url}/search?index=placename&query=${params.searchedPlacename}`;
+                url = `${this.api_base_url}/search?index=placename&query=${params.searchedPlacename}&sort=placename.label`;
             }
 
             //clear results

@@ -76,7 +76,6 @@ class InseeRefFacade(JSONAPIAbstractFacade):
         res = {
             **self.resource_identifier,
             "attributes": {
-                'id': self.obj.id,
                 'reference-type': self.obj.type,
                 'insee-code': self.obj.insee_code,
                 'level': self.obj.level,

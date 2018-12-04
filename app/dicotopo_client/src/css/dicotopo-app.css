@@ -9,7 +9,10 @@
 }
 
 #search-form-container {
-    margin-bottom: 20px;
+    position: relative;
+    top: -86px;
+    z-index: 10000;
+    left: -18px;
 }
 
 
@@ -94,4 +97,8 @@ body:after {
     -ms-transform: rotate(-45deg);
     -webkit-transform: rotate(-45deg);
     transform: rotate(-45deg);
+}
+
+#dicotopo-docs-app h2.title {
+    margin-top: 20px;
 }
