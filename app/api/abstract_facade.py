@@ -84,13 +84,13 @@ class JSONAPIAbstractFacade(object):
             attributes[att.replace("-", "_")] = attributes.pop(att)
 
         attributes["id"] = obj_id
-        print("  setting attributes", attributes)
+        print("  setting attr", attributes)
         resource = model(**attributes)
 
         # set related resources
         for rel_name, rel_data in related_resources.items():
             rel_name = rel_name.replace("-", "_")
-            print("  setting", rel_name, rel_data)
+            print("  setting rel", rel_name, rel_data)
             if hasattr(resource, rel_name):
                 try:
                     setattr(resource, rel_name, rel_data)
@@ -133,7 +133,7 @@ class JSONAPIAbstractFacade(object):
         # update attributes
         for att, att_value in attributes.items():
             att_name = att.replace("-", "_")
-            print("  setting", att, att_value)
+            print("  setting attr", att, att_value)
             if hasattr(obj, att_name):
                 setattr(obj, att_name, att_value)
             else:
@@ -142,8 +142,9 @@ class JSONAPIAbstractFacade(object):
         # update related resources
         for rel_name, rel_data in related_resources.items():
             rel_name = rel_name.replace("-", "_")
-            print("  setting", rel_name, rel_data)
+            print("  setting rel", rel_name, rel_data)
             if hasattr(obj, rel_name):
+                print(getattr(obj, rel_name))
                 # append (POST) or replace (PATCH) replace related resources ?
                 if not append:
                     try:

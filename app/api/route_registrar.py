@@ -790,7 +790,7 @@ class JSONAPIRouteRegistrar(object):
                                                                      status=201,
                                                                      headers=headers)
                 else:
-                    return JSONAPIResponseFactory.make_errors_response(e)
+                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
 
         collection_endpoint.__name__ = "post_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), collection_endpoint.__name__
@@ -861,7 +861,7 @@ class JSONAPIRouteRegistrar(object):
                                                                      status=200,
                                                                      headers=headers)
                 else:
-                    return JSONAPIResponseFactory.make_errors_response(e)
+                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
 
         resource_relationship_endpoint.__name__ = "post_%s_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), rel_name.replace("-", "_"),
@@ -1000,7 +1000,7 @@ class JSONAPIRouteRegistrar(object):
                                                                      status=200,
                                                                      headers=headers)
                 else:
-                    return JSONAPIResponseFactory.make_errors_response(e)
+                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
 
         single_obj_endpoint.__name__ = "post_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), single_obj_endpoint.__name__
@@ -1074,7 +1074,7 @@ class JSONAPIRouteRegistrar(object):
                                                                      status=200,
                                                                      headers=headers)
                 else:
-                    return JSONAPIResponseFactory.make_errors_response(e)
+                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
 
         resource_relationship_endpoint.__name__ = "patch_%s_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), rel_name.replace("-", "_"),
