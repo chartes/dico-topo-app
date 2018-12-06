@@ -5,39 +5,48 @@ from sqlalchemy_utils import database_exists, create_database
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
+def parse_var_env(var_name):
+    v = os.environ.get(var_name)
+    if v == "True":
+        v = True
+    elif v == "False":
+        v = False
+    return v
+
+
 class Config(object):
-    SECRET_KEY = os.environ.get('SECRET_KEY')
+    ENV = 'production'
+    SECRET_KEY = parse_var_env("SECRET_KEY") or "SECRET_KEY_MUST_BE_SET"
 
-    DB_DROP_AND_CREATE_ALL = False
+    DEBUG = parse_var_env('DEBUG') or False
 
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo.sqlite')
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    DB_DROP_AND_CREATE_ALL = parse_var_env('DB_DROP_AND_CREATE_ALL') or False
 
-    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
-    SEARCH_RESULT_PER_PAGE = 1000
-    REINDEX = os.environ.get('REINDEX') or False
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), parse_var_env('DATABASE_URI'))
+    SQLALCHEMY_TRACK_MODIFICATIONS = parse_var_env('SQLALCHEMY_TRACK_MODIFICATIONS') or False
+    SQLALCHEMY_ECHO = parse_var_env('SQLALCHEMY_ECHO') or False
+    SQLALCHEMY_RECORD_QUERIES = parse_var_env('SQLALCHEMY_RECORD_QUERIES') or False
 
+    ELASTICSEARCH_URL = parse_var_env('ELASTICSEARCH_URL')
+    SEARCH_RESULT_PER_PAGE = parse_var_env('SEARCH_RESULT_PER_PAGE')
+    REINDEX = parse_var_env('REINDEX')
+
+    ASSETS_DEBUG = parse_var_env('ASSETS_DEBUG') or False
     SCSS_STATIC_DIR = os.path.join(basedir, "app ", "static", "css")
     SCSS_ASSET_DIR = os.path.join(basedir, "app", "assets", "scss")
-    CSRF_ENABLED = True
+    CSRF_ENABLED = parse_var_env('CSRF_ENABLED') or True
 
-    APP_URL_PREFIX = '/dico-topo'
-    API_VERSION = '1.0'
-    API_URL_PREFIX = '/dico-topo/api/1.0'
+    APP_URL_PREFIX = parse_var_env('APP_URL_PREFIX')
+    API_VERSION = parse_var_env('API_VERSION')
+    API_URL_PREFIX = parse_var_env('API_URL_PREFIX')
+
+    @staticmethod
+    def init_app(app):
+        pass
 
 
 class DevelopmentConfig(Config):
-    DEBUG = True
-    ASSETS_DEBUG = True
-    SQLALCHEMY_ECHO = False
-
-    DB_DROP_AND_CREATE_ALL = False
-    SQLALCHEMY_RECORD_QUERIES = False
-    PROFILE = False
-    REINDEX = False
-
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), 'db', 'dicotopo-dev.sqlite')
-    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+    ENV = 'development'
 
     @staticmethod
     def init_app(app):
@@ -53,10 +62,11 @@ class DevelopmentConfig(Config):
 
 
 class TestConfig(Config):
-    DB_DROP_AND_CREATE_ALL = True
-    DB_PATH = os.path.join(basedir, "tests", "data")
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////' + os.path.join(os.path.abspath(os.getcwd()), DB_PATH, 'dicotopo-test.sqlite')
+    ENV = 'testing'
 
+    @staticmethod
+    def init_app(app):
+        print('THIS APP IS IN TEST MODE. YOU SHOULD NOT SEE THIS IN PRODUCTION.')
 
 config = {
     "dev": DevelopmentConfig,

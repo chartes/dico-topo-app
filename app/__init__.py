@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from flask import Flask, Blueprint
 from flask_sqlalchemy import SQLAlchemy
@@ -44,10 +45,9 @@ def create_app(config_name="dev"):
         from config import config
         app.config.from_object(config)
     else:
-        from dotenv import load_dotenv
-        print("Load environment variables from:", 'dicotopo-%s.env' % config_name)
+        print("Load environment variables for config '%s'" % config_name)
         # It is important to load the .env file before parsing the config file
-        load_dotenv('dicotopo-%s.env' % config_name, verbose=True)
+        load_dotenv('%s.env' % config_name, verbose=True)
         from config import config
         app.config.from_object(config[config_name])
 

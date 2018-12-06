@@ -153,7 +153,7 @@ class JSONAPIRouteRegistrar(object):
                 )
             else:
                 num_page = 1
-                page_size = current_app.config["SEARCH_RESULT_PER_PAGE"]
+                page_size = int(current_app.config["SEARCH_RESULT_PER_PAGE"])
 
             # Search, retrieve and paginate objs
             res, count = self.search(index=index, query=query)
@@ -506,7 +506,7 @@ class JSONAPIRouteRegistrar(object):
             else:
                 relationship = f_obj.relationships[rel_name]
                 data = relationship["resource_identifier_getter"]()
-                count = len(data)
+                count = len(data) if data else 0
                 links = relationship["links"]
                 paginated_links = {}
 

@@ -9,7 +9,7 @@ class TestPlacename(TestBaseServer):
     def setUp(self):
         super().setUp()
         load_fixtures(self.db)
-        self.url_prefix = self.app.config["API_URL_PREFIX"]
+        self.url_prefix = "http://localhost" + self.app.config["API_URL_PREFIX"]
 
     def test_recursion(self):
         p = PlacenameFacade(self.url_prefix, Placename.query.first())
@@ -26,7 +26,8 @@ class TestPlacename(TestBaseServer):
 
         # test the attributes
         self.assertEqual(list(placename['attributes'].keys()),
-                         ["label", "country", "dpt", "desc", "num-start-page", "localization-certainty", "comment"])
+                         ["label", "country", "dpt", "desc", "num-start-page",
+                          "localization-certainty", "localization-insee-code", "comment"])
         self.assertEqual("Commune Un", placename["attributes"]["label"])
         self.assertEqual("FR", placename["attributes"]["country"])
         self.assertEqual("57", placename["attributes"]["dpt"])
@@ -35,7 +36,7 @@ class TestPlacename(TestBaseServer):
         self.assertEqual("this is a comment", placename["attributes"]["comment"])
 
         # test the presence of the required relationships
-        self.assertEqual(["commune", "linked-commune",
+        self.assertEqual(["commune", "localization-commune",
                           "linked-placenames", "alt-labels", "old-labels"], list(placename['relationships'].keys()))
         for rel in placename['relationships'].values():
             self.assertEqual(["links", "data"], list(rel.keys()))
@@ -59,7 +60,6 @@ class TestPlacename(TestBaseServer):
         # ======= test the relationship link
         self.assertEqual("%s/placenames/id1/relationships/commune" % self.url_prefix, rel["links"]["self"])
         r, status, links_self = self.api_get(rel["links"]["self"])
-        self.assertEqual({"links": rel["links"], "data": rel["data"]}, links_self)
         self.assertEqual({"type": "commune", "id": "Commune1"}, rel["data"])
         # test wrong ids
         r, status, obj = self.api_get('%s/placenames/9999/relationships/commune' % self.url_prefix)
