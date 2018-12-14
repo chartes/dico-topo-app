@@ -1,11 +1,4 @@
 from app import db
-from app.api.feature_type.facade import FeatureTypeFacade
-from app.api.insee_commune.facade import CommuneFacade
-from app.api.insee_ref.facade import InseeRefFacade
-from app.api.placename.facade import PlacenameFacade, PlacenameSearchFacade
-from app.api.placename_alt_label.facade import PlacenameAltLabelFacade
-from app.api.placename_old_label.facade import PlacenameOldLabelFacade, PlacenameOldLabelSearchFacade
-
 from app.search import add_to_index, remove_from_index, query_index
 
 
@@ -94,7 +87,6 @@ class Placename(SearchableMixin, db.Model):
 
     __tablename__ = 'placename'
     __searchable__ = ['label']
-    __jsonapi_search_facade__ = PlacenameSearchFacade
 
     id = db.Column("placename_id", db.String(10), primary_key=True)
     label = db.Column(db.String(200), nullable=False)
@@ -130,7 +122,6 @@ class Placename(SearchableMixin, db.Model):
 class PlacenameAltLabel(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'placename_alt_label'
-    __jsonapi_search_facade__ = PlacenameAltLabelFacade
 
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'label', name='_placename_label_uc'),
@@ -148,7 +139,6 @@ class PlacenameAltLabel(SearchableMixin, db.Model):
 class PlacenameOldLabel(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'placename_old_label'
-    __jsonapi_search_facade__ = PlacenameOldLabelSearchFacade
 
     __searchable__ = ['text_label_node']
 
@@ -174,7 +164,6 @@ class PlacenameOldLabel(SearchableMixin, db.Model):
 class InseeCommune(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'insee_commune'
-    __jsonapi_search_facade__ = CommuneFacade
 
     __searchable__ = ['NCCENR']
 
@@ -197,7 +186,6 @@ class InseeCommune(SearchableMixin, db.Model):
 class InseeRef(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'insee_ref'
-    __jsonapi_search_facade__ = InseeRefFacade
 
     __searchable__ = ['label']
 
@@ -215,7 +203,6 @@ class InseeRef(SearchableMixin, db.Model):
 class FeatureType(SearchableMixin, db.Model):
     """ """
     __tablename__ = 'feature_type'
-    __jsonapi_search_facade__ = FeatureTypeFacade
 
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'term', name='_placename_term_uc'),

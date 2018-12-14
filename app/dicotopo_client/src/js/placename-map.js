@@ -120,7 +120,7 @@ class PlacenameMap extends React.Component {
                 );
                 newMarker.on('click',function(ev) {
 
-                    fetch(`${api_url}/communes/${m.commune_id}`)
+                    fetch(`${api_url}/communes/${m.commune_id}/placename`)
                     .then(res => {
                         if (!res.ok) {
                             throw res;
@@ -128,7 +128,7 @@ class PlacenameMap extends React.Component {
                         return res.json();
                     })
                     .then((result) => {
-                        onMarkerClick(result.data.relationships["placename"].data.id);
+                        onMarkerClick(result.data.id);
                     })
                     .catch(error => {
                         console.log("error while fetching commune:", error);

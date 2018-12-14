@@ -120,3 +120,22 @@ class PlacenameSearchFacade(PlacenameFacade):
     def __init__(self, *args, **kwargs):
         super(PlacenameSearchFacade, self).__init__(*args, **kwargs)
         self.relationships = {}
+
+
+class PlacenameMapFacade(PlacenameSearchFacade):
+
+    @property
+    def resource(self):
+        """ """
+        co = self.obj.localization_commune
+        res = {
+            **self.resource_identifier,
+            "attributes": {
+                "localization-insee-code": co.id if co else None,
+                "longlat": co.longlat if co else None,
+            },
+            "links": {
+                "self": self.self_link
+            }
+        }
+        return res

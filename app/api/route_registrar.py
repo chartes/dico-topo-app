@@ -1,3 +1,5 @@
+import time
+
 import json
 import pprint
 import urllib
@@ -7,10 +9,13 @@ from math import ceil
 from collections import OrderedDict
 
 from flask import request, current_app
-from sqlalchemy import func, desc, asc
+from flask_sqlalchemy import BaseQuery
+from sqlalchemy import func, desc, asc, column, union
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Query
 
 from app import JSONAPIResponseFactory, api_bp, db
+from app.api.facade_manager import JSONAPIFacadeManager
 from app.search import query_index
 
 if sys.version_info < (3, 6):
@@ -103,23 +108,62 @@ class JSONAPIRouteRegistrar(object):
                           }
         return related_model.query.filter(related_model.id == resource_identifer["id"]).first(), None
 
-    def search(self, index, query):
+    @staticmethod
+    def parse_filter_parameter(objs_query, model):
+        # if request has filter parameter
+        filter_criteriae = []
+        filters = [(f, f[len('filter['):-1])  # (filter_param, filter_fieldname)
+                   for f in request.args.keys() if f.startswith('filter[') and f.endswith(']')]
+
+        if len(filters) > 0:
+            for filter_param, filter_fieldname in filters:
+                filter_fieldname = filter_fieldname.replace("-", "_")
+
+                not_null_operator = filter_fieldname.startswith("!")
+                if not_null_operator:
+                    filter_fieldname = filter_fieldname[1:]
+
+                for criteria in request.args[filter_param].split(','):
+                    if not not_null_operator:
+                        if criteria:
+                            # filter[field]=value
+                            new_criteria = "{table}.{field}{operator}'{criteria}'".format(
+                                table=model.__tablename__,
+                                field=filter_fieldname,
+                                operator="==",
+                                criteria=criteria
+                            )
+                        else:
+                            # filter[field] means IS NULL
+                            col = "{table}.{field}".format(table=model.__tablename__, field=filter_fieldname)
+                            new_criteria = column(col, is_literal=True).is_(None)
+                    else:
+                        # filter[!field]  means IS NOT NULL
+                        col = "{table}.{field}".format(table=model.__tablename__, field=filter_fieldname)
+                        new_criteria = column(col, is_literal=True).isnot(None)
+
+                    print(str(new_criteria))
+                    filter_criteriae.append(new_criteria)
+
+            objs_query = objs_query.filter(*filter_criteriae)
+        return objs_query
+
+    def search(self, index, query, num_page, page_size):
         # query the search engine
-        results, total = query_index(index=index, query=query)
+        results, total = query_index(index=index, query=query, page=num_page, per_page=page_size)
         if total == 0:
             return {}, 0
 
         res_dict = {}
         for _idx, res in results.items():
-            when = []
             ids = [r["id"] for r in res]
-
-            for i in range(len(ids)):
-                when.append((ids[i], i))
+            when = []
+            for i, obj in enumerate(ids):
+                when.append((obj, i))
 
             m = self.models[_idx]
-            # query database from the results of the search engine
-            res_dict[_idx] = db.session.query(m).filter(m.id.in_(ids)).order_by(db.case(when, value=m.id))
+            objs = db.session.query(m).filter(m.id.in_(ids)).order_by(db.case(when, value=m.id))
+            res_dict[_idx] = objs
 
         return res_dict, total
 
@@ -128,9 +172,8 @@ class JSONAPIRouteRegistrar(object):
         search_rule = '/api/{api_version}/search'.format(api_version=self.api_version)
 
         def search_endpoint():
-            # TODO: implementer la pagination et le include resources
             # TODO: attention pour le total-count: il est ok dans l'absolu MAIS les résultats eux sont cappés à 10.000
-            # TODO: le self dans links
+            start_time = time.time()
 
             if "query" not in request.args:
                 return JSONAPIResponseFactory.make_errors_response(
@@ -143,109 +186,125 @@ class JSONAPIRouteRegistrar(object):
             index = request.args.get("index", "")
             query = request.args["query"]
 
+            if "," in index:
+                return JSONAPIResponseFactory.make_errors_response(
+                    {"status": 403, "title": "search on multiple indexes is not allowed"}, status=403
+                )
+
             # if request has pagination parameters
             # add links to the top-level object
             if 'page[number]' in request.args or 'page[size]' in request.args:
                 num_page = int(request.args.get('page[number]', 1))
                 page_size = min(
-                    current_app.config["SEARCH_RESULT_PER_PAGE"],
-                    int(request.args.get('page[size]', current_app.config["SEARCH_RESULT_PER_PAGE"]))
+                    int(current_app.config["SEARCH_RESULT_PER_PAGE"]) + num_page,
+                    int(request.args.get('page[size]'))
                 )
             else:
                 num_page = 1
                 page_size = int(current_app.config["SEARCH_RESULT_PER_PAGE"])
 
-            # Search, retrieve and paginate objs
-            res, count = self.search(index=index, query=query)
-            print(query, count)
+            # Search, retrieve, filter, sort and paginate objs
+            res, count = self.search(index=index, query=query, num_page=num_page, page_size=page_size)
 
-            # if request has sorting parameter
-            if "sort" in request.args:
-                sort_criteriae = {}
-                sort_order = asc
-                for criteria in request.args["sort"].split(','):
-                    # prefixing with minus means a DESC order
-                    if criteria.startswith('-'):
-                        sort_order = desc
-                        criteria = criteria[1:]
-                    # try to add criteria
-                    c = criteria.split(".")
-                    if len(c) == 2:
-                        m = self.models.get(c[0])
-                        if m:
-                            if hasattr(m, c[1]):
-                                if c[0] not in sort_criteriae:
-                                    sort_criteriae[c[0]] = []
-                                sort_criteriae[c[0]].append(getattr(m, c[1]))
+            links = {"self": JSONAPIRouteRegistrar.make_url(request.base_url, OrderedDict(request.args))}
 
-                print("sort criteriae: ", request.args["sort"], sort_criteriae)
-                s = []
-                for criteria_table_name in sort_criteriae.keys():
-                    # reset the order clause
-                    if criteria_table_name in res.keys():
-                        res[criteria_table_name] = res[criteria_table_name].order_by(False)
-                        # then apply the user order criteriae
-                        for c in sort_criteriae[criteria_table_name]:
-                            res[criteria_table_name] = res[criteria_table_name].order_by(sort_order(c))
+            if count <= 0:
+                facade_objs = []
+                included_resources = None
+            else:
+                for idx in res.keys():
+                    # FILTER
+                    #TODO: filter mus be done on the elastic side
+                    res[idx] = JSONAPIRouteRegistrar.parse_filter_parameter(res[idx], self.models[idx])
 
-            # paginate
-            for idx in res.keys():
-                res[idx] = res[idx].paginate(num_page, page_size, False).items
+                # if request has sorting parameter
+                #TODO: sort must be done on the elastic side
+                if "sort" in request.args:
+                    sort_criteriae = {}
+                    sort_order = asc
+                    for criteria in request.args["sort"].split(','):
+                        # prefixing with minus means a DESC order
+                        if criteria.startswith('-'):
+                            sort_order = desc
+                            criteria = criteria[1:]
+                        # try to add criteria
+                        c = criteria.split(".")
+                        if len(c) == 2:
+                            m = self.models.get(c[0])
+                            if m:
+                                if hasattr(m, c[1]):
+                                    if c[0] not in sort_criteriae:
+                                        sort_criteriae[c[0]] = []
+                                    sort_criteriae[c[0]].append(getattr(m, c[1]))
 
-            args = OrderedDict(request.args)
-            nb_pages = max(1, ceil(count / page_size))
+                    print("sort criteriae: ", request.args["sort"], sort_criteriae)
+                    for criteria_table_name in sort_criteriae.keys():
+                        # reset the order clause
+                        if criteria_table_name in res.keys():
+                            res[criteria_table_name] = res[criteria_table_name].order_by(False)
+                            # then apply the user order criteriae
+                            for c in sort_criteriae[criteria_table_name]:
+                                res[criteria_table_name] = res[criteria_table_name].order_by(sort_order(c))
 
-            links = {}
-            keep_pagination = "page[size]" in args or "page[number]" in args or count > page_size
-            if keep_pagination:
-                args["page[size]"] = page_size
-            links["self"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-
-            if keep_pagination:
-                args["page[number]"] = 1
-                links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                args["page[number]"] = nb_pages
-                links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                if num_page > 1:
-                    n = max(1, num_page - 1)
-                    if n * page_size <= count:
-                        args["page[number]"] = max(1, num_page - 1)
-                        links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                if num_page < nb_pages:
-                    args["page[number]"] = min(nb_pages, num_page + 1)
-                    links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-
-            # should we retrieve relationships too ?
-            w_rel_links, w_rel_data = JSONAPIRouteRegistrar.get_relationships_mode(request.args)
-
-            # finally make the facades
-            facade_objs = []
-            for idx, r in res.items():
-                for obj in r:
-                    facade_class = obj.__jsonapi_search_facade__
-                    f_obj = facade_class(url_prefix, obj, with_relationships_links=w_rel_links, with_relationships_data=w_rel_data)
-                    facade_objs.append(f_obj)
-
-            # find out if related resources must be included too
-            included_resources = None
-            if "include" in request.args:
-                included_resources = []
-                for facade_obj in facade_objs:
-                    included_res, errors = JSONAPIRouteRegistrar.get_included_resources(
-                        request.args["include"].split(','),
-                        facade_obj
+                try:
+                    for idx in res.keys():
+                        res[idx] = res[idx].all()
+                except OperationalError as e:
+                    return JSONAPIResponseFactory.make_errors_response(
+                        {"status": 403, "title": "Cannot fetch data", "detail": str(e)}, status=403
                     )
-                    if errors:
-                        pass
-                        #return errors
-                    included_resources.extend(included_res)
 
+                args = OrderedDict(request.args)
+                nb_pages = max(1, int(ceil(count / page_size)))
+
+                keep_pagination = "page[size]" in args or "page[number]" in args or count > page_size
+                if keep_pagination:
+                    args["page[size]"] = page_size
+
+                if keep_pagination:
+                    args["page[number]"] = 1
+                    links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                    args["page[number]"] = nb_pages
+                    links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                    if num_page > 1:
+                        n = max(1, num_page - 1)
+                        if n * page_size <= count:
+                            args["page[number]"] = max(1, num_page - 1)
+                            links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                    if num_page < nb_pages:
+                        args["page[number]"] = min(nb_pages, num_page + 1)
+                        links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+
+                # should we retrieve relationships too ?
+                w_rel_links, w_rel_data = JSONAPIRouteRegistrar.get_relationships_mode(request.args)
+
+                # finally make the facades
+                facade_objs = []
+                for idx, r in res.items():
+                    for obj in r:
+                        facade_class_type = request.args["facade"] if "facade" in request.args else "search"
+                        facade_class = JSONAPIFacadeManager.get_facade_class(obj, facade_class_type)
+                        f_obj = facade_class(url_prefix, obj, with_relationships_links=w_rel_links, with_relationships_data=w_rel_data)
+                        facade_objs.append(f_obj)
+
+                # find out if related resources must be included too
+                included_resources = None
+                if "include" in request.args:
+                    included_resources = []
+                    for facade_obj in facade_objs:
+                        included_res, errors = JSONAPIRouteRegistrar.get_included_resources(
+                            request.args["include"].split(','),
+                            facade_obj
+                        )
+                        if errors:
+                            pass
+                            #return errors
+                        included_resources.extend(included_res)
             return JSONAPIResponseFactory.make_data_response(
                 [f.resource for f in facade_objs],
                 links=links,
                 included_resources=included_resources,
-                # TODO: Scroll API: total-if-it-was-not-capped-by-elastic
-                meta={"total-count": count}
+                meta={"total-count": count, "duration": float('%.4f' % (time.time() - start_time))}
             )
         # register the rule
         api_bp.add_url_rule(search_rule, endpoint=search_endpoint.__name__, view_func=search_endpoint)
@@ -277,6 +336,8 @@ class JSONAPIRouteRegistrar(object):
               search=expression
             - Filtering syntax :
               filter[field_name]=searched_value
+              filter[!field_name] means IS NOT NULL
+              filter[field_name] means IS NULL
               field_name MUST be a mapped field of the underlying queried model
             - Sorting syntax :
               The sort respects the fields order :
@@ -325,18 +386,8 @@ class JSONAPIRouteRegistrar(object):
                     num_page = 1
                     page_size = facade_class.ITEMS_PER_PAGE
 
-                # if request has filter parameter
-                filter_criteriae = []
-                filters = [(f, f[len('filter['):-1])  # (filter_param, filter_fieldname)
-                           for f in request.args.keys() if f.startswith('filter[') and f.endswith(']')]
-                if len(filters) > 0:
-                    for filter_param, filter_fieldname in filters:
-                        filter_fieldname = filter_fieldname.replace("-", "_")
-                        for criteria in request.args[filter_param].split(','):
-                            new_criteria = "%s.%s=='%s'" % (model.__tablename__, filter_fieldname, criteria)
-                            filter_criteriae.append(new_criteria)
-
-                    objs_query = objs_query.filter(*filter_criteriae)
+                # FILTER
+                objs_query = JSONAPIRouteRegistrar.parse_filter_parameter(model.__name__, objs_query, model)
 
                 # if request has sorting parameter
                 if "sort" in request.args:
@@ -358,7 +409,7 @@ class JSONAPIRouteRegistrar(object):
                 args = OrderedDict(request.args)
 
                 if count is None:
-                    count = JSONAPIRouteRegistrar.count(model)
+                    count = objs_query.count()
                 nb_pages = max(1, ceil(count / page_size))
 
                 keep_pagination = "page[size]" in args or "page[number]" in args or count > page_size

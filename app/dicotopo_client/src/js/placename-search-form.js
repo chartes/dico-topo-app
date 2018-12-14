@@ -1,5 +1,13 @@
 import React from "react";
 
+
+function getUrlParameter(url, paramName) {
+    paramName = paramName.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + paramName + '=([^&#]*)');
+    var results = regex.exec(url);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+}
+
 class PlacenameSearchForm extends React.Component {
 
     constructor(props) {
@@ -27,7 +35,16 @@ class PlacenameSearchForm extends React.Component {
                 "old-labels": true,
                 desc: false
             },
-            searchResult: null,
+            searchTableResult: {
+                data: [],
+                meta: {
+                    "total-count": 0,
+                    "nb-pages": 0
+                }
+            },
+            searchMapResult: {
+                data: []
+            },
 
             error: null
         };
@@ -38,31 +55,27 @@ class PlacenameSearchForm extends React.Component {
 
     }
 
-    performSearch() {
-        const params = this.state.searchParameters;
-        if (params.searchedPlacename && params.searchedPlacename.length >= 3) {
+    performTableSearch(params, placename) {
+        let urls = [];
+        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${placename}&facade=search&page[size]=10`);
+        urls.push(`${this.api_base_url}/search?index=placename&query=${placename}&facade=search&page[size]=10`);
+        //clear results
+        this.setState({
+            ...params,
+            searchTableResult: {
+                data: [],
+                meta: {
+                    "total-count": 0,
+                    "nb-pages": 0
+                }
+            },
+            error: null
+        });
+        this.props.onSearchTable(this.state.searchTableResult);
 
-            document.getElementById("search-button").classList.remove("is-loading");
-            let url = null;
-
-
-            if (params["old-labels"]) {
-                url = `${this.api_base_url}/search?index=placename,placename_old_label&query=${params.searchedPlacename}&sort=placename.label,placename_old_label.rich_label`;
-            } else {
-                url = `${this.api_base_url}/search?index=placename&query=${params.searchedPlacename}&sort=placename.label`;
-            }
-
-            //clear results
-            this.setState({
-                ...params,
-                searchResult: null,
-                error: null
-            });
-            this.props.onSearch(this.state.searchResult);
-
+        for (let url of urls) {
             //fetch new results
-            console.log("search urls: ", url);
-
+            console.log("search url: ", url);
             if (url) {
                 document.getElementById("search-button").classList.add("is-loading");
                 fetch(url)
@@ -73,23 +86,27 @@ class PlacenameSearchForm extends React.Component {
                     return res.json();
                 })
                 .then((result) => {
-                    const oldResult = this.state.searchResult ? this.state.searchResult : [];
-                    let newResult = result;
+                    // extend the list
+                    let newData = result.data;
+                    Array.prototype.push.apply(newData, this.state.searchTableResult.data);
 
-                    //console.log(oldResult, newResult);
-
-                    Array.prototype.push.apply(newResult, oldResult);
-
-                    //console.log(oldResult, newResult);
+                    // compute the number of page for the pagination
+                    let nbPages = getUrlParameter(result.links.last, "page%5Bnumber%5D");
+                    console.log(nbPages);
 
                     this.setState({
                         ...params,
-                        searchResult: newResult,
+                        searchTableResult: {
+                            data: newData,
+                            meta: {
+                                "total-count":   this.state.searchTableResult.meta["total-count"] + result.meta["total-count"],
+                                "nb-pages": Math.max(this.state.searchTableResult.meta["nb-pages"], nbPages)
+                            }
+                        },
                         error: null
                     });
-                    this.props.onSearch(this.state.searchResult);
-                    console.log(newResult.data.length);
 
+                    this.props.onSearchTable(this.state.searchTableResult);
                     document.getElementById("search-button").classList.remove("is-loading");
                 })
                 .catch(error => {
@@ -98,7 +115,76 @@ class PlacenameSearchForm extends React.Component {
                     this.setState({error: error.statusText});
                 });
             }
+        }
+    }
 
+
+    performMapSearch(params, placename) {
+        let urls = [];
+        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${placename}&facade=map&page[size]=2000`);
+        urls.push(`${this.api_base_url}/search?index=placename&query=${placename}&facade=map&page[size]=2000`);
+        //clear results
+        this.setState({
+            ...params,
+            searchMapResult: {
+                data: [],
+            },
+            error: null
+        });
+        this.props.onSearchMap(this.state.searchMapResult);
+
+        const process = (url) => {
+            if (url) {
+                fetch(url)
+                .then(res => {
+                    if (!res.ok) {
+                        throw res;
+                    }
+                    return res.json();
+                })
+                .then((result) => {
+                    // extend the list
+                    let newData = result.data;
+                    Array.prototype.push.apply(newData, this.state.searchMapResult.data);
+
+                    this.setState({
+                        ...params,
+                        searchMapResult: {
+                            data: newData,
+                        },
+                        error: null
+                    });
+                    this.props.onSearchMap(this.state.searchMapResult);
+                    return process(result.links.next);
+                })
+                .catch(error => {
+                    console.log("error while searching placename:", error);
+                    document.getElementById("search-button").classList.remove("is-loading");
+                    this.setState({error: error.statusText});
+                });
+            } else {
+                document.getElementById("search-button").classList.remove("is-loading");
+            }
+        };
+
+        for (let url of urls) {
+            //fetch new results
+            console.log("search map url: ", url);
+            if (url) {
+                document.getElementById("search-button").classList.add("is-loading");
+                process(url);
+            }
+        }
+    }
+
+    performSearch() {
+        const params = this.state.searchParameters;
+        if (params.searchedPlacename && params.searchedPlacename.length >= 3) {
+
+            document.getElementById("search-button").classList.remove("is-loading");
+
+            this.performTableSearch(params, params.searchedPlacename);
+            this.performMapSearch(params, params.searchedPlacename);
         }
     }
 
