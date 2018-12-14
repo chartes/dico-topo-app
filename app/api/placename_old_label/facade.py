@@ -139,3 +139,22 @@ class PlacenameOldLabelSearchFacade(PlacenameOldLabelFacade):
     def __init__(self, *args, **kwargs):
         super(PlacenameOldLabelSearchFacade, self).__init__(*args, **kwargs)
         self.relationships = {}
+
+
+class PlacenameOldLabelMapFacade(PlacenameOldLabelSearchFacade):
+
+    @property
+    def resource(self):
+        """ """
+        co = self.obj.placename.localization_commune
+        res = {
+            **self.resource_identifier,
+            "attributes": {
+                "localization-insee-code": co.id if co else None,
+                "longlat": co.longlat if co else None,
+            },
+            "links": {
+                "self": self.self_link
+            }
+        }
+        return res

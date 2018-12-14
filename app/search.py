@@ -1,4 +1,5 @@
 import pprint
+from elasticsearch.helpers import scan
 from flask import current_app
 from collections import namedtuple
 
@@ -46,10 +47,18 @@ def query_index(index, query, fields=None, page=None, per_page=None):
         #print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
 
     try:
-        search = current_app.elasticsearch.search(index=index, doc_type=index, body=body)
+        #search = current_app.elasticsearch.search(index=index, doc_type=index, body=body)
+        search = current_app.elasticsearch.search(
+            body=body,
+            index=index,
+            doc_type=index,
+            from_=page,
+            size=per_page
+        )
 
         results = {}
-        for hit in search['hits']['hits']:
+        total = search["hits"]["total"]
+        for hit in search["hits"]["hits"]:
             _idx = str(hit['_index'])
 
             if _idx not in results:
@@ -59,8 +68,7 @@ def query_index(index, query, fields=None, page=None, per_page=None):
                 "id": str(hit['_id']),
                 "score": str(hit['_score'])
             })
-
-        return results, search['hits']['total']
+        return results, total
 
     except Exception as e:
         print(e)

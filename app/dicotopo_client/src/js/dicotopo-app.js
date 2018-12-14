@@ -25,7 +25,8 @@ class DicotopoApp extends React.Component {
             placenameUrl : null,
             placenameCardVisibility: false,
             searchResultVisibility: false,
-            searchResult: null
+            searchTableResult: null,
+            searchMapResult: null
         };
     }
 
@@ -44,59 +45,51 @@ class DicotopoApp extends React.Component {
         console.log("set placenamecard to:", this.state.placenameUrl);
     }
 
-    setSearchPlacenameResult(searchResult){
-
-        this.updateMarkersOnMap(searchResult);
-
+    setSearchPlacenameTableResult(searchTableResult){
         this.setState(prevState => ({
             ...prevState,
-            searchResult: searchResult,
+            searchTableResult: searchTableResult,
             placenameCardVisibility: false,
             searchResultVisibility: true
         }))
     }
 
-    makeMapMarker(resource) {
-        if (resource) {
-            /* unbox the longlat field */
-            let longlat = resource.attributes.longlat.replace("(", "");
-            longlat = longlat.replace(")", "");
-            longlat = longlat.split(",");
-            let lat = parseFloat(longlat[0].trim());
-            let long = parseFloat(longlat[1].trim());
-            //console.log(commune);
-            return {
-                 latLng: [long, lat],
-                 commune_id: resource.attributes["localization-insee-code"],
-                // title: commune.attributes["NCCENR"],
-            }
-        }
-        return null;
+    setSearchPlacenameMapResult(searchMapResult){
+
+        this.updateMarkersOnMap(searchMapResult);
+
+        this.setState(prevState => ({
+            ...prevState,
+            searchMapResult: searchMapResult,
+        }))
     }
 
-    updateMarkersOnMap(searchResult){
+    makeMapMarker(resource) {
+        /* unbox the longlat field */
+        let longlat = resource.attributes.longlat.replace("(", "");
+        longlat = longlat.replace(")", "");
+        longlat = longlat.split(",");
+        let lat = parseFloat(longlat[0].trim());
+        let long = parseFloat(longlat[1].trim());
+        //console.log(commune);
+        return {
+             latLng: [long, lat],
+             commune_id: resource.attributes["localization-insee-code"],
+            // title: commune.attributes["NCCENR"],
+        }
+    }
+
+    updateMarkersOnMap(searchMapResult){
         let mapMarkers = [];
         //console.log("=====");
-        if (searchResult) {
-            for (let resource of searchResult.data) {
-                if (resource.attributes.longlat) {
-                    /* add a new marker */
-                    //console.log("make marker: ",  commune.type, newMarker);
-                    const newMarker = this.makeMapMarker(resource);
-                    if (newMarker){
-                        let alreadyMarked = false;
-                        // based on commune.insee_code, try to not add duplicate markers
-                        for (let m of mapMarkers) {
-                            //console.log(newMarker);
-                            if (m.commune_id === resource.commune_id){
-                                alreadyMarked = true;
-                                break;
-                            }
-                        }
-                        // add the marker
-                        if (!alreadyMarked) {
-                            mapMarkers.push(newMarker);
-                        }
+        if (searchMapResult) {
+            let commune_ids = [];
+            for (let resource of searchMapResult.data) {
+                if (resource.attributes.longlat && resource.attributes["localization-insee-code"]) {
+                    if (commune_ids.indexOf(resource.attributes["localization-insee-code"]) === -1) {
+                        /* add a new marker */
+                       mapMarkers.push(this.makeMapMarker(resource));
+                       commune_ids.push(resource.attributes["localization-insee-code"]);
                     }
                 }
              }
@@ -120,7 +113,9 @@ class DicotopoApp extends React.Component {
 
     renderSearchForm() {
         return (
-            <PlacenameSearchForm onSearch={this.setSearchPlacenameResult.bind(this)}/>
+            <PlacenameSearchForm onSearchTable={this.setSearchPlacenameTableResult.bind(this)}
+                                 onSearchMap={this.setSearchPlacenameMapResult.bind(this)}
+                                 />
         );
     }
 
@@ -145,13 +140,13 @@ class DicotopoApp extends React.Component {
     }
 
     renderSearchResult() {
-        if (!this.state.searchResult) {
+        if (!this.state.searchTableResult) {
             return null;
         }
         else {
             return (
                 <div style={{display: (this.state.searchResultVisibility ? "block" : "none")}}>
-                    <p>{this.state.searchResult.meta["total-count"]} résultat(s) - <span style={{color: "#EE8E4A"}}>limités à 1000 dans la version beta</span></p>
+                    <p>{this.state.searchTableResult.meta["total-count"]} résultat(s) - <span style={{color: "#EE8E4A"}}>debug: nbpages {this.state.searchTableResult.meta["nb-pages"]}</span></p>
                     <table className="table is-fullwidth is-hoverable is-stripped" >
                         <thead>
                         <tr>
@@ -164,7 +159,7 @@ class DicotopoApp extends React.Component {
                         </thead>
                         <tbody>
                             {
-                                this.state.searchResult.data.map(res  => (
+                                this.state.searchTableResult.data.map(res  => (
                                     res.type === "placename" ? this.renderPlacenameResult(res) : this.renderOldLabelResult(res)
                                 ))
                             }
