@@ -26,8 +26,9 @@ class PlacenameSearchForm extends React.Component {
                 // checkboxes
                 label: true,
                 "old-labels": true,
-                pageSize: 25,
+                pageSize: 50,
                 currentPageNumber: 1,
+                showPagination: true
             },
 
             searchTableResult: {
@@ -302,12 +303,12 @@ class PlacenameSearchForm extends React.Component {
 
         return <div className="buttons are-normal pagination-links">
             {makeLink(1, 1)}
-            <span className={"dotdot"}>...</span>
+            {prevPage > 1 ? <span className={"dotdot"}>...</span> : ""}
             {prevPage > 1 ? makeLink(prevPage, prevPage) : ""}
             {currPage > 1 && currPage < nbPages ? makeLink(currPage, currPage) : ""}
             {nextPage < nbPages ? makeLink(nextPage, nextPage): ""}
-            <span className={"dotdot"}>...</span>
-            {makeLink(nbPages, nbPages)}
+            {prevPage > 1 ? <span className={"dotdot"}>...</span> : ""}
+            {prevPage > 1 ? makeLink(nbPages, nbPages) : ""}
         </div>
 
     }
