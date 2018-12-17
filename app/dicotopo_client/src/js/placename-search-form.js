@@ -1,12 +1,7 @@
 import React from "react";
 
+import getUrlParameter from "./lib/utils";
 
-function getUrlParameter(url, paramName) {
-    paramName = paramName.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-    var regex = new RegExp('[\\?&]' + paramName + '=([^&#]*)');
-    var results = regex.exec(url);
-    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-}
 
 class PlacenameSearchForm extends React.Component {
 
@@ -16,7 +11,6 @@ class PlacenameSearchForm extends React.Component {
         this.handlePlacenameChange = this.handlePlacenameChange.bind(this);
         this.handleOldLabelsChange = this.handleOldLabelsChange.bind(this);
         this.handleLabelChange = this.handleLabelChange.bind(this);
-        this.handleDescChange = this.handleDescChange.bind(this);
         this.handleOnKeyPress = this.handleOnKeyPress.bind(this);
         this.handleOnSearchClick = this.handleOnSearchClick.bind(this);
 
@@ -29,12 +23,13 @@ class PlacenameSearchForm extends React.Component {
         this.state = {
             searchParameters: {
                 searchedPlacename: null,
-
                 // checkboxes
                 label: true,
                 "old-labels": true,
-                desc: false
+                pageSize: 25,
+                currentPageNumber: 1,
             },
+
             searchTableResult: {
                 data: [],
                 meta: {
@@ -52,27 +47,51 @@ class PlacenameSearchForm extends React.Component {
     }
 
     componentDidMount() {
-
+        console.log("search form did mount")
     }
 
-    performTableSearch(params, placename) {
+    componentDidUpdate(prevProps, prevState) {
+        // check if data has changed
+        if (this.state.searchParameters.currentPageNumber !== prevState.searchParameters.currentPageNumber ||
+            this.state.searchParameters.searchedPlacename !== prevState.searchParameters.searchedPlacename) {
+            console.log(this.state, prevState);
+            console.log("search !")
+
+            // do not search map if the placename didnt change
+            const searchMap = this.state.searchParameters.searchedPlacename !== prevState.searchParameters.searchedPlacename;
+
+            this.performSearch(true, searchMap);
+        }
+    }
+
+    performTableSearch() {
         let urls = [];
-        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${placename}&facade=search&page[size]=10`);
-        urls.push(`${this.api_base_url}/search?index=placename&query=${placename}&facade=search&page[size]=10`);
+        const pm = this.state.searchParameters;
+
+        const pageNumber = pm.currentPageNumber;
+
+        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${pm.searchedPlacename}&facade=search&page[size]=${pm.pageSize}&page[number]=${pageNumber}`);
+        urls.push(`${this.api_base_url}/search?index=placename&query=${pm.searchedPlacename}&facade=search&page[size]=${pm.pageSize}&page[number]=${pageNumber}`);
+
+        const nb_urls = urls.length;
+
         //clear results
         this.setState({
-            ...params,
+            ...this.state.searchParameters,
             searchTableResult: {
                 data: [],
                 meta: {
                     "total-count": 0,
                     "nb-pages": 0
-                }
+                },
+                showPagination: false
             },
             error: null
         });
+
         this.props.onSearchTable(this.state.searchTableResult);
 
+        let url_idx = 0;
         for (let url of urls) {
             //fetch new results
             console.log("search url: ", url);
@@ -92,10 +111,10 @@ class PlacenameSearchForm extends React.Component {
 
                     // compute the number of page for the pagination
                     let nbPages = getUrlParameter(result.links.last, "page%5Bnumber%5D");
-                    console.log(nbPages);
+                    console.log("nbPages:", nbPages);
 
                     this.setState({
-                        ...params,
+                        ...this.state.searchParameters,
                         searchTableResult: {
                             data: newData,
                             meta: {
@@ -107,7 +126,15 @@ class PlacenameSearchForm extends React.Component {
                     });
 
                     this.props.onSearchTable(this.state.searchTableResult);
+
                     document.getElementById("search-button").classList.remove("is-loading");
+                    url_idx += 1;
+                    if (url_idx === nb_urls) {
+                        this.setState({
+                            ...this.state.searchParameters,
+                            showPagination: true
+                        });
+                    }
                 })
                 .catch(error => {
                     console.log("error while searching placename:", error);
@@ -118,14 +145,14 @@ class PlacenameSearchForm extends React.Component {
         }
     }
 
-
-    performMapSearch(params, placename) {
+    performMapSearch() {
         let urls = [];
-        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${placename}&facade=map&page[size]=2000`);
-        urls.push(`${this.api_base_url}/search?index=placename&query=${placename}&facade=map&page[size]=2000`);
+        const pm = this.state.searchParameters;
+        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${pm.searchedPlacename}&facade=map&page[size]=2000`);
+        urls.push(`${this.api_base_url}/search?index=placename&query=${pm.searchedPlacename}&facade=map&page[size]=2000`);
         //clear results
         this.setState({
-            ...params,
+            ...pm,
             searchMapResult: {
                 data: [],
             },
@@ -148,7 +175,7 @@ class PlacenameSearchForm extends React.Component {
                     Array.prototype.push.apply(newData, this.state.searchMapResult.data);
 
                     this.setState({
-                        ...params,
+                        ...pm,
                         searchMapResult: {
                             data: newData,
                         },
@@ -177,17 +204,19 @@ class PlacenameSearchForm extends React.Component {
         }
     }
 
-    performSearch() {
+    performSearch(searchTable=true, searchMap=true) {
         const params = this.state.searchParameters;
         if (params.searchedPlacename && params.searchedPlacename.length >= 3) {
 
             document.getElementById("search-button").classList.remove("is-loading");
-
-            this.performTableSearch(params, params.searchedPlacename);
-            this.performMapSearch(params, params.searchedPlacename);
+            if (searchTable) {
+                this.performTableSearch();
+            }
+            if (searchMap) {
+               this.performMapSearch();
+            }
         }
     }
-
 
     handleLabelChange(e){
         /*
@@ -216,22 +245,13 @@ class PlacenameSearchForm extends React.Component {
         });
     }
 
-    handleDescChange(e){
-        this.setState({
-            ...this.state,
-            searchParameters : {
-                ...this.state.searchParameters,
-                desc: e.target.checked
-            }
-        });
-    }
-
     handlePlacenameChange(){
         this.setState({
             ...this.state,
             searchParameters : {
                 ...this.state.searchParameters,
-                searchedPlacename: document.getElementById("placenameInput").value
+                searchedPlacename: document.getElementById("placenameInput").value,
+                currentPageNumber: 1
             }
         });
     }
@@ -249,70 +269,105 @@ class PlacenameSearchForm extends React.Component {
         this.handlePlacenameChange();
     }
 
-    componentDidUpdate(prevProps, prevState) {
-        // check if data has changed
-        if (this.state.searchParameters !== prevState.searchParameters) {
-            this.performSearch();
-        }
+    goToTablePage(num) {
+        this.setState({
+            ...this.state,
+            searchParameters : {
+                ...this.state.searchParameters,
+                currentPageNumber: num
+            }
+        });
     }
+
+    renderSearchPagination() {
+        if (!this.state.showPagination){
+            return <div></div>
+        }
+        const result = this.state.searchTableResult;
+        const nbPages = result.meta["nb-pages"];
+
+        let prevPage = this.state.currentPageNumber - 1;
+        let currPage = this.state.currentPageNumber;
+        let nextPage = this.state.currentPageNumber +1;
+
+        const stylePageLink = num => num === this.state.currentPageNumber ? "is-medium" : " is-outlined";
+
+        const makeLink = (num, lbl) => <span className={"button is-link " + stylePageLink(num)} onClick={() => this.goToTablePage(num)}>{lbl}</span>;
+
+        if (currPage === 1 || currPage === nbPages) {
+            currPage = Math.max(1, Math.ceil(nbPages * 0.5));
+            prevPage = currPage - 1;
+            nextPage = currPage + 1;
+        }
+
+        return <div className="buttons are-normal pagination-links">
+            {makeLink(1, 1)}
+            <span className={"dotdot"}>...</span>
+            {prevPage > 1 ? makeLink(prevPage, prevPage) : ""}
+            {currPage > 1 && currPage < nbPages ? makeLink(currPage, currPage) : ""}
+            {nextPage < nbPages ? makeLink(nextPage, nextPage): ""}
+            <span className={"dotdot"}>...</span>
+            {makeLink(nbPages, nbPages)}
+        </div>
+
+    }
+
 
     render() {
         return (
-            <div id="search-form-container">
+            <div>
+                <div id="search-form-container">
 
-                <div className="columns">
-                    <div className="column">
-                        <div className="field is-horizontal">
-                            <div className="field-body">
-                                <div className="field has-addons">
-                                    <div className="control">
-                                        <button id="search-button" className="button is-info" onClick={this.handleOnSearchClick}>
-                                           <i className="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                    <div className="control">
-                                        <input id="placenameInput" className="input" type="text" placeholder="ex: Abancourt"
-                                               onKeyPress={this.handleOnKeyPress}/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                         {/*
-                        <div className="field is-horizontal">
-                            <div className="field-label">
-                                <label className="label">Inclure</label>
-                            </div>
-                            <div className="field-body">
-                                <div className="field">
-                                    <div className="control">
-
-                                        <label className="checkbox">
-                                            <input type="checkbox" name="member" value="label"
-                                                   onChange={this.handleLabelChange}
-                                                   defaultChecked={this.state.searchParameters.label}/>
-                                               Vedette
-                                        </label>
-
-                                        <label className="checkbox">
-                                            <input type="checkbox" name="member" value="old-labels" onChange={this.handleOldLabelsChange} defaultChecked={this.state.searchParameters["old-labels"]}/>
-                                                Formes anciennes
-                                            <span id="old-label-legend"></span>
-                                        </label>
-
-                                        <label className="checkbox">
-                                            <input type="checkbox" name="member" value="desc" onChange={this.handleDescChange} defaultChecked={this.state.searchParameters.desc}/>
-                                                description
-                                        </label>
-
+                    <div className="columns">
+                        <div className="column">
+                            <div className="field is-horizontal">
+                                <div className="field-body">
+                                    <div className="field has-addons">
+                                        <div className="control">
+                                            <button id="search-button" className="button is-info" onClick={this.handleOnSearchClick}>
+                                               <i className="fas fa-search"></i>
+                                            </button>
+                                        </div>
+                                        <div className="control">
+                                            <input id="placenameInput" className="input" type="text" placeholder="ex: Abancourt"
+                                                   onKeyPress={this.handleOnKeyPress}/>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        */}
+                             {/*
+                            <div className="field is-horizontal">
+                                <div className="field-label">
+                                    <label className="label">Inclure</label>
+                                </div>
+                                <div className="field-body">
+                                    <div className="field">
+                                        <div className="control">
 
+                                            <label className="checkbox">
+                                                <input type="checkbox" name="member" value="label"
+                                                       onChange={this.handleLabelChange}
+                                                       defaultChecked={this.state.searchParameters.label}/>
+                                                   Vedette
+                                            </label>
+
+                                            <label className="checkbox">
+                                                <input type="checkbox" name="member" value="old-labels" onChange={this.handleOldLabelsChange} defaultChecked={this.state.searchParameters["old-labels"]}/>
+                                                    Formes anciennes
+                                                <span id="old-label-legend"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            */}
+
+                        </div>
+                        <div className="column"></div>
                     </div>
-
-                    <div className="column"></div>
+                </div>
+                <div id="pagination">
+                    {this.renderSearchPagination()}
                 </div>
             </div>
         );
