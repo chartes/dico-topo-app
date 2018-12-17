@@ -26,7 +26,7 @@ class DicotopoApp extends React.Component {
             placenameCardVisibility: false,
             searchResultVisibility: false,
             searchTableResult: null,
-            searchMapResult: null
+            searchMapResult: null,
         };
     }
 
@@ -34,6 +34,10 @@ class DicotopoApp extends React.Component {
         if (!this.state.enablePlacenameMap && !this.state.placenameUrl) {
             this.setPlacenameCard(window.location.href.split("/").pop());
         }
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+
     }
 
     setPlacenameCard(placenameId) {
@@ -139,6 +143,7 @@ class DicotopoApp extends React.Component {
                  </tr>
     }
 
+
     renderSearchResult() {
         if (!this.state.searchTableResult) {
             return null;
@@ -146,7 +151,7 @@ class DicotopoApp extends React.Component {
         else {
             return (
                 <div style={{display: (this.state.searchResultVisibility ? "block" : "none")}}>
-                    <p>{this.state.searchTableResult.meta["total-count"]} résultat(s) - <span style={{color: "#EE8E4A"}}>debug: nbpages {this.state.searchTableResult.meta["nb-pages"]}</span></p>
+                    <p>{this.state.searchTableResult.meta["total-count"]} résultat(s)</p>
                     <table className="table is-fullwidth is-hoverable is-stripped" >
                         <thead>
                         <tr>
@@ -176,7 +181,7 @@ class DicotopoApp extends React.Component {
                 <div >
                     <PlacenameMap markersData={this.state.mapMarkers} onMarkerClick={this.setPlacenameCard.bind(this)}/>
                     <div id="data-container" className={"columns"}>
-                        <div className={"column"}>
+                        <div className={"column"}  style={{paddingTop: "0px"}}>
                             {this.renderSearchForm()}
                             {this.renderSearchResult()}
                         </div>

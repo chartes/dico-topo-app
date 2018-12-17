@@ -52,10 +52,9 @@ def query_index(index, query, fields=None, page=None, per_page=None):
             body=body,
             index=index,
             doc_type=index,
-            from_=page,
+            from_=page*per_page,
             size=per_page
         )
-
         results = {}
         total = search["hits"]["total"]
         for hit in search["hits"]["hits"]:

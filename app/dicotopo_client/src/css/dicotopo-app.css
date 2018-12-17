@@ -10,7 +10,7 @@
 
 #search-form-container {
     position: relative;
-    top: -86px;
+    top: -70px;
     z-index: 10000;
     left: -18px;
 }
@@ -101,4 +101,13 @@ body:after {
 
 #dicotopo-docs-app h2.title {
     margin-top: 20px;
+}
+
+.pagination-links {
+    padding-top: 0px;
+
+}
+.pagination-links > .dotdot {
+  padding-left: 8px;
+  padding-right: 16px;
 }
