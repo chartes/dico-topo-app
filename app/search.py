@@ -31,7 +31,7 @@ def query_index(index, query, fields=None, page=None, per_page=None):
                 'query': query,
                 #'fields': ['*'] if fields is None or len(fields) == 0 else fields
             }
-        },
+        }
     }
 
     if per_page is not None:
