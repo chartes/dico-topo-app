@@ -127,7 +127,12 @@ class PlacenameMapFacade(PlacenameSearchFacade):
     @property
     def resource(self):
         """ """
-        co = self.obj.localization_commune
+        if self.obj.commune:
+            co = self.obj.commune
+        elif self.obj.localization_commune:
+            co = self.obj.localization_commune
+        else:
+            co = None
         res = {
             **self.resource_identifier,
             "attributes": {
