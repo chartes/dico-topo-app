@@ -94,21 +94,4 @@ def create_app(config_name="dev"):
     app.register_blueprint(app_bp)
     app.register_blueprint(api_bp)
 
-    if app.config["DB_DROP_AND_CREATE_ALL"]:
-        print("DB_DROP_AND_CREATE_ALL")
-        with app.app_context():
-            db.drop_all()
-            db.create_all()
-
-    if "REINDEX" in app.config and app.config["REINDEX"] is True:
-        print("================================")
-        print("REINDEXING.... please be patient")
-        print("================================")
-        with app.app_context():
-            #models.FeatureType, models.InseeRef, models.PlacenameAltLabel,
-            for m in (models.Placename, models.InseeCommune, models.PlacenameOldLabel):
-                print('...%s' % m.__tablename__)
-                #app.elasticsearch.indices.delete(index=m.__tablename__, ignore=[404])
-                m.reindex()
-
     return app

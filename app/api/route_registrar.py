@@ -387,7 +387,7 @@ class JSONAPIRouteRegistrar(object):
                     page_size = facade_class.ITEMS_PER_PAGE
 
                 # FILTER
-                objs_query = JSONAPIRouteRegistrar.parse_filter_parameter(model.__name__, objs_query, model)
+                objs_query = JSONAPIRouteRegistrar.parse_filter_parameter(objs_query, model)
 
                 # if request has sorting parameter
                 if "sort" in request.args:
