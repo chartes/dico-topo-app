@@ -16,8 +16,10 @@ class PlacenameSearchForm extends React.Component {
 
         if (document.getElementById("debug-mode")){
            this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+           this.api_search_index = "dicotopo__development__placename";
         } else {
            this.api_base_url = "/dico-topo/api/1.0";
+           this.api_search_index = "dicotopo__development__placename";
         }
 
         this.state = {
@@ -66,16 +68,10 @@ class PlacenameSearchForm extends React.Component {
     }
 
     performTableSearch() {
-        let urls = [];
         const pm = this.state.searchParameters;
-
         const pageNumber = pm.currentPageNumber;
 
-        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${pm.searchedPlacename}&facade=search&page[size]=${pm.pageSize}&page[number]=${pageNumber}`);
-        urls.push(`${this.api_base_url}/search?index=placename&query=${pm.searchedPlacename}&facade=search&page[size]=${pm.pageSize}&page[number]=${pageNumber}`);
-
-        const nb_urls = urls.length;
-
+        const url = `${this.api_base_url}/search?index=${this.api_search_index}&query=${pm.searchedPlacename}&facade=search&page[size]=${pm.pageSize}&page[number]=${pageNumber}`;
         //clear results
         this.setState({
             ...this.state.searchParameters,
@@ -92,65 +88,58 @@ class PlacenameSearchForm extends React.Component {
 
         this.props.onSearchTable(this.state.searchTableResult);
 
-        let url_idx = 0;
-        for (let url of urls) {
-            //fetch new results
-            console.log("search url: ", url);
-            if (url) {
-                document.getElementById("search-button").classList.add("is-loading");
-                fetch(url)
-                .then(res => {
-                    if (!res.ok) {
-                        throw res;
-                    }
-                    return res.json();
-                })
-                .then((result) => {
-                    // extend the list
-                    let newData = result.data;
-                    Array.prototype.push.apply(newData, this.state.searchTableResult.data);
+        //fetch new results
+        console.log("search url: ", url);
+        if (url) {
+            document.getElementById("search-button").classList.add("is-loading");
+            fetch(url)
+            .then(res => {
+                if (!res.ok) {
+                    throw res;
+                }
+                return res.json();
+            })
+            .then((result) => {
+                // extend the list
+                let newData = result.data;
+                Array.prototype.push.apply(newData, this.state.searchTableResult.data);
 
-                    // compute the number of page for the pagination
-                    let nbPages = getUrlParameter(result.links.last, "page%5Bnumber%5D");
-                    console.log("nbPages:", nbPages);
+                // compute the number of page for the pagination
+                let nbPages = getUrlParameter(result.links.last, "page%5Bnumber%5D");
+                console.log("nbPages:", nbPages);
 
-                    this.setState({
-                        ...this.state.searchParameters,
-                        searchTableResult: {
-                            data: newData,
-                            meta: {
-                                "total-count":   this.state.searchTableResult.meta["total-count"] + result.meta["total-count"],
-                                "nb-pages": Math.max(this.state.searchTableResult.meta["nb-pages"], nbPages)
-                            }
-                        },
-                        error: null
-                    });
-
-                    this.props.onSearchTable(this.state.searchTableResult);
-
-                    document.getElementById("search-button").classList.remove("is-loading");
-                    url_idx += 1;
-                    if (url_idx === nb_urls) {
-                        this.setState({
-                            ...this.state.searchParameters,
-                            showPagination: true
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.log("error while searching placename:", error);
-                    document.getElementById("search-button").classList.remove("is-loading");
-                    this.setState({error: error.statusText});
+                this.setState({
+                    ...this.state.searchParameters,
+                    searchTableResult: {
+                        data: newData,
+                        meta: {
+                            "total-count":   this.state.searchTableResult.meta["total-count"] + result.meta["total-count"],
+                            "nb-pages": Math.max(this.state.searchTableResult.meta["nb-pages"], nbPages)
+                        }
+                    },
+                    error: null
                 });
-            }
+
+                this.props.onSearchTable(this.state.searchTableResult);
+                document.getElementById("search-button").classList.remove("is-loading");
+
+                this.setState({
+                    ...this.state.searchParameters,
+                    showPagination: true
+                });
+            })
+            .catch(error => {
+                console.log("error while searching placename:", error);
+                document.getElementById("search-button").classList.remove("is-loading");
+                this.setState({error: error.statusText});
+            });
         }
+
     }
 
     performMapSearch() {
-        let urls = [];
         const pm = this.state.searchParameters;
-        urls.push(`${this.api_base_url}/search?index=placename_old_label&query=${pm.searchedPlacename}&facade=map&page[size]=2000`);
-        urls.push(`${this.api_base_url}/search?index=placename&query=${pm.searchedPlacename}&facade=map&page[size]=2000`);
+        const url = `${this.api_base_url}/search?index=${this.api_search_index}&query=${pm.searchedPlacename}&facade=map&page[size]=2000`;
         //clear results
         this.setState({
             ...pm,
@@ -195,13 +184,11 @@ class PlacenameSearchForm extends React.Component {
             }
         };
 
-        for (let url of urls) {
-            //fetch new results
-            console.log("search map url: ", url);
-            if (url) {
-                document.getElementById("search-button").classList.add("is-loading");
-                process(url);
-            }
+        //fetch new results
+        console.log("search map url: ", url);
+        if (url) {
+            document.getElementById("search-button").classList.add("is-loading");
+            process(url);
         }
     }
 

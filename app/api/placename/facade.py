@@ -93,6 +93,36 @@ class PlacenameFacade(JSONAPIAbstractFacade):
                 "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
             }
 
+    def get_data_to_index_when_added(self, propagate):
+        if self.obj.commune:
+            co = self.obj.commune
+        elif self.obj.localization_commune:
+            co = self.obj.localization_commune
+        else:
+            co = None
+
+        payload = {
+            "id": self.obj.id,
+            "type": self.TYPE,
+
+            "label": self.obj.label,
+            "localization-insee-code":  co.id if co else None,
+
+            "dep-id": self.obj.dpt,
+            "reg-id": co.region.id if co and co.region else None,
+            "arr-id": co.arrondissement.id if co and co.arrondissement else None,
+            "ct-id": co.canton.id if co and co.canton else None,
+
+            "old-labels": [ol.rich_label for ol in self.obj.old_labels],
+            "alt-labels": [al.label for al in self.obj.alt_labels]
+
+        }
+        return [{"id": self.obj.id, "index": self.get_index_name(), "payload": payload}]
+
+    def get_data_to_index_when_removed(self, propagate):
+        print("GOING TO BE REMOVED FROM INDEX:", [{"id": self.obj.id, "index": self.get_index_name()}])
+        return [{"id": self.obj.id, "index": self.get_index_name()}]
+
 
 class PlacenameSearchFacade(PlacenameFacade):
 
