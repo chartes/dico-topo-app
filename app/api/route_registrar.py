@@ -9,14 +9,17 @@ from math import ceil
 from collections import OrderedDict
 
 from flask import request, current_app
+from flask_login import current_user
 from flask_sqlalchemy import BaseQuery
+from flask_user.decorators import _is_logged_in_with_confirmed_email
+from functools import wraps
 from sqlalchemy import func, desc, asc, column, union
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Query
 
 from app import JSONAPIResponseFactory, api_bp, db
 from app.api.facade_manager import JSONAPIFacadeManager
-from app.search import query_index
+from app.search import SearchIndexManager
 
 if sys.version_info < (3, 6):
     json_loads = lambda s: json_loads(s.decode("utf-8")) if isinstance(s, bytes) else json.loads(s)
@@ -64,6 +67,11 @@ class JSONAPIRouteRegistrar(object):
     def get_included_resources(asked_relationships, facade_obj):
             errors = []
             included_resources = OrderedDict({})
+
+            w_data, w_links = facade_obj.with_relationships_data, facade_obj.with_relationships_links
+            facade_obj.with_relationships_data = False
+            facade_obj.with_relationships_links = False
+
             relationships = facade_obj.relationships
             # iter over the relationships to be included
             for inclusion in asked_relationships:
@@ -82,6 +90,10 @@ class JSONAPIRouteRegistrar(object):
                             included_resources[unique_key] = related_resources
                 except KeyError as e:
                     errors.append({"status": 403, "title": "Cannot include the relationship %s" % str(e)})
+
+            facade_obj.with_relationships_data = w_data
+            facade_obj.with_relationships_links = w_links
+
             return list(included_resources.values()), None
 
 
@@ -150,20 +162,23 @@ class JSONAPIRouteRegistrar(object):
 
     def search(self, index, query, num_page, page_size):
         # query the search engine
-        results, total = query_index(index=index, query=query, page=num_page, per_page=page_size)
+        results, total = SearchIndexManager.query_index(index=index, query=query, page=num_page, per_page=page_size)
+
         if total == 0:
             return {}, 0
 
         res_dict = {}
-        for _idx, res in results.items():
-            ids = [r["id"] for r in res]
-            when = []
-            for i, obj in enumerate(ids):
-                when.append((obj, i))
+        for res in results:
+            if res.type not in res_dict:
+                res_dict[res.type] = []
+            res_dict[res.type].append(res.id)
 
-            m = self.models[_idx]
-            objs = db.session.query(m).filter(m.id.in_(ids)).order_by(db.case(when, value=m.id))
-            res_dict[_idx] = objs
+        for res_type, res_ids in res_dict.items():
+            when = []
+            for i, id in enumerate(res_ids):
+                when.append((id, i))
+            m = self.models[res_type]
+            res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids)).order_by(db.case(when, value=m.id))
 
         return res_dict, total
 
@@ -172,7 +187,6 @@ class JSONAPIRouteRegistrar(object):
         search_rule = '/api/{api_version}/search'.format(api_version=self.api_version)
 
         def search_endpoint():
-            # TODO: attention pour le total-count: il est ok dans l'absolu MAIS les résultats eux sont cappés à 10.000
             start_time = time.time()
 
             if "query" not in request.args:
@@ -204,7 +218,14 @@ class JSONAPIRouteRegistrar(object):
                 page_size = int(current_app.config["SEARCH_RESULT_PER_PAGE"])
 
             # Search, retrieve, filter, sort and paginate objs
-            res, count = self.search(index=index, query=query, num_page=num_page, page_size=page_size)
+            try:
+                res, count = self.search(index=index, query=query, num_page=num_page, page_size=page_size)
+            except Exception as e:
+                return JSONAPIResponseFactory.make_errors_response({
+                    "status": 403,
+                    "title": "Cannot perform search operations",
+                    "details": str(e)
+                }, status=403)
 
             links = {"self": JSONAPIRouteRegistrar.make_url(request.base_url, OrderedDict(request.args))}
 
@@ -214,7 +235,7 @@ class JSONAPIRouteRegistrar(object):
             else:
                 for idx in res.keys():
                     # FILTER
-                    #TODO: filter mus be done on the elastic side
+                    #TODO: filter must be done on the elastic side
                     res[idx] = JSONAPIRouteRegistrar.parse_filter_parameter(res[idx], self.models[idx])
 
                 # if request has sorting parameter
@@ -309,7 +330,7 @@ class JSONAPIRouteRegistrar(object):
         # register the rule
         api_bp.add_url_rule(search_rule, endpoint=search_endpoint.__name__, view_func=search_endpoint)
 
-    def register_get_routes(self, model, facade_class):
+    def register_get_routes(self, model, facade_class, decorators=()):
         """
 
         :param model:
@@ -330,10 +351,6 @@ class JSONAPIRouteRegistrar(object):
         def collection_endpoint():
             """
             Support the following parameters:
-            - Search syntax:
-              search[fieldname1,fieldname2]=expression
-              or
-              search=expression
             - Filtering syntax :
               filter[field_name]=searched_value
               filter[!field_name] means IS NOT NULL
@@ -455,7 +472,7 @@ class JSONAPIRouteRegistrar(object):
                     [obj.resource for obj in facade_objs],
                     links=links,
                     included_resources=included_resources,
-                    meta={"search-fields": getattr(model, "__searchable__", []), "total-count": count}
+                    meta={"total-count": count}
                 )
 
             except (AttributeError, ValueError, OperationalError) as e:
@@ -463,6 +480,10 @@ class JSONAPIRouteRegistrar(object):
                 return JSONAPIResponseFactory.make_errors_response(
                     {"status": 400, "detail": str(e)}, status=400
                 )
+
+        # APPLY decorators if any
+        for dec in decorators:
+            collection_endpoint = dec(collection_endpoint)
 
         collection_endpoint.__name__ = "%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), collection_endpoint.__name__)
@@ -526,7 +547,7 @@ class JSONAPIRouteRegistrar(object):
         # register the rule
         api_bp.add_url_rule(single_obj_rule, endpoint=single_obj_endpoint.__name__, view_func=single_obj_endpoint)
 
-    def register_relationship_get_route(self, facade_class, rel_name):
+    def register_relationship_get_route(self, facade_class, rel_name, decorators=()):
         """
         Supported request parameters :
             - Related resource inclusion :
@@ -612,6 +633,10 @@ class JSONAPIRouteRegistrar(object):
                     return JSONAPIResponseFactory.make_errors_response(
                         {"status": 400, "detail": str(e)}, status=400
                     )
+
+        # APPLY decorators if any
+        for dec in decorators:
+            resource_relationship_endpoint = dec(resource_relationship_endpoint)
 
         resource_relationship_endpoint.__name__ = "%s_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), rel_name.replace("-", "_"),
@@ -717,7 +742,7 @@ class JSONAPIRouteRegistrar(object):
         # register the rule
         api_bp.add_url_rule(rule, endpoint=resource_endpoint.__name__, view_func=resource_endpoint)
 
-    def register_post_routes(self, model, facade_class):
+    def register_post_routes(self, model, facade_class, decorators=()):
         """
 
         :param model:
@@ -831,17 +856,25 @@ class JSONAPIRouteRegistrar(object):
 
                     f_obj = facade_class(url_prefix, resource, with_relationships_links=True,
                                          with_relationships_data=True)
+
+                    # reindex
+                    f_obj.reindex("insert")
+
                     # RESPOND 201 CREATED
                     if "links" in f_obj.resource and "self" in f_obj.resource["links"]:
                         headers = {"Location": f_obj.resource["links"]["self"]}
                     else:
                         headers = {}
-                    meta = {"search-fields": getattr(model, "__searchable__", []), "total-count": 1}
+                    meta = {"total-count": 1}
                     return JSONAPIResponseFactory.make_data_response(f_obj.resource, None, None, meta=meta,
                                                                      status=201,
                                                                      headers=headers)
                 else:
                     return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
+
+        # APPLY decorators if any
+        for dec in decorators:
+            collection_endpoint = dec(collection_endpoint)
 
         collection_endpoint.__name__ = "post_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), collection_endpoint.__name__
@@ -850,7 +883,7 @@ class JSONAPIRouteRegistrar(object):
         api_bp.add_url_rule(collection_obj_rule, endpoint=collection_endpoint.__name__, view_func=collection_endpoint,
                             methods=["POST"])
 
-    def register_relationship_post_route(self, facade_class, rel_name):
+    def register_relationship_post_route(self, facade_class, rel_name, decorators=()):
 
         # ===============================
         # Relationships route
@@ -902,17 +935,25 @@ class JSONAPIRouteRegistrar(object):
 
                     f_obj = facade_class(url_prefix, resource, with_relationships_links=True,
                                          with_relationships_data=True)
+
+                    # reindex
+                    f_obj.reindex("insert")
+
                     # RESPOND 200
                     if "links" in f_obj.resource and "self" in f_obj.resource["links"]:
                         headers = {"Location": f_obj.resource["links"]["self"]}
                     else:
                         headers = {}
-                    meta = {"search-fields": getattr(model, "__searchable__", []), "total-count": 1}
+                    meta = {"total-count": 1}
                     return JSONAPIResponseFactory.make_data_response(f_obj.resource, None, None, meta=meta,
                                                                      status=200,
                                                                      headers=headers)
                 else:
                     return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
+
+        # APPLY decorators if any
+        for dec in decorators:
+            resource_relationship_endpoint = dec(resource_relationship_endpoint)
 
         resource_relationship_endpoint.__name__ = "post_%s_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), rel_name.replace("-", "_"),
@@ -926,7 +967,7 @@ class JSONAPIRouteRegistrar(object):
             methods=["POST"]
         )
 
-    def register_patch_routes(self, model, facade_class):
+    def register_patch_routes(self, model, facade_class, decorators=()):
         """
 
         :param model:
@@ -1041,17 +1082,25 @@ class JSONAPIRouteRegistrar(object):
 
                     f_obj = facade_class(url_prefix, resource, with_relationships_links=True,
                                          with_relationships_data=True)
+
+                    # reindex
+                    f_obj.reindex("update")
+
                     # RESPOND 200
                     if "links" in f_obj.resource and "self" in f_obj.resource["links"]:
                         headers = {"Location": f_obj.resource["links"]["self"]}
                     else:
                         headers = {}
-                    meta = {"search-fields": getattr(model, "__searchable__", []), "total-count": 1}
+                    meta = {"total-count": 1}
                     return JSONAPIResponseFactory.make_data_response(f_obj.resource, None, None, meta=meta,
                                                                      status=200,
                                                                      headers=headers)
                 else:
                     return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
+
+        # APPLY decorators if any
+        for dec in decorators:
+            single_obj_endpoint = dec(single_obj_endpoint)
 
         single_obj_endpoint.__name__ = "post_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), single_obj_endpoint.__name__
@@ -1060,7 +1109,7 @@ class JSONAPIRouteRegistrar(object):
         api_bp.add_url_rule(single_obj_rule, endpoint=single_obj_endpoint.__name__, view_func=single_obj_endpoint,
                             methods=["PATCH"])
 
-    def register_relationship_patch_route(self, facade_class, rel_name):
+    def register_relationship_patch_route(self, facade_class, rel_name, decorators=()):
 
         # ===============================
         # Relationships route
@@ -1109,23 +1158,35 @@ class JSONAPIRouteRegistrar(object):
                 # ==============================
                 model = self.models[facade_class.TYPE]
                 obj = model.query.filter(model.id == id).first()
+                if obj is None:
+                    return JSONAPIResponseFactory.make_errors_response(
+                        {"status": 404, "title": "Resource %s does not exist" % id}, status=404
+                    )
                 resource, e = facade_class.update_resource(obj, facade_class.TYPE, {}, related_resources, append=False)
                 if e is None:
                     url_prefix = request.host_url[:-1] + self.url_prefix
 
                     f_obj = facade_class(url_prefix, resource, with_relationships_links=True,
                                          with_relationships_data=True)
+
+                    # reindex
+                    f_obj.reindex("update")
+
                     # RESPOND 200
                     if "links" in f_obj.resource and "self" in f_obj.resource["links"]:
                         headers = {"Location": f_obj.resource["links"]["self"]}
                     else:
                         headers = {}
-                    meta = {"search-fields": getattr(model, "__searchable__", []), "total-count": 1}
+                    meta = {"total-count": 1}
                     return JSONAPIResponseFactory.make_data_response(f_obj.resource, None, None, meta=meta,
                                                                      status=200,
                                                                      headers=headers)
                 else:
                     return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
+
+        # APPLY decorators if any
+        for dec in decorators:
+            resource_relationship_endpoint = dec(resource_relationship_endpoint)
 
         resource_relationship_endpoint.__name__ = "patch_%s_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), rel_name.replace("-", "_"),
@@ -1139,7 +1200,7 @@ class JSONAPIRouteRegistrar(object):
             methods=["PATCH"]
         )
 
-    def register_delete_routes(self, model, facade_class):
+    def register_delete_routes(self, model, facade_class, decorators=()):
         """
 
         :param model:
@@ -1155,8 +1216,8 @@ class JSONAPIRouteRegistrar(object):
         def single_obj_endpoint(id):
             rdi = facade_class.make_resource_identifier(id, facade_class.TYPE)
             obj, errors = self.get_obj_from_resource_identifier(rdi)
-
-            if errors is not None:
+            print(obj, errors)
+            if errors is not None or obj is None:
                 return JSONAPIResponseFactory.make_errors_response({
                     "status": 404,
                     "title": "This resource does not exist"},
@@ -1166,11 +1227,19 @@ class JSONAPIRouteRegistrar(object):
             #======================
             # Delete the resource
             # =====================
+            f_obj = facade_class("", obj)
+            # reindex
+            f_obj.reindex("delete")
+
             errors = facade_class.delete_resource(obj)
             if errors is not None:
                 return JSONAPIResponseFactory.make_errors_response(errors, status=404)
 
             return JSONAPIResponseFactory.make_data_response(None, None, None, None, status=204)
+
+        # APPLY decorators if any
+        for dec in decorators:
+            single_obj_endpoint = dec(single_obj_endpoint)
 
         single_obj_endpoint.__name__ = "delete_%s_%s" % (
             facade_class.TYPE_PLURAL.replace("-", "_"), single_obj_endpoint.__name__

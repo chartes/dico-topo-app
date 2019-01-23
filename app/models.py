@@ -1,73 +1,10 @@
+import datetime
+
 from app import db
-from app.search import add_to_index, remove_from_index, query_index
+from flask_user import UserMixin
 
 
-class SearchableMixin(object):
-    @classmethod
-    def search(cls, expression, fields=None, page=None, per_page=None, index=None):
-
-        # by default, search on the model table
-        # custom index allow to use multiple indexes: index="table1,table2,table3..."
-        if index is None:
-            index = cls.__tablename__
-
-        # perform the query
-        #print(page, per_page)
-        results, total = query_index(index=index, query=expression,
-                                 fields=fields, page=page, per_page=per_page)
-        #print(expression, results, total)
-        if total == 0:
-            return cls.query.filter_by(id=0), 0
-        when = []
-
-        ids = [r["id"] for r in results[index]]
-
-        if len(ids) == 0:
-            return cls.query.filter_by(id=0), 0
-
-        for i in range(len(ids)):
-            when.append((ids[i], i))
-
-        #print("test")
-        #print("when:", when)
-        #for idx in index.split(","):
-        #    obj = db.session.query(MODELS_HASH_TABLE[idx]).filter()
-        #    print(idx, obj)
-        return cls.query.filter(cls.id.in_(ids)).order_by(
-            db.case(when, value=cls.id)), total
-
-    @classmethod
-    def before_commit(cls, session):
-        session._changes = {
-            'add': list(session.new),
-            'update': list(session.dirty),
-            'delete': list(session.deleted)
-        }
-
-    @classmethod
-    def after_commit(cls, session):
-        for obj in session._changes['add']:
-            if isinstance(obj, SearchableMixin):
-                add_to_index(obj.__tablename__, obj)
-        for obj in session._changes['update']:
-            if isinstance(obj, SearchableMixin):
-                add_to_index(obj.__tablename__, obj)
-        for obj in session._changes['delete']:
-            if isinstance(obj, SearchableMixin):
-                remove_from_index(obj.__tablename__, obj)
-        session._changes = None
-
-    @classmethod
-    def reindex(cls):
-        for obj in cls.query:
-            add_to_index(cls.__tablename__, obj)
-
-
-db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
-db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
-
-
-class Placename(SearchableMixin, db.Model):
+class Placename(db.Model):
     """Illustrate class-level docstring.
 
     Classes use a special whitespace convention: the opening and closing quotes
@@ -84,9 +21,7 @@ class Placename(SearchableMixin, db.Model):
     the closing quotation marks should certainly be on a line by themselves.
 
     """
-
     __tablename__ = 'placename'
-    __searchable__ = ['label']
 
     id = db.Column("placename_id", db.String(10), primary_key=True)
     label = db.Column(db.String(200), nullable=False)
@@ -119,14 +54,12 @@ class Placename(SearchableMixin, db.Model):
     linked_placenames = db.relationship('Placename')
 
 
-class PlacenameAltLabel(SearchableMixin, db.Model):
+class PlacenameAltLabel(db.Model):
     """ """
     __tablename__ = 'placename_alt_label'
-
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'label', name='_placename_label_uc'),
     )
-    __searchable__ = ['label']
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     placename_id = db.Column(db.String(10), db.ForeignKey(Placename.id), index=True)
@@ -136,11 +69,9 @@ class PlacenameAltLabel(SearchableMixin, db.Model):
     placename = db.relationship(Placename, backref=db.backref('alt_labels'))
 
 
-class PlacenameOldLabel(SearchableMixin, db.Model):
+class PlacenameOldLabel(db.Model):
     """ """
     __tablename__ = 'placename_old_label'
-
-    __searchable__ = ['text_label_node']
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     old_label_id = db.Column(db.String(13), nullable=False, unique=True)
@@ -161,11 +92,9 @@ class PlacenameOldLabel(SearchableMixin, db.Model):
     placename = db.relationship(Placename, backref=db.backref('old_labels'))
 
 
-class InseeCommune(SearchableMixin, db.Model):
+class InseeCommune(db.Model):
     """ """
     __tablename__ = 'insee_commune'
-
-    __searchable__ = ['NCCENR']
 
     id = db.Column("insee_code", db.String(5), primary_key=True)
     REG_id = db.Column(db.String(6), db.ForeignKey('insee_ref.id'), nullable=False, index=True)
@@ -183,11 +112,9 @@ class InseeCommune(SearchableMixin, db.Model):
     canton = db.relationship('InseeRef', primaryjoin="InseeCommune.CT_id==InseeRef.id", backref=db.backref('communes_canton'))
 
 
-class InseeRef(SearchableMixin, db.Model):
+class InseeRef(db.Model):
     """ """
     __tablename__ = 'insee_ref'
-
-    __searchable__ = ['label']
 
     id = db.Column(db.String(10), primary_key=True)
     type = db.Column(db.String(4), nullable=False, index=True)
@@ -200,14 +127,12 @@ class InseeRef(SearchableMixin, db.Model):
     children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
 
 
-class FeatureType(SearchableMixin, db.Model):
+class FeatureType(db.Model):
     """ """
     __tablename__ = 'feature_type'
-
     __table_args__ = (
         db.UniqueConstraint('placename_id', 'term', name='_placename_term_uc'),
     )
-    __searchable__ = ['term']
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), index=True)
@@ -215,3 +140,83 @@ class FeatureType(SearchableMixin, db.Model):
 
     # relationships
     placename = db.relationship(Placename, backref=db.backref('feature_types'))
+
+
+
+class User(db.Model, UserMixin):
+    """ Utilisateur """
+    __tablename__ = 'user'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    # User authentication information
+    username = db.Column(db.String(), nullable=False, unique=True)
+    password = db.Column(db.String(), nullable=False, server_default='')
+
+    # User email information
+    email = db.Column(db.String(), nullable=False, unique=True)
+    email_confirmed_at = db.Column('confirmed_at', db.DateTime())
+
+    # User information
+    active = db.Column('is_active', db.Boolean(), nullable=False, server_default='0')
+    first_name = db.Column('firstname', db.String(), nullable=False, server_default='')
+    last_name = db.Column('lastname', db.String(), nullable=False, server_default='')
+
+    roles = db.relationship('UserRole', secondary='user_has_role')
+
+    @staticmethod
+    def add_default_users():
+        admin = UserRole.query.filter(UserRole.name == "admin").first()
+        contributor = UserRole.query.filter(UserRole.name == "contributor").first()
+        password = "pbkdf2:sha256:50000$RyjGxAYv$02c62c497306be557eb4080a432c466453f297eb9dbfb62dc0160fe376f22689" # Lettres2019!
+        db.session.add(User(username="admin",
+                            password=password,
+                            email="admin.lettres@chartes.psl.eu",
+                            active=True,
+                            email_confirmed_at=datetime.datetime.now(),
+                            roles=[admin, contributor]))
+
+        db.session.add(User(username="contributor",
+                            password=password,
+                            email="contributor.lettres@chartes.psl.eu",
+                            active=True,
+                            email_confirmed_at=datetime.datetime.now(),
+                            roles=[contributor]))
+
+    def to_json(self):
+        return {
+            "username": self.username,
+            "roles": [r.name for r in self.roles]
+        }
+
+
+class UserRole(db.Model):
+    """ Rôle des utilisateurs (administrateur ou contributeur) """
+    __tablename__ = 'user_role'
+
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), unique=True)
+    description = db.Column(db.String(200))
+
+    @staticmethod
+    def add_default_roles():
+        db.session.add(UserRole(name="admin", description="Administrator"))
+        db.session.add(UserRole(name="contributor", description="Contributor"))
+
+
+class UserHasRole(db.Model):
+    __tablename__ = 'user_has_role'
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id', ondelete='CASCADE'))
+    role_id = db.Column(db.Integer(), db.ForeignKey('user_role.id', ondelete='CASCADE'))
+
+
+class UserInvitation(db.Model):
+    __tablename__ = 'user_invitation'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    # UserInvitation email information. The collation='NOCASE' is required
+    # to search case insensitively when USER_IFIND_MODE is 'nocase_collation'.
+    email = db.Column(db.String(255, collation='NOCASE'), nullable=False)
+    # save the user of the invitee
+    invited_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))

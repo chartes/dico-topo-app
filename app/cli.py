@@ -1,8 +1,21 @@
 import click
+import sqlalchemy
 
-from app import create_app, db, models
+from app import create_app
+
+from app.api.placename.facade import PlacenameFacade
+from app.models import UserRole, User,  Placename
 
 app = None
+
+
+def add_default_users(db):
+    try:
+        UserRole.add_default_roles()
+        User.add_default_users()
+    except sqlalchemy.exc.IntegrityError as e:
+        db.session.rollback()
+        print(e)
 
 
 def make_cli():
@@ -23,7 +36,10 @@ def make_cli():
         """ Creates a local database
         """
         with app.app_context():
+            from app import db
             db.create_all()
+
+            add_default_users(db)
 
             db.session.commit()
             click.echo("Created the database")
@@ -34,26 +50,48 @@ def make_cli():
         production.
         """
         with app.app_context():
+            from app import db
             db.drop_all()
             db.create_all()
+
+            add_default_users(db)
 
             db.session.commit()
             click.echo("Dropped then recreated the database")
 
-    @click.command("reindex")
-    def db_reindex():
+    @click.command("db-reindex")
+    @click.option('--indexes', default="all")
+    @click.option('--host', required=True)
+    def db_reindex(indexes, host):
         """
         Rebuild the elasticsearch indexes from the current database
         """
-        print("================================")
-        print("REINDEXING.... please be patient")
-        print("================================")
-        with app.app_context():
-            #models.FeatureType, models.InseeRef, models.PlacenameAltLabel,
-            for m in (models.Placename, models.InseeCommune, models.PlacenameOldLabel):
-                print('...%s' % m.__tablename__)
-                #app.elasticsearch.indices.delete(index=m.__tablename__, ignore=[404])
-                m.reindex()
+        indexes_info = {
+            "placenames": {"facade": PlacenameFacade, "model": Placename}
+        }
+
+        def reindex_from_info(name, info):
+
+            with app.app_context():
+                prefix = "{host}{api_prefix}".format(host=host, api_prefix=app.config["API_URL_PREFIX"])
+                print("Reindexing %s... " % name, end="", flush=True)
+
+                index_name = info["facade"].get_index_name()
+                app.elasticsearch.indices.delete(index=index_name, ignore=[400, 404])  # remove all records
+                for obj in info["model"].query.all():
+                    f_obj = info["facade"](prefix, obj)
+                    f_obj.reindex("insert", propagate=False)
+
+                print("ok")
+
+        if indexes == "all": # reindex every index configured above
+            indexes = ",".join(indexes_info.keys())
+
+        for name in indexes.split(","):
+            if name in indexes_info:
+                reindex_from_info(name, indexes_info[name])
+            else:
+                print("Warning: index %s does not exist or is not declared in the cli" % name)
 
     @click.command("run")
     def run():
