@@ -49,7 +49,6 @@ class PlacenameMap extends React.Component {
     }
 
     initMap() {
-
         L.Marker.prototype.options.icon= L.icon({
             iconUrl: icon,
             shadowUrl: iconShadow
@@ -62,7 +61,8 @@ class PlacenameMap extends React.Component {
         ).setView([48.845, 2.424], 5);
 
         const lyrOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
-
+        this.map.addLayer(lyrOSM);
+        /*
         const lyrOrtho = L.geoportalLayer.WMTS({
             layer: "ORTHOIMAGERY.ORTHOPHOTOS",
         });
@@ -72,20 +72,19 @@ class PlacenameMap extends React.Component {
 
         this.map.addLayer(lyrCassini);
         this.map.addLayer(lyrOrtho);
-        this.map.addLayer(lyrOSM);
 
+
+        */
         const layerSwitcher = L.geoportalControl.LayerSwitcher({
-            layers : [{
-                layer : lyrOSM,
-                config : {
-                    title : "OSM",
-                    description : "Couche Open Street Maps"
+            layers: [{
+                layer: lyrOSM,
+                config: {
+                    title: "OSM",
+                    description: "Couche Open Street Maps"
                 }
             }]
         });
-
         this.map.addControl(layerSwitcher);
-
         this.markerLayer = L.markerClusterGroup().addTo(this.map);
         this.updateMarkers(this.props.markersData);
 
@@ -93,10 +92,32 @@ class PlacenameMap extends React.Component {
     }
 
     componentDidMount() {
-        Gp.Services.getConfig({
-           apiKey : "4bgxfnc1ufj44pmxpsloxq6j",
-           onSuccess : this.initMap.bind(this)
-        }) ;
+        this.initMap();//.bind(this);
+
+        function addIGNServices()
+        {
+            this.setState({loaded: false});
+
+            const lyrOrtho = L.geoportalLayer.WMTS({
+                layer: "ORTHOIMAGERY.ORTHOPHOTOS",
+            });
+            const lyrCassini = L.geoportalLayer.WMTS({
+                layer: "GEOGRAPHICALGRIDSYSTEMS.CASSINI",
+            });
+
+            this.map.addLayer(lyrCassini);
+            this.map.addLayer(lyrOrtho);
+
+            this.setState({loaded: true});
+        }
+
+        const p = new Promise(function(resolve, reject) {
+            resolve(Gp.Services.getConfig({
+                apiKey: "4bgxfnc1ufj44pmxpsloxq6j",
+                onSuccess: addIGNServices.bind(this)
+            }));
+        });
+
     }
 
     componentDidUpdate({ markersData }) {
