@@ -60,8 +60,8 @@ class PlacenameMap extends React.Component {
              }
         ).setView([48.845, 2.424], 5);
 
-        const lyrOSM = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
-        this.map.addLayer(lyrOSM);
+        this.lyrOSM = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
+        this.map.addLayer(this.lyrOSM);
         /*
         const lyrOrtho = L.geoportalLayer.WMTS({
             layer: "ORTHOIMAGERY.ORTHOPHOTOS",
@@ -101,7 +101,7 @@ class PlacenameMap extends React.Component {
 
             const layerSwitcher = L.geoportalControl.LayerSwitcher({
                 layers: [{
-                    layer: lyrOSM,
+                    layer: this.lyrOSM,
                     config: {
                         title: "OSM",
                         description: "Couche Open Street Maps"
