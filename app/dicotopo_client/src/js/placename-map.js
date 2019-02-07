@@ -92,7 +92,7 @@ class PlacenameMap extends React.Component {
     }
 
     componentDidMount() {
-        this.initMap();//.bind(this);
+        this.initMap();
 
         function addIGNServices()
         {
