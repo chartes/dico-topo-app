@@ -60,7 +60,7 @@ class PlacenameMap extends React.Component {
              }
         ).setView([48.845, 2.424], 5);
 
-        const lyrOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
+        const lyrOSM = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
         this.map.addLayer(lyrOSM);
         /*
         const lyrOrtho = L.geoportalLayer.WMTS({
