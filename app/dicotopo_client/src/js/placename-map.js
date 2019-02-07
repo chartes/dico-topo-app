@@ -75,16 +75,7 @@ class PlacenameMap extends React.Component {
 
 
         */
-        const layerSwitcher = L.geoportalControl.LayerSwitcher({
-            layers: [{
-                layer: lyrOSM,
-                config: {
-                    title: "OSM",
-                    description: "Couche Open Street Maps"
-                }
-            }]
-        });
-        this.map.addControl(layerSwitcher);
+
         this.markerLayer = L.markerClusterGroup().addTo(this.map);
         this.updateMarkers(this.props.markersData);
 
@@ -108,13 +99,26 @@ class PlacenameMap extends React.Component {
             this.map.addLayer(lyrCassini);
             this.map.addLayer(lyrOrtho);
 
+            const layerSwitcher = L.geoportalControl.LayerSwitcher({
+                layers: [{
+                    layer: lyrOSM,
+                    config: {
+                        title: "OSM",
+                        description: "Couche Open Street Maps"
+                    }
+                }]
+            });
+            this.map.addControl(layerSwitcher);
+
             this.setState({loaded: true});
         }
+
+        addIGNServices = addIGNServices.bind(this);
 
         const p = new Promise(function(resolve, reject) {
             resolve(Gp.Services.getConfig({
                 apiKey: "4bgxfnc1ufj44pmxpsloxq6j",
-                onSuccess: addIGNServices.bind(this)
+                onSuccess: addIGNServices
             }));
         });
 
