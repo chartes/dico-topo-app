@@ -16,10 +16,10 @@ class PlacenameSearchForm extends React.Component {
 
         if (document.getElementById("debug-mode")){
            this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
-           this.api_search_index = "dicotopo__development__placename";
+           this.api_search_index = "dicotopo__development__placenames";
         } else {
            this.api_base_url = "/dico-topo/api/1.0";
-           this.api_search_index = "dicotopo__development__placename";
+           this.api_search_index = "dicotopo__development__placenames";
         }
 
         this.state = {
@@ -71,7 +71,7 @@ class PlacenameSearchForm extends React.Component {
         const pm = this.state.searchParameters;
         const pageNumber = pm.currentPageNumber;
 
-        const url = `${this.api_base_url}/search?index=${this.api_search_index}&query=${pm.searchedPlacename}&facade=search&page[size]=${pm.pageSize}&page[number]=${pageNumber}`;
+        const url = `${this.api_base_url}/search?index=${this.api_search_index}&query=${pm.searchedPlacename}&facade=search&page[size]=${pm.pageSize}&page[number]=${pageNumber}&sort=label.keyword`;
         //clear results
         this.setState({
             ...this.state.searchParameters,

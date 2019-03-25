@@ -40,9 +40,11 @@ class PlacenameMap extends React.Component {
         };
 
         if (document.getElementById("debug-mode")){
-           this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+            this.base_url = "http://localhost:5003/dico-topo/";
+            this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
         } else {
-           this.api_base_url = "/dico-topo/api/1.0";
+            this.base_url = "/dico-topo/";
+            this.api_base_url = "/dico-topo/api/1.0";
         }
 
 
@@ -56,12 +58,12 @@ class PlacenameMap extends React.Component {
 
         this.map = L.map(
             "map", {
-                 preferCanvas : true
+                 preferCanvas : true,
+                maxZoom: 16
              }
         ).setView([48.845, 2.424], 5);
 
-        this.lyrOSM = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
-        this.map.addLayer(this.lyrOSM);
+
         /*
         const lyrOrtho = L.geoportalLayer.WMTS({
             layer: "ORTHOIMAGERY.ORTHOPHOTOS",
@@ -76,9 +78,6 @@ class PlacenameMap extends React.Component {
 
         */
 
-        this.markerLayer = L.markerClusterGroup().addTo(this.map);
-        this.updateMarkers(this.props.markersData);
-
         this.setState({loaded: true});
     }
 
@@ -89,21 +88,29 @@ class PlacenameMap extends React.Component {
         {
             this.setState({loaded: false});
 
-            const lyrOrtho = L.geoportalLayer.WMTS({
-                layer: "ORTHOIMAGERY.ORTHOPHOTOS",
-            });
-            const lyrCassini = L.geoportalLayer.WMTS({
-                layer: "GEOGRAPHICALGRIDSYSTEMS.CASSINI",
-            });
-
-            this.map.addLayer(lyrCassini);
-            this.map.addLayer(lyrOrtho);
+            const ignLayers = [
+                "ORTHOIMAGERY.ORTHOPHOTOS",
+                "GEOGRAPHICALGRIDSYSTEMS.CASSINI",
+                //"CADASTRALPARCELS.PARCELS",
+                //"GEOGRAPHICALGRIDSYSTEMS.MAPS",
+                //"GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN-EXPRESS.STANDARD",
+                //"GEOGRAPHICALGRIDSYSTEMS.PLANIGN",
+            ];
+            for (let identifier of ignLayers) {
+                this.map.addLayer(
+                    L.geoportalLayer.WMTS({
+                        layer: identifier
+                    })
+                )
+            }
+            const lyrOSM = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png?');
+            this.map.addLayer(lyrOSM);
 
             const layerSwitcher = L.geoportalControl.LayerSwitcher({
                 layers: [{
-                    layer: this.lyrOSM,
+                    layer: lyrOSM,
                     config: {
-                        title: "OSM",
+                        title: "Open Street Map",
                         description: "Couche Open Street Maps"
                     }
                 }]
@@ -113,14 +120,18 @@ class PlacenameMap extends React.Component {
             this.setState({loaded: true});
         }
 
-        addIGNServices = addIGNServices.bind(this);
-
-        const p = new Promise(function(resolve, reject) {
-            resolve(Gp.Services.getConfig({
-                apiKey: "4bgxfnc1ufj44pmxpsloxq6j",
-                onSuccess: addIGNServices
-            }));
+        Gp.Services.getConfig({
+            //apiKey: "4bgxfnc1ufj44pmxpsloxq6j",
+            callbackSuffix: "",
+            serverUrl: this.base_url + "/static/js/autoconf-https.json",
+            onSuccess: addIGNServices.bind(this),
+            onFailure: function () {
+                console.error("GP failure")
+            }
         });
+
+        this.markerLayer = L.markerClusterGroup().addTo(this.map);
+        this.updateMarkers(this.props.markersData);
 
     }
 

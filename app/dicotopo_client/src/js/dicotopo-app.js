@@ -151,7 +151,7 @@ class DicotopoApp extends React.Component {
         else {
             return (
                 <div style={{display: (this.state.searchResultVisibility ? "block" : "none")}}>
-                    <p>{this.state.searchTableResult.meta["total-count"]} résultat(s) - <span style={{"color": "#EE8E4A"}}>version beta limitée aux 10.000 premiers résultats non triés</span></p>
+                    <p>{this.state.searchTableResult.meta["total-count"]} résultat(s) - <span style={{"color": "#EE8E4A"}}>version beta limitée aux 10.000 premiers résultats</span></p>
                     <table className="table is-fullwidth is-hoverable is-stripped" >
                         <thead>
                         <tr>

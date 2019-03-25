@@ -1,13 +1,14 @@
+import elasticsearch
 import pprint
 from flask import current_app
-
-from app import db
 
 
 class SearchIndexManager(object):
 
     @staticmethod
-    def query_index(index, query, fields=None, page=None, per_page=None):
+    def query_index(index, query, sort_criteriae=None, page=None, per_page=None):
+        if sort_criteriae is None:
+            sort_criteriae = []
         if hasattr(current_app, 'elasticsearch'):
             body = {
                 'query': {
@@ -16,6 +17,10 @@ class SearchIndexManager(object):
                         # 'fields': ['collections'] if fields is None or len(fields) == 0 else fields
                     }
                 },
+                "sort": [
+                    #  {"creation": {"order": "desc"}}
+                    *sort_criteriae
+                ]
             }
 
             if per_page is not None:
@@ -30,10 +35,10 @@ class SearchIndexManager(object):
                 body["size"] = per_page
                 # print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
             try:
-                search = current_app.elasticsearch.search(index=index, doc_type=index, body=body)
+                search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
 
-                #from elasticsearch import Elasticsearch
-                #scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type=index, body=body)
+                # from elasticsearch import Elasticsearch
+                # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type="_doc", body=body)
 
                 from collections import namedtuple
                 Result = namedtuple("Result", "index id type score")
@@ -51,16 +56,19 @@ class SearchIndexManager(object):
 
     @staticmethod
     def add_to_index(index, id, payload):
-        #print("ADD_TO_INDEX", index, id)
-        current_app.elasticsearch.index(index=index, doc_type=index, id=id, body=payload)
+        # print("ADD_TO_INDEX", index, id)
+        current_app.elasticsearch.index(index=index, doc_type="_doc", id=id, body=payload)
 
     @staticmethod
     def remove_from_index(index, id):
-        #print("REMOVE_FROM_INDEX", index, id)
-        current_app.elasticsearch.delete(index=index, doc_type=index, id=id)
+        # print("REMOVE_FROM_INDEX", index, id)
+        try:
+            current_app.elasticsearch.delete(index=index, doc_type="_doc", id=id)
+        except elasticsearch.exceptions.NotFoundError as e:
+            print("WARNING: resource already removed from index:", str(e))
 
-    #@staticmethod
-    #def reindex_resources(changes):
+    # @staticmethod
+    # def reindex_resources(changes):
     #    from app.api.facade_manager import JSONAPIFacadeManager
     #
     #    for target_id, target, op in changes:
