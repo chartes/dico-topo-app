@@ -7,6 +7,7 @@ from app import api_bp, JSONAPIResponseFactory
 def api_get_capabilities(api_version):
     if "capabilities" in request.args:
         url_prefix = request.host_url[:-1] + current_app.config["API_URL_PREFIX"]
+        url_prefix = url_prefix.replace('http://', 'https://')
         capabilities = [
             {
                 "type": "feature",
