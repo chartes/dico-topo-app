@@ -14,6 +14,17 @@ header {
     padding-left: 12px;
 }
 
+
+pre code {
+    height: auto;
+    max-height: 500px;
+    overflow-y: scroll;
+    word-wrap: break-spaces !important;
+    white-space: pre-wrap;
+}
+
+​
+
 .card-content {
     padding-top: 6px;
 }
