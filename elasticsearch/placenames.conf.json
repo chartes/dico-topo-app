@@ -1,0 +1,16 @@
+{
+  "mappings": {
+    "_doc": {
+      "properties": {
+        "label": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+  }
+}

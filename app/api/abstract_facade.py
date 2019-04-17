@@ -1,18 +1,17 @@
 import pprint
-from flask import current_app
+from flask import current_app, request
 
-from app import db
+from app import db, api_bp
 
 
 class JSONAPIAbstractFacade(object):
-
     """
 
     """
     TYPE = "ABSTRACT-TYPE"
     TYPE_PLURAL = "ABSTRACT-TYPE-PLURAL"
 
-    ITEMS_PER_PAGE = 1000 #TODO: au delà il faut passer par l'api scroll d'elastic search
+    ITEMS_PER_PAGE = 1000  # TODO: au delà il faut passer par l'api scroll d'elastic search
 
     def __init__(self, url_prefix, obj, with_relationships_links=True, with_relationships_data=True):
         self.obj = obj
@@ -31,10 +30,10 @@ class JSONAPIAbstractFacade(object):
 
         self._links_template = {
             "self": "{url_prefix}/{source_col}/{source_id}/relationships".format(
-                    url_prefix=self.url_prefix, source_col=self.TYPE_PLURAL, source_id=self.id
+                url_prefix=self.url_prefix, source_col=self.TYPE_PLURAL, source_id=self.id
             ),
             "related": "{url_prefix}/{source_col}/{source_id}".format(
-                    url_prefix=self.url_prefix, source_col=self.TYPE_PLURAL, source_id=self.id
+                url_prefix=self.url_prefix, source_col=self.TYPE_PLURAL, source_id=self.id
             )
         }
 
@@ -43,9 +42,6 @@ class JSONAPIAbstractFacade(object):
     @property
     def id(self):
         raise NotImplementedError
-
-    #def bind_facade(self):
-    #   raise NotImplementedError
 
     @property
     def resource(self):
@@ -56,7 +52,7 @@ class JSONAPIAbstractFacade(object):
         return "{prefix}__{env}__{index_name}".format(
             prefix=current_app.config.get("INDEX_PREFIX", ""),
             env=current_app.config.get("ENV"),
-            index_name=cls.TYPE
+            index_name=cls.TYPE_PLURAL
         )
 
     @property
@@ -90,18 +86,22 @@ class JSONAPIAbstractFacade(object):
         :param related_resources:
         :return:
         """
-        #print("POSTING RESOURCE:", obj_id, attributes, related_resources)
+        print("POSTING RESOURCE:", model, obj_id, attributes, related_resources)
+        sanitized_attr = {}
         for att in attributes.keys():
-            attributes[att.replace("-", "_")] = attributes.pop(att)
+            if '-' in att:
+                sanitized_attr[att.replace("-", "_")] = attributes[att]
+            else:
+                sanitized_attr[att] = attributes[att]
 
-        attributes["id"] = obj_id
-        #print("  setting attr", attributes)
-        resource = model(**attributes)
+        sanitized_attr["id"] = obj_id
+        print("  setting attr", sanitized_attr)
+        resource = model(**sanitized_attr)
 
         # set related resources
         for rel_name, rel_data in related_resources.items():
             rel_name = rel_name.replace("-", "_")
-            #print("  setting rel", rel_name, rel_data)
+            # print("  setting rel", rel_name, rel_data)
             if hasattr(resource, rel_name):
                 try:
                     setattr(resource, rel_name, rel_data)
@@ -110,6 +110,7 @@ class JSONAPIAbstractFacade(object):
                         setattr(resource, rel_name, None)
                     else:
                         setattr(resource, rel_name, rel_data[0])
+        # print(resource.user)
         return resource
 
     @staticmethod
@@ -117,7 +118,7 @@ class JSONAPIAbstractFacade(object):
         errors = None
         resource = None
         try:
-            #print("CREATING RESOURCE:", model, obj_id, attributes, related_resources)
+            # print("CREATING RESOURCE:", model, obj_id, attributes, related_resources)
             resource = JSONAPIAbstractFacade.post_resource(model, obj_id, attributes, related_resources)
             db.session.add(resource)
             db.session.commit()
@@ -143,11 +144,11 @@ class JSONAPIAbstractFacade(object):
         :param related_resources:
         :return:
         """
-        #print("UPDATING RESOURCE:", obj, obj_type, attributes, related_resources)
+        print("UPDATING RESOURCE:", obj, obj_type, attributes, related_resources)
         # update attributes
         for att, att_value in attributes.items():
             att_name = att.replace("-", "_")
-            #print("  setting attr", att, att_value)
+            print("  setting attr", att, att_value)
             if hasattr(obj, att_name):
                 setattr(obj, att_name, att_value)
             else:
@@ -156,9 +157,9 @@ class JSONAPIAbstractFacade(object):
         # update related resources
         for rel_name, rel_data in related_resources.items():
             rel_name = rel_name.replace("-", "_")
-            #print("  setting rel", rel_name, rel_data)
+            # print("  setting rel", rel_name, rel_data)
             if hasattr(obj, rel_name):
-                #print(getattr(obj, rel_name))
+                # print(getattr(obj, rel_name))
                 # append (POST) or replace (PATCH) replace related resources ?
                 if not append:
                     try:
@@ -196,6 +197,46 @@ class JSONAPIAbstractFacade(object):
         return resource, errors
 
     @staticmethod
+    def delete_related_resources(obj, related_resources):
+        errors = None
+        resource = None
+        try:
+            if obj is None:
+                raise Exception("Object is None")
+
+            # update related resources
+            for rel_name, rel_data in related_resources.items():
+                rel_name = rel_name.replace("-", "_")
+                # print("  setting rel", rel_name, rel_data)
+                if hasattr(obj, rel_name):
+                    # print(getattr(obj, rel_name))
+                    # print(obj, rel_name, [r for r in getattr(obj, rel_name)
+                    #                            if r.id not in
+                    #                            [rd.id for rd in rel_data]])
+                    try:
+                        setattr(obj, rel_name, [r for r in getattr(obj, rel_name)
+                                                if r.id not in
+                                                [rd.id for rd in rel_data]])
+                    except Exception:
+                        setattr(obj, rel_name, None)
+                else:
+                    raise AttributeError("Relationship %s does not exist" % rel_name)
+
+            db.session.add(obj)
+            db.session.commit()
+        except Exception as e:
+            print(e)
+            errors = {
+                "status": 404 if obj is None else 403,
+                "title": "Error deleting related resource from '%s' with data: %s" % (
+                    obj.__class__.__name__, str([obj.id, related_resources])),
+                "detail": str(e)
+            }
+            db.session.rollback()
+
+        return errors
+
+    @staticmethod
     def delete_resource(obj):
         errors = None
         try:
@@ -226,7 +267,7 @@ class JSONAPIAbstractFacade(object):
 
         return func
 
-    def get_related_resources(self, facade_class,  rel_field, to_many=False):
+    def get_related_resources(self, facade_class, rel_field, to_many=False):
         def func():
             field = getattr(self.obj, rel_field)
             if to_many:
@@ -235,7 +276,7 @@ class JSONAPIAbstractFacade(object):
                 else:
                     return [
                         facade_class(self.url_prefix, rel_obj,
-                                     self.with_relationships_links,  self.with_relationships_data).resource
+                                     self.with_relationships_links, self.with_relationships_data).resource
                         for rel_obj in field
                     ]
             else:
@@ -284,22 +325,20 @@ class JSONAPIAbstractFacade(object):
     def get_relationship_data_to_index(self, rel_name):
         from app.api.facade_manager import JSONAPIFacadeManager
         to_be_reindexed = []
-        db.session.refresh(self.obj)
-        d = getattr(self.obj, rel_name)
+        url_prefix = request.host_url[:-1] + current_app.api_url_registrar.url_prefix
 
-        rel_data = []
-        if d is not None:
-            if not isinstance(d, list):
-                rel_data = [d]
-            else:
-                rel_data = d
+        ri = self.relationships[rel_name]['resource_identifier_getter']()
+        if ri is not None:
+            ri = [ri] if not isinstance(ri, list) else ri
 
-        for doc in rel_data:
-            facade = JSONAPIFacadeManager.get_facade_class(doc)
-            f_obj, kwargs, errors = facade.get_resource_facade("", id=doc.id)
+        for resource_identifier in ri:
+            facade_class = JSONAPIFacadeManager.get_facade_class_from_facade_type(resource_identifier['type'])
+
+            f_obj, kwargs, errors = facade_class.get_resource_facade(url_prefix, id=resource_identifier['id'])
             to_be_reindexed.extend(
-                f_obj.get_data_to_index_when_added()
+                f_obj.get_data_to_index_when_added(False)
             )
+
         return to_be_reindexed
 
     def add_to_index(self, propagate=False):
