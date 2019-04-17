@@ -3,7 +3,6 @@ from flask import Response
 
 
 class JSONAPIResponseFactory:
-
     CONTENT_TYPE = "application/vnd.api+json; charset=utf-8"
     HEADERS = {"Access-Control-Allow-Origin": "*",
                "Access-Control-Allow-Methods": ["GET", "POST", "DELETE", "PATCH"]}
@@ -36,11 +35,16 @@ class JSONAPIResponseFactory:
     def make_response(cls, resource, **kwargs):
         headers = kwargs.get("headers", {})
         headers.update(JSONAPIResponseFactory.HEADERS)
+        content_type = kwargs.get("content_type", JSONAPIResponseFactory.CONTENT_TYPE)
+        raw = kwargs.get("raw")
+
         if "headers" in kwargs:
             kwargs.pop("headers")
+        if "content_type" in kwargs:
+            kwargs.pop("content_type")
         return Response(
-            json.dumps(resource, indent=2, ensure_ascii=False),
-            content_type=JSONAPIResponseFactory.CONTENT_TYPE,
+            resource if raw else json.dumps(resource, indent=2, ensure_ascii=False),
+            content_type=content_type,
             headers=headers,
             **kwargs
         )
