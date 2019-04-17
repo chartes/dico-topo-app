@@ -114,7 +114,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
             "ct-id": co.canton.id if co and co.canton else None,
 
             "old-labels": [ol.rich_label for ol in self.obj.old_labels],
-            "alt-labels": [al.label for al in self.obj.alt_labels]
+            #"alt-labels": [al.label for al in self.obj.alt_labels]
 
         }
         return [{"id": self.obj.id, "index": self.get_index_name(), "payload": payload}]

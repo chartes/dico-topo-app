@@ -43,3 +43,4 @@ def index(api_version):
     return resp, 200
 
 
+from .capabilities import *

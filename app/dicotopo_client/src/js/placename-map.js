@@ -40,16 +40,17 @@ class PlacenameMap extends React.Component {
         };
 
         if (document.getElementById("debug-mode")){
-           this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
+            this.base_url = "http://localhost:5003/dico-topo/";
+            this.api_base_url = "http://localhost:5003/dico-topo/api/1.0";
         } else {
-           this.api_base_url = "/dico-topo/api/1.0";
+            this.base_url = "/dico-topo/";
+            this.api_base_url = "/dico-topo/api/1.0";
         }
 
 
     }
 
     initMap() {
-
         L.Marker.prototype.options.icon= L.icon({
             iconUrl: icon,
             shadowUrl: iconShadow
@@ -57,12 +58,13 @@ class PlacenameMap extends React.Component {
 
         this.map = L.map(
             "map", {
-                 preferCanvas : true
+                 preferCanvas : true,
+                maxZoom: 16
              }
         ).setView([48.845, 2.424], 5);
 
-        const lyrOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png?') ;
 
+        /*
         const lyrOrtho = L.geoportalLayer.WMTS({
             layer: "ORTHOIMAGERY.ORTHOPHOTOS",
         });
@@ -72,31 +74,65 @@ class PlacenameMap extends React.Component {
 
         this.map.addLayer(lyrCassini);
         this.map.addLayer(lyrOrtho);
-        this.map.addLayer(lyrOSM);
 
-        const layerSwitcher = L.geoportalControl.LayerSwitcher({
-            layers : [{
-                layer : lyrOSM,
-                config : {
-                    title : "OSM",
-                    description : "Couche Open Street Maps"
-                }
-            }]
-        });
 
-        this.map.addControl(layerSwitcher);
-
-        this.markerLayer = L.markerClusterGroup().addTo(this.map);
-        this.updateMarkers(this.props.markersData);
+        */
 
         this.setState({loaded: true});
     }
 
     componentDidMount() {
+        this.initMap();
+
+        function addIGNServices()
+        {
+            this.setState({loaded: false});
+
+            const ignLayers = [
+                "ORTHOIMAGERY.ORTHOPHOTOS",
+                "GEOGRAPHICALGRIDSYSTEMS.CASSINI",
+                //"CADASTRALPARCELS.PARCELS",
+                //"GEOGRAPHICALGRIDSYSTEMS.MAPS",
+                //"GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN-EXPRESS.STANDARD",
+                //"GEOGRAPHICALGRIDSYSTEMS.PLANIGN",
+            ];
+            for (let identifier of ignLayers) {
+                this.map.addLayer(
+                    L.geoportalLayer.WMTS({
+                        layer: identifier
+                    })
+                )
+            }
+            const lyrOSM = L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png?');
+            this.map.addLayer(lyrOSM);
+
+            const layerSwitcher = L.geoportalControl.LayerSwitcher({
+                layers: [{
+                    layer: lyrOSM,
+                    config: {
+                        title: "Open Street Map",
+                        description: "Couche Open Street Maps"
+                    }
+                }]
+            });
+            this.map.addControl(layerSwitcher);
+
+            this.setState({loaded: true});
+        }
+
         Gp.Services.getConfig({
-           apiKey : "4bgxfnc1ufj44pmxpsloxq6j",
-           onSuccess : this.initMap.bind(this)
-        }) ;
+            //apiKey: "4bgxfnc1ufj44pmxpsloxq6j",
+            callbackSuffix: "",
+            serverUrl: this.base_url + "/static/js/autoconf-https.json",
+            onSuccess: addIGNServices.bind(this),
+            onFailure: function () {
+                console.error("GP failure")
+            }
+        });
+
+        this.markerLayer = L.markerClusterGroup().addTo(this.map);
+        this.updateMarkers(this.props.markersData);
+
     }
 
     componentDidUpdate({ markersData }) {
