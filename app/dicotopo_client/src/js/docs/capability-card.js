@@ -141,7 +141,7 @@ class CapabilityCard extends React.Component {
     }
 
     renderCurlRequest() {
-        return JSON.stringify(this.state.examples[0], null, 2)
+        return JSON.stringify(this.state.examples[0]["data"], null, 2)
     }
 
     renderUsages(usages) {
