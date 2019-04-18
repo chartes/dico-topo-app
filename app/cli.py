@@ -1,12 +1,15 @@
+from math import floor
+
 import click
 import json
 import requests
 import sqlalchemy
+from elasticsearch import AuthorizationException
 
 from app import create_app
 
 from app.api.placename.facade import PlacenameFacade
-from app.models import UserRole, User,  Placename
+from app.models import UserRole, User, Placename
 
 app = None
 
@@ -41,12 +44,12 @@ def load_elastic_conf(conf_name, index_name):
         raise e
 
 
-
 def make_cli():
     """ Creates a Command Line Interface for everydays tasks
 
     :return: Click groum
     """
+
     @click.group()
     @click.option('--config', default="dev")
     def cli(config):
@@ -86,7 +89,8 @@ def make_cli():
     @click.command("db-reindex")
     @click.option('--indexes', default="all")
     @click.option('--host', required=True)
-    def db_reindex(indexes, host):
+    @click.option('--between', required=False)
+    def db_reindex(indexes, host, between):
         """
         Rebuild the elasticsearch indexes from the current database
         """
@@ -99,17 +103,49 @@ def make_cli():
             with app.app_context():
 
                 prefix = "{host}{api_prefix}".format(host=host, api_prefix=app.config["API_URL_PREFIX"])
-                print("Reindexing %s... " % name, end="", flush=True)
+                print("Reindexing %s" % name, end=" ", flush=True)
 
                 index_name = info["facade"].get_index_name()
+
+                url = "/".join([app.config['ELASTICSEARCH_URL'], index_name, '_settings'])
+                def reset_readonly():
+                    r = requests.put(url, json={"index.blocks.read_only_allow_delete": None})
+                    assert(r.status_code == 200)
 
                 try:
                     load_elastic_conf(name, index_name)
 
-                    for obj in info["model"].query.all():
-                        f_obj = info["facade"](prefix, obj)
-                        f_obj.reindex("insert", propagate=False)
+                    stmt = info["model"].query
 
+                    if between:
+                        boundaries = between.split(",")
+                        if len(boundaries) == 1:
+                            lower_bound = boundaries[0]
+                            stmt = stmt.filter(info["model"].id >= lower_bound)
+                        else:
+                            lower_bound, upper_bound = boundaries
+                            bt_op = sqlalchemy.sql.expression.between
+                            stmt = stmt.filter(bt_op(info["model"].id, lower_bound, upper_bound))
+
+                    all_objs = stmt.all()
+                    count = len(all_objs)
+                    ct = 0
+                    print("(%s items)" % count, end=" ", flush=True)
+                    last_progress = -1
+                    for obj in all_objs:
+                        # REINDEX
+                        f_obj = info["facade"](prefix, obj)
+                        try:
+                            f_obj.reindex("insert", propagate=False)
+                        except AuthorizationException:
+                            reset_readonly()
+                            f_obj.reindex("insert", propagate=False)
+                        # show progression
+                        progress = floor(100 * (ct / count))
+                        if progress % 20 == 0 and progress != last_progress:
+                            print(progress, end="... ", flush=True)
+                            last_progress = progress
+                        ct += 1
                     print("OK")
                 except Exception as e:
                     print("NOT OK!  ", str(e))
