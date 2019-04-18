@@ -458,7 +458,6 @@ class JSONAPIRouteRegistrar(object):
             }
 
             objs_query = model.query
-            count = None
             try:
 
                 # if request has pagination parameters
@@ -482,8 +481,7 @@ class JSONAPIRouteRegistrar(object):
                 all_objs = pagination_obj.items
                 args = OrderedDict(request.args)
 
-                if count is None:
-                    count = objs_query.count()
+                count = objs_query.count()
                 nb_pages = max(1, ceil(count / page_size))
 
                 keep_pagination = "page[size]" in args or "page[number]" in args or count > page_size
@@ -642,7 +640,10 @@ class JSONAPIRouteRegistrar(object):
             else:
                 relationship = f_obj.relationships[rel_name]
                 data = relationship["resource_identifier_getter"]()
-                count = len(data) if data else 0
+                if isinstance(data, list):
+                    count = len(data)
+                else:
+                    count = 1 if isinstance(data, dict) else 0
                 links = relationship["links"]
                 paginated_links = {}
 
