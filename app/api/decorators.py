@@ -2,6 +2,7 @@ from flask_jwt_extended import get_jwt_identity, get_jwt_claims, jwt_required, v
 from functools import wraps
 from app import JSONAPIResponseFactory
 from flask import request
+
 from app.api.route_registrar import json_loads
 
 
@@ -48,6 +49,17 @@ def api_require_roles(*required_roles):
     return wrap
 
 
+from app.api.placename.decorators.exports.linkedplaces import export_placename_to_linkedplace
+
+export_funcs = {
+    # the export format will be available under this http parameter value.
+    # ex: http://localhost:5003/dico-topo/api/1.0/placenames?page[size]=200&without-relationships&export=linkedplacename
+    #     or
+    #     http://localhost:5003/dico-topo/api/1.0/placenames/DT02-02878?export=linkedplacename
+    "linkedplacename": export_placename_to_linkedplace
+}
+
+
 def export_to(export_format):
     def wrap(view_function):
         @wraps(view_function)
@@ -76,34 +88,5 @@ def export_to(export_format):
     return wrap
 
 
-def export_placename_to_linkedplacename(request, input_data):
-    """
-    Demonstration of the export feature.
-    :param data:
-    :return:
-    """
-    output_data = {"linked_placenames": []}
-
-    # so you can work with single data the same way you would with a list
-    if not isinstance(input_data["data"], list):
-        input_data["data"] = [input_data["data"]]
-
-    # just converting the incoming jsonapi data into a simpler json format of my own
-    for placename in input_data["data"]:
-        output_data["linked_placenames"].append({
-            "id": placename['id'],
-            "dpt": placename['attributes']['dpt']
-        })
-
-    return output_data, 200, {}, "application/json"
-
-
-export_funcs = {
-    # the export format will be available under this http parameter value.
-    # ex: http://localhost:5003/dico-topo/api/1.0/placenames?page[size]=200&without-relationships&export=linkedplacename
-    #     or
-    #     http://localhost:5003/dico-topo/api/1.0/placenames/DT02-02878?export=linkedplacename
-    "linkedplacename": export_placename_to_linkedplacename
-}
 
 

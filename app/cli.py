@@ -108,6 +108,7 @@ def make_cli():
                 index_name = info["facade"].get_index_name()
 
                 url = "/".join([app.config['ELASTICSEARCH_URL'], index_name, '_settings'])
+
                 def reset_readonly():
                     r = requests.put(url, json={"index.blocks.read_only_allow_delete": None})
                     assert(r.status_code == 200)
@@ -142,7 +143,7 @@ def make_cli():
                             f_obj.reindex("insert", propagate=False)
                         # show progression
                         progress = floor(100 * (ct / count))
-                        if progress % 20 == 0 and progress != last_progress:
+                        if progress % 5 == 0 and progress != last_progress:
                             print(progress, end="... ", flush=True)
                             last_progress = progress
                         ct += 1

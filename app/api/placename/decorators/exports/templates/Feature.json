@@ -1,0 +1,25 @@
+{
+  "@id": "https://dev.chartes.psl.eu/dico-topo/placenames/DT02-01486",
+  "type": "Feature",
+  "properties": {
+  },
+  "geometry":  {
+    "type": "GeometryCollection",
+    "geometries": [
+    ]
+  },
+  "when": {
+  },
+  "names": [
+  ],
+  "types": [
+  ],
+  "relations": [
+  ],
+  "links": [
+  ],
+  "descriptions": [
+  ],
+  "depictions": [
+  ]
+}
