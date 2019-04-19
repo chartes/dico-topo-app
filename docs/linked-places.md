@@ -33,7 +33,7 @@ DT API (dev) : https://dev.chartes.psl.eu/dico-topo/api/1.0/placenames/DT02-0148
 |`$features.descriptions.@id`|URL of DT entity ?|Pocessing required. See json example below: correct semantics?|
 |`$features.descriptions.value`|`$data.attributes.desc`| See json example below: correct semantics?|
 |`$features.descriptions.lang`|`"fr"`||
-|`$features.depictions`|not available||
+|`$features.depictions`|not available|We can build the IIIF link to the page of the dictionary: https://gallica.bnf.fr/iiif/ark:/12148/bpt6k39289w/f115/full/full/0/native.jpg|
 
 
 ## `DT02-01486_lp.json` (Clacy)
