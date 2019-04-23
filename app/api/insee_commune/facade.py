@@ -36,7 +36,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'NCCENR': self.obj.NCCENR,
                 'ARTMIN': self.obj.ARTMIN,
                 'longlat': self.obj.longlat,
-                
+
                 'geoname-id': self.obj.geoname_id,
                 'wikidata-item-id': self.obj.wikidata_item_id,
                 'wikipedia-url': self.obj.wikipedia_url,
@@ -55,7 +55,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
 
     def __init__(self, *args, **kwargs):
         super(CommuneFacade, self).__init__(*args, **kwargs)
-        """Make a JSONAPI resource object describing what is a Feature Type
+        """Make a JSONAPI resource object describing what is a Commune
         """
         from app.api.placename.facade import PlacenameFacade
         from app.api.insee_ref.facade import InseeRefFacade

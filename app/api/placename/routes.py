@@ -6,7 +6,7 @@ from app.models import Placename
 def register_placename_api_urls(app):
     registrar = app.api_url_registrar
 
-    registrar.register_get_routes(Placename, PlacenameFacade, decorators=[export_to('linkedplacename')])
+    registrar.register_get_routes(Placename, PlacenameFacade, decorators=[export_to('linkedplaces')])
 
     registrar.register_relationship_get_route(PlacenameFacade, 'commune')
     registrar.register_relationship_get_route(PlacenameFacade, 'localization-commune')
