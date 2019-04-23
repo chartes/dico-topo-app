@@ -35,7 +35,13 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'insee-code': self.obj.id,
                 'NCCENR': self.obj.NCCENR,
                 'ARTMIN': self.obj.ARTMIN,
-                'longlat': self.obj.longlat
+                'longlat': self.obj.longlat,
+                
+                'geoname-id': self.obj.geoname_id,
+                'wikidata-item-id': self.obj.wikidata_item_id,
+                'wikipedia-url': self.obj.wikipedia_url,
+                'databnf-ark': self.obj.databnf_ark,
+                'viaf-id': self.obj.viaf_id,
             },
             "meta": self.meta,
             "links": {
