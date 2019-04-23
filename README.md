@@ -11,7 +11,7 @@ gunicorn flask_app:flask_app -c gunicorn.conf.py
 Building the front end:
 
 ```
-cd app/client
+cd app/dicotopo_client
 npm install
 npm run build
 ```
