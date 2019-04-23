@@ -2,8 +2,8 @@
   "type": "Point",
   "coordinates": [
   ],
-  "geo_wkt": "",
+  "geo_wkt": null,
   "when": {
   },
-  "src": ""
+  "src": null
 }

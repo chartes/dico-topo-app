@@ -53,10 +53,10 @@ from app.api.placename.decorators.exports.linkedplaces import export_placename_t
 
 export_funcs = {
     # the export format will be available under this http parameter value.
-    # ex: http://localhost:5003/dico-topo/api/1.0/placenames?page[size]=200&without-relationships&export=linkedplacename
+    # ex: http://localhost:5003/dico-topo/api/1.0/placenames?page[size]=200&without-relationships&export=linkedplaces
     #     or
-    #     http://localhost:5003/dico-topo/api/1.0/placenames/DT02-02878?export=linkedplacename
-    "linkedplacename": export_placename_to_linkedplace
+    #     http://localhost:5003/dico-topo/api/1.0/placenames/DT02-02878?export=linkedplaces
+    "linkedplaces": export_placename_to_linkedplace
 }
 
 

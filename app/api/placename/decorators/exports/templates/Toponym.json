@@ -1,9 +1,9 @@
 {
-  "toponym": "",
-  "lang": "",
+  "toponym": null,
+  "lang": null,
   "citation": {
-    "label": "",
-    "@id": ""
+    "label": null,
+    "@id": null
   },
   "when": {
   }
