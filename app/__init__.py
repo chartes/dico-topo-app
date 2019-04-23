@@ -49,7 +49,11 @@ def create_app(config_name="dev"):
     else:
         print("Load environment variables for config '%s'" % config_name)
         # It is important to load the .env file before parsing the config file
-        load_dotenv('%s.env' % config_name, verbose=True)
+        import os
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        env_filename = os.path.join(dir_path, '..', '%s.env' % config_name)
+        print(env_filename)
+        load_dotenv(env_filename, verbose=True)
         from config import config
         app.config.from_object(config[config_name])
 

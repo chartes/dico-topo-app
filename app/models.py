@@ -105,6 +105,12 @@ class InseeCommune(db.Model):
     ARTMIN = db.Column(db.String(10))
     longlat = db.Column(db.String(100))
 
+    geoname_id = db.Column(db.String(32))
+    wikidata_item_id = db.Column(db.String(32))
+    wikipedia_url = db.Column(db.String(512))
+    databnf_ark = db.Column(db.String(64))
+    viaf_id = db.Column(db.String(64))
+
     # relationships
     region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id", backref=db.backref('communes_region'))
     departement = db.relationship('InseeRef', primaryjoin="InseeCommune.DEP_id==InseeRef.id", backref=db.backref('communes_departement'))
