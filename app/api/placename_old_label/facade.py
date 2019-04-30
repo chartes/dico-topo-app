@@ -117,7 +117,12 @@ class PlacenameOldLabelSearchFacade(PlacenameOldLabelFacade):
     @property
     def resource(self):
         """ """
-        co = self.obj.placename.localization_commune
+        if self.obj.placename.commune:
+            co = self.obj.placename.commune
+        elif self.obj.placename.localization_commune:
+            co = self.obj.placename.localization_commune
+        else:
+            co = None
         res = {
             **self.resource_identifier,
             "attributes": {
@@ -146,7 +151,12 @@ class PlacenameOldLabelMapFacade(PlacenameOldLabelSearchFacade):
     @property
     def resource(self):
         """ """
-        co = self.obj.placename.localization_commune
+        if self.obj.placename.commune:
+            co = self.obj.placename.commune
+        elif self.obj.placename.localization_commune:
+            co = self.obj.placename.localization_commune
+        else:
+            co = None
         res = {
             **self.resource_identifier,
             "attributes": {
