@@ -220,9 +220,10 @@ class JSONAPIRouteRegistrar(object):
 
         res_dict = {}
         for res in results:
-            if res.type not in res_dict:
-                res_dict[res.type] = []
-            res_dict[res.type].append(res.id)
+            res_type = res.type.replace("-", "_")
+            if res_type not in res_dict:
+                res_dict[res_type] = []
+            res_dict[res_type].append(res.id)
 
         for res_type, res_ids in res_dict.items():
             when = []

@@ -53,6 +53,16 @@ class Placename(db.Model):
     )
     linked_placenames = db.relationship('Placename')
 
+    @property
+    def longlat(self):
+        if self.commune:
+            co = self.commune
+        elif self.localization_commune:
+            co = self.localization_commune
+        else:
+            co = None
+        return co.longlat if co else None
+
 
 class PlacenameAltLabel(db.Model):
     """ """
@@ -90,6 +100,10 @@ class PlacenameOldLabel(db.Model):
 
     # relationships
     placename = db.relationship(Placename, backref=db.backref('old_labels'))
+
+    @property
+    def longlat(self):
+        return self.placename.longlat
 
 
 class InseeCommune(db.Model):
