@@ -9,7 +9,8 @@ from elasticsearch import AuthorizationException
 from app import create_app
 
 from app.api.placename.facade import PlacenameFacade
-from app.models import UserRole, User, Placename
+from app.api.placename_old_label.facade import PlacenameOldLabelFacade
+from app.models import UserRole, User, Placename, PlacenameOldLabel
 
 app = None
 
@@ -23,19 +24,20 @@ def add_default_users(db):
         print(e)
 
 
-def load_elastic_conf(conf_name, index_name):
+def load_elastic_conf(conf_name, index_name, delete=False):
     url = '/'.join([app.config['ELASTICSEARCH_URL'], index_name])
     res = None
     try:
-        res = requests.delete(url)
-        with open('elasticsearch/_settings.conf.json', 'r') as _settings:
-            settings = json.load(_settings)
+        if delete:
+            res = requests.delete(url)
+            with open('elasticsearch/_settings.conf.json', 'r') as _settings:
+                settings = json.load(_settings)
 
-            with open('elasticsearch/%s.conf.json' % conf_name, 'r') as f:
-                payload = json.load(f)
-                payload["settings"] = settings
-                res = requests.put(url, json=payload)
-                assert str(res.status_code).startswith("20")
+                with open('elasticsearch/%s.conf.json' % conf_name, 'r') as f:
+                    payload = json.load(f)
+                    payload["settings"] = settings
+                    res = requests.put(url, json=payload)
+                    assert str(res.status_code).startswith("20")
 
     except FileNotFoundError as e:
         print("no conf...", flush=True, end=" ")
@@ -90,12 +92,14 @@ def make_cli():
     @click.option('--indexes', default="all")
     @click.option('--host', required=True)
     @click.option('--between', required=False)
-    def db_reindex(indexes, host, between):
+    @click.option('--delete', required=False, default=None)
+    def db_reindex(indexes, host, between, delete):
         """
         Rebuild the elasticsearch indexes from the current database
         """
         indexes_info = {
             "placenames": {"facade": PlacenameFacade, "model": Placename},
+            "old-labels": {"facade": PlacenameOldLabelFacade, "model": PlacenameOldLabel},
         }
 
         def reindex_from_info(name, info):
@@ -111,10 +115,10 @@ def make_cli():
 
                 def reset_readonly():
                     r = requests.put(url, json={"index.blocks.read_only_allow_delete": None})
-                    assert(r.status_code == 200)
+                    assert (r.status_code == 200)
 
                 try:
-                    load_elastic_conf(name, index_name)
+                    load_elastic_conf(name, index_name, delete=delete is not None)
 
                     stmt = info["model"].query
 
