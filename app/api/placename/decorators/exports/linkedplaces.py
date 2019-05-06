@@ -72,7 +72,6 @@ def export_placename_to_linkedplace(request, input_data):
                 co = placename_f.obj.localization_commune
         else:
             co = None
-
         # geometry
         if insee_code:
             commune = InseeCommune.query.filter(InseeCommune.id == insee_code).first()
@@ -93,7 +92,7 @@ def export_placename_to_linkedplace(request, input_data):
         # old labels
         old_labels = placename_f.obj.old_labels
         if len(old_labels) > 0:
-            start_in = sorted([ol.text_date for ol in old_labels])[0]
+            start_in = sorted([ol.text_date for ol in old_labels if ol.text_date])[0]
             feature["when"] = {
                 "timespans": [
                     {"start": {"in": start_in}},
