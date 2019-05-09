@@ -37,6 +37,8 @@ class Config(object):
     CSRF_ENABLED = parse_var_env('CSRF_ENABLED')
 
     APP_URL_PREFIX = parse_var_env('APP_URL_PREFIX')
+    APP_FRONTEND_URL = parse_var_env('APP_FRONTEND_URL_PREFIX')
+
     API_VERSION = parse_var_env('API_VERSION')
     API_URL_PREFIX = parse_var_env('API_URL_PREFIX')
 
