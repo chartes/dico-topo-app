@@ -69,14 +69,14 @@ def api_get_capabilities(api_version):
                         },
                         "collection": {
                             "url": "%s/placenames?page[size]=10" % url_prefix,
-                            
+
                         }
                     },
                     "examples": {
                         "url": "%s/placenames/DT80-03029" % url_prefix
                     }
                 },
-                
+
             },
 
             {
@@ -111,14 +111,14 @@ def api_get_capabilities(api_version):
                         },
                         "collection": {
                             "url": "%s/communes?page[size]=10" % url_prefix,
-                            
+
                         }
                     },
                     "examples": {
                         "url": "%s/communes/01025" % url_prefix
                     }
                 },
-                
+
             },
 
             {
@@ -140,14 +140,14 @@ def api_get_capabilities(api_version):
                         },
                         "collection": {
                             "url": "%s/feature-types?page[size]=10" % url_prefix,
-                            
+
                         }
                     },
                     "examples": {
                         "url": "%s/feature-types/124" % url_prefix
                     }
                 },
-                
+
             },
 
             {
@@ -174,14 +174,14 @@ def api_get_capabilities(api_version):
                         },
                         "collection": {
                             "url": "%s/insee-refs?page[size]=10" % url_prefix,
-                            
+
                         }
                     },
                     "examples": {
                         "url": "%s/insee-refs/DEP_03" % url_prefix
                     }
                 },
-                
+
             },
 
             {
@@ -212,14 +212,14 @@ def api_get_capabilities(api_version):
                         },
                         "collection": {
                             "url": "%s/placename-old-labels?page[size]=10" % url_prefix,
-                            
+
                         }
                     },
                     "examples": {
                         "url": "%s/placename-old-labels/93" % url_prefix
                     }
                 },
-                
+
             },
 
             {
@@ -241,14 +241,14 @@ def api_get_capabilities(api_version):
                         },
                         "collection": {
                             "url": "%s/placename-alt-labels?page[size]=10" % url_prefix,
-                            
+
                         }
                     },
                     "examples": {
                         "url": "%s/placename-alt-labels/24" % url_prefix
                     }
                 },
-                
+
             },
         ]
 
