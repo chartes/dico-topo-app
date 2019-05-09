@@ -42,6 +42,7 @@ def export_placename_to_linkedplace(request, input_data):
     if not isinstance(input_data["data"], list):
         input_data["data"] = [input_data["data"]]
 
+    frontend_url = current_app.config['APP_FRONTEND_URL']
     # just converting the incoming jsonapi data into a simpler json format of my own
     for placename_jsonapi in input_data["data"]:
 
@@ -50,7 +51,7 @@ def export_placename_to_linkedplace(request, input_data):
         resource = placename_f.resource
 
         feature = from_template('Feature.json')
-        feature["@id"] = url_for('app_bp.get_placename', placename_id=resource["id"], _external=True)
+        feature["@id"] = "{0}/placenames/{1}".format(frontend_url, resource["id"])
         feature["properties"]["title"] = resource["attributes"]["label"]
         feature["properties"]["ccode"] = resource["attributes"]["country"]
         feature["descriptions"] = [

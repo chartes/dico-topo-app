@@ -10,6 +10,55 @@ def api_get_capabilities(api_version):
         url_prefix = url_prefix.replace('http://', 'https://')
         capabilities = [
             {
+                "type": "parameter",
+                "id": "parameters.filter",
+                "attributes": {
+                    "item-kind": "collection",
+                    "name": "filter",
+                    "description": "filter[field_name]=searched_value"
+                }
+
+            },
+            {
+                "type": "parameter",
+                "id": "parameters.sort",
+                "attributes": {
+                    "item-kind": "collection",
+                    "name": "sort",
+                    "description": "sort=field1,field2. Le tri respecte l'ordre des champs. Utiliser - pour effectuer un tri descendant"
+                }
+
+            },
+            {
+                "type": "parameter",
+                "id": "parameters.page",
+                "attributes": {
+                    "item-kind": "collection",
+                    "name": "page",
+                    "description": "page[number]=3&page[size]=10. La pagination nécessite page[number], page[size] ou les deux paramètres en même temps. La taille ne peut pas excéder la limite inscrite côté serveur. La pagination produit des liens de navigation prev,next,self,first,last dans tous les cas où cela a du sens."
+                }
+
+            },
+            {
+                "type": "parameter",
+                "id": "parameters.include",
+                "attributes": {
+                    "item-kind": "collection, resource",
+                    "name": "include",
+                    "description": "include=relation1,relation2. Le document retourné incluera les ressources liées à la présente ressource."
+                }
+
+            },
+            {
+                "type": "parameter",
+                "id": "parameters.without-relationships",
+                "attributes": {
+                    "item-kind": "collection, resource",
+                    "name": "without-relationships",
+                    "description": "Ce paramètre n'a pas de valeur. Sa seule présence dans l'URL permet d'obtenir une version allégée du document (les relations ne sont pas incluses dans la réponse)."
+                }
+            },
+            {
                 "type": "feature",
                 "id": "db-search-api",
                 "attributes": {
@@ -33,6 +82,24 @@ def api_get_capabilities(api_version):
                         {
                             "description": "Recherche du toponyme 'Metz'",
                             "content": "%s/search?query=*Metz*&index=dicotopo__development__placenames" % url_prefix
+                        }
+                    ]
+                }
+            },
+            {
+                "type": "feature",
+                "id": "export-linked-places",
+                "attributes": {
+                    "title": "Export Linked Places",
+                    "content": "L'API permet d'exporter les lieux identifiés au format Linked Places",
+                    "examples": [
+                        {
+                            "description": "Export d'un seul lieu",
+                            "content": "%s/placenames/DT80-02001?export=linkedplaces" % url_prefix
+                        },
+                        {
+                            "description": "Export d'une collection de lieux",
+                            "content": "%s/search?query=Moulin&index=dicotopo__development__placenames&export=linkedplaces" % url_prefix
                         }
                     ]
                 }
