@@ -94,12 +94,8 @@ def api_get_capabilities(api_version):
                     "content": "L'API permet d'exporter les lieux identifiés au format Linked Places",
                     "examples": [
                         {
-                            "description": "Export d'un seul lieu",
+                            "description": "Export d'un lieu",
                             "content": "%s/placenames/DT80-02001?export=linkedplaces" % url_prefix
-                        },
-                        {
-                            "description": "Export d'une collection de lieux",
-                            "content": "%s/search?query=Moulin&index=dicotopo__development__placenames&export=linkedplaces" % url_prefix
                         }
                     ]
                 }
