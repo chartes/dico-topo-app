@@ -66,7 +66,7 @@ def api_get_capabilities(api_version):
                     "content": "Il est possible d'effectuer des recherches simples sur des ressources spécifiques sans utiliser les indexes avancés d'elasticsearch",
                     "examples": [
                         {
-                            "description": "Recherche du toponyme 'Metz'",
+                            "description": "Recherche de la vedette 'Metz'",
                             "content": "%s/placenames?filter[label]=Metz" % url_prefix
                         }
                     ]
@@ -81,7 +81,7 @@ def api_get_capabilities(api_version):
                     "examples": [
                         {
                             "description": "Recherche du toponyme 'Metz'",
-                            "content": "%s/search?query=label:*Metz*" % url_prefix
+                            "content": "%s/search?query=label:Metz OR old-labels:Metz" % url_prefix
                         }
                     ]
                 }
