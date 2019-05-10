@@ -81,7 +81,7 @@ def api_get_capabilities(api_version):
                     "examples": [
                         {
                             "description": "Recherche du toponyme 'Metz'",
-                            "content": "%s/search?query=*Metz*" % url_prefix
+                            "content": "%s/search?query=label:*Metz*" % url_prefix
                         }
                     ]
                 }
