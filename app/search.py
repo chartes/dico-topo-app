@@ -35,6 +35,8 @@ class SearchIndexManager(object):
                 body["size"] = per_page
                 # print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
             try:
+                if index is None:
+                    index = current_app.config["DEFAULT_INDEX_NAME"]
                 search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
 
                 # from elasticsearch import Elasticsearch

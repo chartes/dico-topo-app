@@ -81,7 +81,7 @@ def api_get_capabilities(api_version):
                     "examples": [
                         {
                             "description": "Recherche du toponyme 'Metz'",
-                            "content": "%s/search?query=*Metz*&index=dicotopo__development__placenames" % url_prefix
+                            "content": "%s/search?query=*Metz*" % url_prefix
                         }
                     ]
                 }
@@ -96,6 +96,10 @@ def api_get_capabilities(api_version):
                         {
                             "description": "Export d'un lieu",
                             "content": "%s/placenames/DT80-02001?export=linkedplaces" % url_prefix
+                        },
+                        {
+                            "description": "Export d'une collection de lieux",
+                            "content": "%s/search?query=label:Troyes&export=linkedplaces" % url_prefix
                         }
                     ]
                 }

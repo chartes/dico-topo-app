@@ -28,6 +28,7 @@ class Config(object):
     GENERATE_FAKE_DATA = parse_var_env('GENERATE_FAKE_DATA') or False
 
     ELASTICSEARCH_URL = parse_var_env('ELASTICSEARCH_URL')
+    DEFAULT_INDEX_NAME = parse_var_env('DEFAULT_INDEX_NAME')
     INDEX_PREFIX = parse_var_env('INDEX_PREFIX')
     SEARCH_RESULT_PER_PAGE =  parse_var_env('SEARCH_RESULT_PER_PAGE')
 
@@ -37,7 +38,7 @@ class Config(object):
     CSRF_ENABLED = parse_var_env('CSRF_ENABLED')
 
     APP_URL_PREFIX = parse_var_env('APP_URL_PREFIX')
-    APP_FRONTEND_URL = parse_var_env('APP_FRONTEND_URL_PREFIX')
+    APP_FRONTEND_URL = parse_var_env('APP_FRONTEND_URL')
 
     API_VERSION = parse_var_env('API_VERSION')
     API_URL_PREFIX = parse_var_env('API_URL_PREFIX')

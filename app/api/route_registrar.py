@@ -128,6 +128,9 @@ class JSONAPIRouteRegistrar(object):
                 if not_null_operator:
                     filter_fieldname = filter_fieldname[1:]
 
+                if not hasattr(model, filter_fieldname):
+                    raise ValueError("cannot parse filter parameter '%s.%s'" % (model, filter_fieldname))
+
                 if isinstance(getattr(model, filter_fieldname), property):
                     properties_fieldnames.append((filter_param, filter_fieldname, not_null_operator))
                     continue
@@ -234,7 +237,7 @@ class JSONAPIRouteRegistrar(object):
 
         return res_dict, total
 
-    def register_search_route(self):
+    def register_search_route(self, decorators=()):
 
         search_rule = '/api/{api_version}/search'.format(api_version=self.api_version)
 
@@ -301,9 +304,15 @@ class JSONAPIRouteRegistrar(object):
                 for idx in res.keys():
                     # FILTER
                     # TODO: filter must be done on the elastic side
-                    res[idx] = JSONAPIRouteRegistrar.parse_filter_parameter(res[idx], self.models[idx])
+                    try:
+                        res[idx] = JSONAPIRouteRegistrar.parse_filter_parameter(res[idx], self.models[idx])
+                    except Exception as e:
+                        print(e)
+                        return JSONAPIResponseFactory.make_errors_response(
+                            {"status": 403, "title": "Cannot fetch data", "detail": str(e)}, status=403
+                        )
 
-                # if request has sorting parameter
+                    # if request has sorting parameter
                 # TODO: sort must be done on the elastic side
                 if "sort" in request.args:
                     sort_criteriae = {}
@@ -335,7 +344,8 @@ class JSONAPIRouteRegistrar(object):
                 try:
                     for idx in res.keys():
                         res[idx] = res[idx].all()
-                except OperationalError as e:
+                except Exception as e:
+                    print(e)
                     return JSONAPIResponseFactory.make_errors_response(
                         {"status": 403, "title": "Cannot fetch data", "detail": str(e)}, status=403
                     )
@@ -397,6 +407,10 @@ class JSONAPIRouteRegistrar(object):
                 included_resources=included_resources,
                 meta={"total-count": count, "duration": float('%.4f' % (time.time() - start_time))}
             )
+
+        # APPLY decorators if any
+        for dec in decorators:
+            search_endpoint = dec(search_endpoint)
 
         # register the rule
         api_bp.add_url_rule(search_rule, endpoint=search_endpoint.__name__, view_func=search_endpoint)
