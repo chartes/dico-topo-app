@@ -144,6 +144,7 @@ def create_app(config_name="dev"):
     from app.api.placename_alt_label.routes import register_placename_alt_label_api_urls
     from app.api.placename_old_label.routes import register_placename_old_label_api_urls
     from app.api.feature_type.routes import register_feature_type_api_urls
+    from app.api.decorators import export_to
 
     with app.app_context():
         # generate resources endpoints
@@ -154,7 +155,7 @@ def create_app(config_name="dev"):
         register_insee_ref_api_urls(app)
         register_feature_type_api_urls(app)
         # generate search endpoint
-        app.api_url_registrar.register_search_route()
+        app.api_url_registrar.register_search_route(decorators=[export_to('linkedplaces')])
 
     app.register_blueprint(app_bp)
     app.register_blueprint(api_bp)
