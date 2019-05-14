@@ -47,6 +47,8 @@ def export_placename_to_linkedplace(request, input_data):
     for placename_jsonapi in input_data["data"]:
 
         p = Placename.query.filter(Placename.id == placename_jsonapi["id"]).first()
+        if not p:
+            continue
         placename_f, _, _ = JSONAPIAbstractFacade.get_facade(url_prefix, p)
         resource = placename_f.resource
 
