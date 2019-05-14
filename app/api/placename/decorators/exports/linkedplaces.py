@@ -54,9 +54,10 @@ def export_placename_to_linkedplace(request, input_data):
         feature["@id"] = "{0}/placenames/{1}".format(frontend_url, resource["id"])
         feature["properties"]["title"] = resource["attributes"]["label"]
         feature["properties"]["ccode"] = resource["attributes"]["country"]
+
         feature["descriptions"] = [
             {
-                "@id": input_data["links"]["self"].split('?')[0],
+                "@id": feature["@id"], #input_data["links"]["self"].split('?')[0],
                 "value": resource["attributes"]["desc"],
                 "lang": "fr"
             }
