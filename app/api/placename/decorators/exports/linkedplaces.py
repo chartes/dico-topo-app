@@ -77,7 +77,7 @@ def export_placename_to_linkedplace(request, input_data):
         # geometry
         if insee_code:
             commune = InseeCommune.query.filter(InseeCommune.id == insee_code).first()
-            if commune:
+            if commune and commune.longlat:
                 point = from_template('Point.json')
                 long, lat = commune.longlat.replace("(", "").replace(")", "").split(",")
                 point["coordinates"] = [float(long), float(lat)]
@@ -94,7 +94,8 @@ def export_placename_to_linkedplace(request, input_data):
         # old labels
         old_labels = placename_f.obj.old_labels
         if len(old_labels) > 0:
-            start_in = sorted([ol.text_date for ol in old_labels if ol.text_date])[0]
+            start_in = sorted([ol.text_date for ol in old_labels if ol.text_date])
+            start_in = start_in[0] if len(start_in) > 0 else None
             feature["when"] = {
                 "timespans": [
                     {"start": {"in": start_in}},
@@ -113,7 +114,6 @@ def export_placename_to_linkedplace(request, input_data):
                     ]
                 }
                 feature["names"].append(name)
-
         # feature types
         for ftype in placename_f.obj.feature_types:
             feature_type = {
