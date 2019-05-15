@@ -53,16 +53,12 @@ Test: https://gist.github.com/architexte/2dc3e1be869427b74fe0623a7a1686ae
         "ccode": "FR"
       },
       "geometry": {
-        "type": "GeometryCollection",
-        "geometries": [
-            { "type": "Point",
-              "coordinates": [3.5654677192982454,49.55239526315789],
-              "geo_wkt": "POINT(3.5654677192982454 49.55239526315789)",
-              "when": {"timespans":[
-                {"start":{"in":"2011"},"end":{"in":"2011"}}]},
-              "src": "http://id.insee.fr/geo/commune/02196"
-            }
-        ]
+        "type": "Point",
+        "coordinates": [3.5654677192982454,49.55239526315789],
+        "geo_wkt": "POINT(3.5654677192982454 49.55239526315789)",
+        "when": {"timespans":[
+            {"start":{"in":"2011"},"end":{"in":"2011"}}]},
+        "src": "http://id.insee.fr/geo/commune/02196"
       },
       "when": {
         "timespans": [
