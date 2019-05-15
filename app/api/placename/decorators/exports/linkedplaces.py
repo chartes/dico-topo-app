@@ -100,12 +100,13 @@ def export_placename_to_linkedplace(request, input_data):
         if len(old_labels) > 0:
             start_in = sorted([ol.text_date for ol in old_labels if ol.text_date])
             start_in = start_in[0] if len(start_in) > 0 else None
-            feature["when"] = {
-                "timespans": [
-                    {"start": {"in": start_in}},
-                    {"end": {"in": None}}
-                ]
-            }
+            if start_in:
+                feature["when"] = {
+                    "timespans": [
+                        {"start": {"in": start_in}},
+                        {"end": {"in": None}}
+                    ]
+                }
 
             for old_label in old_labels:
                 name = from_template('Toponym.json')
