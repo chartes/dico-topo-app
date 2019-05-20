@@ -24,7 +24,6 @@ Flask-Testing==0.7.1
 Flask-User==1.0.1.5
 Flask-WTF==0.14.2
 greenlet==0.4.15
-gunicorn==19.9.0
 idna==2.7
 imagesize==1.1.0
 itsdangerous==0.24
@@ -57,5 +56,6 @@ sphinxcontrib-websupport==1.1.0
 SQLAlchemy==1.2.11
 SQLAlchemy-Utils==0.33.3
 urllib3==1.23
+uWSGI==2.0.18
 Werkzeug==0.14.1
 WTForms==2.2.1

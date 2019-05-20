@@ -57,7 +57,7 @@ def create_app(config_name="dev"):
         from config import config
         app.config.from_object(config[config_name])
 
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
+    #app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
 
     db.init_app(app)
     config[config_name].init_app(app)
