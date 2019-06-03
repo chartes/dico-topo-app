@@ -35,7 +35,6 @@ def export_placename_to_linkedplace(request, input_data):
     """
     url_prefix = request.host_url[:-1] + current_app.api_url_registrar.url_prefix
 
-
     feature_collection = from_template('FeatureCollection.json')
 
     # so you can work with single data the same way you would with a list
@@ -57,18 +56,16 @@ def export_placename_to_linkedplace(request, input_data):
         feature = from_template('Feature.json')
         feature["@id"] = "{0}/placenames/{1}".format(frontend_url, resource["id"])
         feature["properties"]["title"] = resource["attributes"]["label"]
-        feature["properties"]["ccode"] = resource["attributes"]["country"]
+        feature["properties"]["ccodes"] = [resource["attributes"]["country"]]
 
-        feature["descriptions"] = [
-            {
-                "@id": feature["@id"], #input_data["links"]["self"].split('?')[0],
-                "value": resource["attributes"]["desc"],
-                "lang": "fr"
-            }
-        ]
-
-        geometry_collection = from_template('GeometryCollection.json')
-        feature["geometry"] = geometry_collection
+        if resource["attributes"]["desc"] and len(resource["attributes"]["desc"]) > 0:
+            feature["descriptions"] = [
+                {
+                    "@id": feature["@id"], #input_data["links"]["self"].split('?')[0],
+                    "value": resource["attributes"]["desc"],
+                    "lang": "fr"
+                }
+            ]
 
         insee_code = resource["attributes"]["localization-insee-code"]
         if insee_code:
@@ -78,6 +75,10 @@ def export_placename_to_linkedplace(request, input_data):
                 co = placename_f.obj.localization_commune
         else:
             co = None
+
+        geometry_collection = from_template('GeometryCollection.json')
+        feature["geometry"] = geometry_collection
+
         # geometry
         if insee_code:
             commune = InseeCommune.query.filter(InseeCommune.id == insee_code).first()
@@ -89,11 +90,13 @@ def export_placename_to_linkedplace(request, input_data):
                 point["src"] = "http://id.insee.fr/geo/commune/{0}".format(insee_code)
                 point["when"] = {
                     "timespans": [
-                        {"start": {"in": 2011}},
-                        {"end": {"in": 2011}}
+                        {"start": {"in": "2011"}, "end": {"in": "2011"}},
                     ]
                 }
                 geometry_collection["geometries"].append(point)
+
+        if len(geometry_collection["geometries"]) == 0:
+            feature.pop("geometry")
 
         # old labels
         old_labels = placename_f.obj.old_labels
@@ -104,27 +107,32 @@ def export_placename_to_linkedplace(request, input_data):
                 feature["when"] = {
                     "timespans": [
                         {"start": {"in": start_in}},
-                        {"end": {"in": None}}
                     ]
                 }
 
             for old_label in old_labels:
                 name = from_template('Toponym.json')
                 name["toponym"] = old_label.rich_label
-                name["citation"]["label"] = old_label.rich_reference
-                name["when"] = {
-                    "timespans": [
-                        {"start": {"in": old_label.text_date}},
-                        {"end": {"in": None}}
-                    ]
-                }
+                if old_label.rich_reference is not None and len(old_label.rich_reference) > 0:
+                    name["citations"] = [{
+                        "@id": None,
+                        "label": old_label.rich_reference
+                    }]
+                if old_label.text_date and len(old_label.text_date) > 0:
+                    name["when"] = {
+                        "timespans": [
+                            {"start": {"in": old_label.text_date}}
+                        ]
+                    }
                 feature["names"].append(name)
+
         # feature types
         for ftype in placename_f.obj.feature_types:
-            feature_type = {
-                "label": ftype.term
-            }
-            feature["types"].append(feature_type)
+            if ftype.term:
+                feature_type = {
+                    "label": ftype.term
+                }
+                feature["types"].append(feature_type)
 
         # relations
         ## administrative hierarchy
@@ -134,14 +142,14 @@ def export_placename_to_linkedplace(request, input_data):
                     "relationType": "gvp:broaderPartitive",
                     "relationTo": "http://id.insee.fr/geo/region/{0}".format(co.region.insee_code),
                     "label": "région de {0}".format(addPrefix(co.region.label)),
-                    "when": {"timespans": []}
+                    #"when": {"timespans": []}
                 })
             if co.departement:
                 feature["relations"].append({
                     "relationType": "gvp:broaderPartitive",
                     "relationTo": "http://id.insee.fr/geo/departement/{0}".format(co.departement.insee_code),
                     "label": "département de {0}".format(addPrefix(co.departement.label)),
-                    "when": {"timespans": []}
+                    #"when": {"timespans": []}
                 })
             # need proper ids
             #if co.arrondissement:
@@ -164,7 +172,7 @@ def export_placename_to_linkedplace(request, input_data):
                     "relationType": "gvp:tgn3000_related_to",
                     "relationTo": lp_f.self_link,
                     "label": lp_f.resource["attributes"]["label"],
-                    "when": {"timespans": []}
+                    #"when": {"timespans": []}
                 })
 
         # links

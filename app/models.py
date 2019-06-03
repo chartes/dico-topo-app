@@ -105,6 +105,10 @@ class PlacenameOldLabel(db.Model):
     def longlat(self):
         return self.placename.longlat
 
+    @property
+    def label(self):
+        return self.rich_label
+
 
 class InseeCommune(db.Model):
     """ """

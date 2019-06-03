@@ -5,6 +5,7 @@ import json
 import requests
 import sqlalchemy
 from elasticsearch import AuthorizationException
+from jsonschema import validate
 
 from app import create_app
 
@@ -44,6 +45,10 @@ def load_elastic_conf(conf_name, index_name, delete=False):
     except Exception as e:
         print(res.text, str(e), flush=True, end=" ")
         raise e
+
+
+def validateJSONSchema(schema, data):
+    validate(instance=data, schema=schema)
 
 
 def make_cli():
@@ -87,6 +92,48 @@ def make_cli():
 
             db.session.commit()
             click.echo("Dropped then recreated the database")
+
+    @click.command("db-validate")
+    @click.option('--between', required=False)
+    def db_validate(between):
+        SCHEMA_URL = "https://raw.githubusercontent.com/kgeographer/whgazetteer/master/datasets/static/validate/lpf-schema.json"
+        getAPIUrl = lambda \
+            id: "http://localhost/dico-topo/api/1.0/placenames/{0}?export=linkedplaces&without-relationships".format(id)
+        print("Fetching schema from {0}... ".format(SCHEMA_URL), end='', flush=False)
+        r = requests.get(SCHEMA_URL)
+        print(r.status_code)
+        schema = r.json()
+
+        with app.app_context():
+
+            stmt = Placename.query
+            if between:
+                boundaries = between.split(",")
+                if len(boundaries) == 1:
+                    lower_bound = boundaries[0]
+                    stmt = stmt.filter(Placename.id >= lower_bound)
+                else:
+                    lower_bound, upper_bound = boundaries
+                    bt_op = sqlalchemy.sql.expression.between
+                    stmt = stmt.filter(bt_op(Placename.id, lower_bound, upper_bound))
+
+            for placename in stmt.all():
+                print("validating '{0}'... ".format(placename.id), end='', flush=False)
+                res_url = getAPIUrl(placename.id)
+                r = requests.get(res_url)
+                data = r.json()
+                features = data.get('features', [])
+                print("{0} feature(s) detected... ".format(len(features)), end='', flush=False)
+
+                for feature in features:
+                    try:
+                        validateJSONSchema(schema, feature)
+                        print('OK', flush=True)
+                    except Exception as e:
+                        print(str(e))
+                        print(' .... NOT OK', flush=True)
+
+                        exit(1)
 
     @click.command("db-reindex")
     @click.option('--indexes', default="all")
@@ -173,6 +220,7 @@ def make_cli():
     cli.add_command(db_create)
     cli.add_command(db_recreate)
     cli.add_command(db_reindex)
+    cli.add_command(db_validate)
     cli.add_command(run)
 
     return cli
