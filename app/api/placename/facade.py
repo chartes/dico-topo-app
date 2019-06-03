@@ -121,7 +121,8 @@ class PlacenameFacade(JSONAPIAbstractFacade):
             "localization-insee-code": co.id if co else None,
 
             "dep-id": self.obj.dpt,
-            "reg-id": co.region.id if co and co.region else None,
+            "reg-label": co.region.label if co and co.region else None,
+            "is-localized": co is not None,
             # "#arr-id": co.arrondissement.id if co and co.arrondissement else None,
             # "ct-id": co.canton.id if co and co.canton else None,
 
