@@ -12,7 +12,7 @@ templates = {}
 
 
 def addLink(id):
-    return {"type": "exactMatch", "identifer": id}
+    return {"type": "closeMatch", "identifer": id}
 
 def addPrefix(name):
     if name[0].lower() in 'aeiouyïäâëüûôöéèê':
@@ -54,7 +54,7 @@ def export_placename_to_linkedplace(request, input_data):
         resource = placename_f.resource
 
         feature = from_template('Feature.json')
-        feature["@id"] = "{0}/placenames/{1}".format(frontend_url, resource["id"])
+        feature["@id"] = resource["links"]["self"] #'""{0}/placenames/{1}".format(frontend_url, resource["id"])
         feature["properties"]["title"] = resource["attributes"]["label"]
         feature["properties"]["ccodes"] = [resource["attributes"]["country"]]
 
@@ -102,11 +102,16 @@ def export_placename_to_linkedplace(request, input_data):
         old_labels = placename_f.obj.old_labels
         if len(old_labels) > 0:
             start_in = sorted([ol.text_date for ol in old_labels if ol.text_date])
-            start_in = start_in[0] if len(start_in) > 0 else None
-            if start_in:
+            if len(start_in) > 0:
+                earliest = start_in[0]
+                latest = start_in[-1]
+                start = {"earliest": earliest}
+                if latest != earliest:
+                    start["latest"] = latest
+                    assert latest > earliest
                 feature["when"] = {
                     "timespans": [
-                        {"start": {"in": start_in}},
+                        {"start": start},
                     ]
                 }
 
@@ -121,7 +126,7 @@ def export_placename_to_linkedplace(request, input_data):
                 if old_label.text_date and len(old_label.text_date) > 0:
                     name["when"] = {
                         "timespans": [
-                            {"start": {"in": old_label.text_date}}
+                            {"start": {"earliest": old_label.text_date}}
                         ]
                     }
                 feature["names"].append(name)

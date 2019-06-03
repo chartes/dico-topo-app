@@ -1,10 +1,7 @@
 {
   "toponym": null,
   "lang": null,
-  "citation": {
-    "label": null,
-    "@id": null
-  },
+  "citations":[],
   "when": {
   }
 }
