@@ -38,7 +38,7 @@ class SearchIndexManager(object):
                 if index is None:
                     index = current_app.config["DEFAULT_INDEX_NAME"]
                 search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
-
+                print(body)
                 # from elasticsearch import Elasticsearch
                 # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type="_doc", body=body)
 

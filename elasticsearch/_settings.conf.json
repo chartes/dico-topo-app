@@ -1,3 +1,11 @@
 {
-
+  "analysis": {
+    "analyzer": {
+      "rebuilt_whitespace": {
+        "tokenizer": "whitespace",
+        "filter": [
+        ]
+      }
+    }
+  }
 }

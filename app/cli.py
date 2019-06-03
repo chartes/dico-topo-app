@@ -37,6 +37,7 @@ def load_elastic_conf(conf_name, index_name, delete=False):
                 with open('elasticsearch/%s.conf.json' % conf_name, 'r') as f:
                     payload = json.load(f)
                     payload["settings"] = settings
+                    print("PUT", url, payload)
                     res = requests.put(url, json=payload)
                     assert str(res.status_code).startswith("20")
 

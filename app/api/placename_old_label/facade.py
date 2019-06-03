@@ -140,13 +140,14 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
             "id": self.obj.id,
             "type": self.TYPE,
 
-            # "label": self.obj.placename.label,
+            "label": self.obj.rich_label,
             "localization-insee-code": co.id if co else None,
 
             "dep-id": self.obj.placename.dpt,
-            "reg-id": co.region.id if co and co.region else None,
+            "reg-label": co.region.label if co and co.region else None,
+            "is-localized": co is not None,
 
-            "old-labels": [self.obj.rich_label],
+            #"old-labels": [self.obj.rich_label],
         }
         return [{"id": self.obj.id, "index": self.get_index_name(), "payload": payload}]
 
