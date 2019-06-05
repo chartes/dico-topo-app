@@ -282,7 +282,7 @@ class JSONAPIRouteRegistrar(object):
                         criteria = criteria[1:]
                     else:
                         sort_order = "asc"
-                    criteria = criteria.replace("-", "_")
+                    #criteria = criteria.replace("-", "_")
                     sort_criteriae.append({criteria: {"order": sort_order}})
 
             try:
