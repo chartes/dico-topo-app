@@ -200,6 +200,9 @@ class PlacenameMapFacade(PlacenameSearchFacade):
             "attributes": {
                 "localization-insee-code": co.id if co else None,
                 "longlat": co.longlat if co else None,
+
+                "dpt": "{0} - {1}".format(co.department.insee_code, co.department.label) if co else None,
+                "region": "{0} - {1}".format(co.region.insee_code, co.region.label) if co else None,
             },
             "links": {
                 "self": self.self_link
