@@ -5,7 +5,7 @@ import urllib
 import sys
 
 from math import ceil
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
 
 from flask import request, current_app
 
@@ -15,7 +15,7 @@ from sqlalchemy.sql.operators import ColumnOperators
 
 from app import JSONAPIResponseFactory, api_bp, db
 from app.api.facade_manager import JSONAPIFacadeManager
-from app.search import SearchIndexManager
+from app.api.search import SearchIndexManager
 
 if sys.version_info < (3, 6):
     json_loads = lambda s: json_loads(s.decode("utf-8")) if isinstance(s, bytes) else json.loads(s)
@@ -213,27 +213,45 @@ class JSONAPIRouteRegistrar(object):
             objs_query = objs_query.order_by(sort_order(*sort_criteriae))
         return objs_query
 
-    def search(self, index, query, sort_criteriae, num_page, page_size):
+    def search(self, index, query, aggregations, sort_criteriae, num_page, page_size):
         # query the search engine
-        results, total = SearchIndexManager.query_index(index=index, query=query, sort_criteriae=sort_criteriae,
-                                                        page=num_page, per_page=page_size)
+        results, buckets, total = SearchIndexManager.query_index(
+            index=index,
+            query=query,
+            aggregations=aggregations,
+            sort_criteriae=sort_criteriae,
+            page=num_page,
+            per_page=page_size
+        )
 
         if total == 0:
             return {}, 0
 
         res_dict = {}
-        for res in results:
-            res_type = res.type.replace("-", "_")
+        if aggregations is None:
+            for res in results:
+                res_type = res.type.replace("-", "_")
+                if res_type not in res_dict:
+                    res_dict[res_type] = []
+                res_dict[res_type].append(res.id)
+        else:
+            # aggregations mode
+            res_type = request.args['groupby[model]'].replace("-", "_")
+            m = self.models[res_type]
             if res_type not in res_dict:
                 res_dict[res_type] = []
-            res_dict[res_type].append(res.id)
+            for bucket in buckets:
+                print(bucket["key"]["item"])
+                res_dict[res_type].append(bucket["key"]["item"])
 
+        # fetch the actual objets from their ids
         for res_type, res_ids in res_dict.items():
-            when = []
-            for i, id in enumerate(res_ids):
-                when.append((id, i))
-            m = self.models[res_type]
-            res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids)).order_by(db.case(when, value=m.id))
+           when = []
+           for i, id in enumerate(res_ids):
+               when.append((id, i))
+               m = self.models[res_type]
+               res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids)).order_by(
+                   db.case(when, value=m.id))
 
         return res_dict, total
 
@@ -254,6 +272,25 @@ class JSONAPIRouteRegistrar(object):
             # PARAMETERS
             index = request.args.get("index", "")
             query = request.args["query"]
+            aggregations = None
+
+            if "groupby[field]" in request.args:
+                aggregations = {
+                    "items": {
+                        "composite": {
+                            "sources": [
+                                {
+                                    "item": {
+                                        "terms": {
+                                            "field": request.args["groupby[field]"]
+                                        }
+                                    }
+                                }
+                            ],
+                            "size": 10000
+                        }
+                    }
+                }
 
             if "," in index:
                 return JSONAPIResponseFactory.make_errors_response(
@@ -286,9 +323,16 @@ class JSONAPIRouteRegistrar(object):
                     sort_criteriae.append({criteria: {"order": sort_order}})
 
             try:
-                res, count = self.search(index=index, query=query, sort_criteriae=sort_criteriae, num_page=num_page,
-                                         page_size=page_size)
+                res, count = self.search(
+                    index=index,
+                    query=query,
+                    aggregations=aggregations,
+                    sort_criteriae=sort_criteriae,
+                    num_page=num_page,
+                    page_size=page_size
+                )
             except Exception as e:
+                raise e
                 return JSONAPIResponseFactory.make_errors_response({
                     "status": 403,
                     "title": "Cannot perform search operations",
@@ -303,7 +347,7 @@ class JSONAPIRouteRegistrar(object):
             else:
                 for idx in res.keys():
                     # FILTER
-                    # TODO: filter must be done on the elastic side
+                    # post process filtering
                     try:
                         res[idx] = JSONAPIRouteRegistrar.parse_filter_parameter(res[idx], self.models[idx])
                     except Exception as e:
@@ -312,8 +356,7 @@ class JSONAPIRouteRegistrar(object):
                             {"status": 403, "title": "Cannot fetch data", "detail": str(e)}, status=403
                         )
 
-                    # if request has sorting parameter
-                # TODO: sort must be done on the elastic side
+                # if request has sorting parameter
                 if "sort" in request.args:
                     sort_criteriae = {}
                     sort_order = asc

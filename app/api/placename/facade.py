@@ -182,7 +182,7 @@ class PlacenameSearchFacade(PlacenameFacade):
 
     def __init__(self, *args, **kwargs):
         super(PlacenameSearchFacade, self).__init__(*args, **kwargs)
-        self.relationships = {}
+        #self.relationships = {}
 
 
 class PlacenameMapFacade(PlacenameSearchFacade):

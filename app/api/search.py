@@ -6,7 +6,7 @@ from flask import current_app
 class SearchIndexManager(object):
 
     @staticmethod
-    def query_index(index, query, sort_criteriae=None, page=None, per_page=None):
+    def query_index(index, query, aggregations=None, sort_criteriae=None, page=None, per_page=None):
         if sort_criteriae is None:
             sort_criteriae = []
         if hasattr(current_app, 'elasticsearch'):
@@ -23,6 +23,9 @@ class SearchIndexManager(object):
                 ]
             }
 
+            if aggregations is not None:
+                body["aggregations"] = aggregations
+
             if per_page is not None:
                 if page is None:
                     page = 0
@@ -38,7 +41,6 @@ class SearchIndexManager(object):
                 if index is None:
                     index = current_app.config["DEFAULT_INDEX_NAME"]
                 search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
-                print(body)
                 # from elasticsearch import Elasticsearch
                 # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type="_doc", body=body)
 
@@ -48,10 +50,15 @@ class SearchIndexManager(object):
                 results = [Result(str(hit['_index']), str(hit['_id']), str(hit['_source']["type"]),
                                   str(hit['_score']))
                            for hit in search['hits']['hits']]
+                buckets = []
 
                 print(body, len(results), search['hits']['total'], index)
+                #print(search)
+                if 'aggregations' in search:
+                    #print(search['aggregations'])
+                    buckets = search["aggregations"]["items"]["buckets"]
 
-                return results, search['hits']['total']
+                return results, buckets, search['hits']['total']
 
             except Exception as e:
                 raise e
