@@ -146,8 +146,8 @@ def make_cli():
         Rebuild the elasticsearch indexes from the current database
         """
         indexes_info = {
-            "placenames": {"facade": PlacenameFacade, "model": Placename},
-            "old-labels": {"facade": PlacenameOldLabelFacade, "model": PlacenameOldLabel},
+            "placenames": {"facade": PlacenameFacade, "model": Placename, "reload-conf": True},
+            "old-labels": {"facade": PlacenameOldLabelFacade, "model": PlacenameOldLabel, "reload-conf": False},
         }
 
         def reindex_from_info(name, info):
@@ -166,7 +166,8 @@ def make_cli():
                     assert (r.status_code == 200)
 
                 try:
-                    load_elastic_conf(name, index_name, delete=delete is not None)
+                    if info["reload-conf"]:
+                        load_elastic_conf(name, index_name, delete=delete is not None)
 
                     stmt = info["model"].query
 

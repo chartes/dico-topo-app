@@ -115,13 +115,14 @@ class PlacenameFacade(JSONAPIAbstractFacade):
 
         payload = {
             "id": self.obj.id,
+            "placename-id": self.obj.id,
             "type": self.TYPE,
 
             "label": self.obj.label,
             "localization-insee-code": co.id if co else None,
 
             "dep-id": self.obj.dpt,
-            "reg-label": co.region.label if co and co.region else None,
+            "reg-id": co.region.insee_code if co and co.region else None,
             "is-localized": co is not None,
             # "#arr-id": co.arrondissement.id if co and co.arrondissement else None,
             # "ct-id": co.canton.id if co and co.canton else None,
@@ -201,7 +202,7 @@ class PlacenameMapFacade(PlacenameSearchFacade):
                 "localization-insee-code": co.id if co else None,
                 "longlat": co.longlat if co else None,
 
-                "dpt": "{0} - {1}".format(co.department.insee_code, co.department.label) if co else None,
+                "dpt": "{0} - {1}".format(co.departement.insee_code, co.departement.label) if co else None,
                 "region": "{0} - {1}".format(co.region.insee_code, co.region.label) if co else None,
             },
             "links": {
