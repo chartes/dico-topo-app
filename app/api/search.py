@@ -25,6 +25,7 @@ class SearchIndexManager(object):
 
             if aggregations is not None:
                 body["aggregations"] = aggregations
+                body["size"] = 0
 
             if per_page is not None:
                 if page is None:
@@ -50,15 +51,18 @@ class SearchIndexManager(object):
                 results = [Result(str(hit['_index']), str(hit['_id']), str(hit['_source']["type"]),
                                   str(hit['_score']))
                            for hit in search['hits']['hits']]
+
                 buckets = []
+                after_key = None
 
                 print(body, len(results), search['hits']['total'], index)
-                #print(search)
-                if 'aggregations' in search:
-                    #print(search['aggregations'])
-                    buckets = search["aggregations"]["items"]["buckets"]
 
-                return results, buckets, search['hits']['total']
+                if 'aggregations' in search:
+                    buckets = search["aggregations"]["items"]["buckets"]
+                    after_key = search["aggregations"]["items"]["after_key"]["item"]
+                    print("aggregations: {0} buckets; after_key: {1}".format(len(buckets), after_key))
+
+                return results, buckets, after_key, search['hits']['total']
 
             except Exception as e:
                 raise e

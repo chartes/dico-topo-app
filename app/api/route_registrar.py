@@ -215,7 +215,7 @@ class JSONAPIRouteRegistrar(object):
 
     def search(self, index, query, aggregations, sort_criteriae, num_page, page_size):
         # query the search engine
-        results, buckets, total = SearchIndexManager.query_index(
+        results, buckets, after_key, total = SearchIndexManager.query_index(
             index=index,
             query=query,
             aggregations=aggregations,
@@ -225,7 +225,7 @@ class JSONAPIRouteRegistrar(object):
         )
 
         if total == 0:
-            return {}, 0
+            return {}, {"total": 0}
 
         res_dict = {}
         if aggregations is None:
@@ -241,7 +241,7 @@ class JSONAPIRouteRegistrar(object):
             if res_type not in res_dict:
                 res_dict[res_type] = []
             for bucket in buckets:
-                print(bucket["key"]["item"])
+                #print(bucket["key"]["item"])
                 res_dict[res_type].append(bucket["key"]["item"])
 
         # fetch the actual objets from their ids
@@ -253,7 +253,7 @@ class JSONAPIRouteRegistrar(object):
                res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids)).order_by(
                    db.case(when, value=m.id))
 
-        return res_dict, total
+        return res_dict, {"total": total, "after": after_key}
 
     def register_search_route(self, decorators=()):
 
@@ -274,24 +274,6 @@ class JSONAPIRouteRegistrar(object):
             query = request.args["query"]
             aggregations = None
 
-            if "groupby[field]" in request.args:
-                aggregations = {
-                    "items": {
-                        "composite": {
-                            "sources": [
-                                {
-                                    "item": {
-                                        "terms": {
-                                            "field": request.args["groupby[field]"]
-                                        }
-                                    }
-                                }
-                            ],
-                            "size": 10000
-                        }
-                    }
-                }
-
             if "," in index:
                 return JSONAPIResponseFactory.make_errors_response(
                     {"status": 403, "title": "search on multiple indexes is not allowed"}, status=403
@@ -309,6 +291,24 @@ class JSONAPIRouteRegistrar(object):
                 num_page = 1
                 page_size = int(current_app.config["SEARCH_RESULT_PER_PAGE"])
 
+            if "groupby[field]" in request.args:
+                aggregations = {
+                    "items": {
+                        "composite": {
+                            "sources": [
+                                {
+                                    "item": {
+                                        "terms": {
+                                            "field": request.args["groupby[field]"]
+                                        }
+                                    }
+                                }
+                            ],
+                            "size": page_size  # TODO: le lier au paramètre page_size et utiliser after_key somehow
+                        }
+                    }
+                }
+
             # Search, retrieve, filter, sort and paginate objs
             sort_criteriae = None
             if "sort" in request.args:
@@ -323,7 +323,7 @@ class JSONAPIRouteRegistrar(object):
                     sort_criteriae.append({criteria: {"order": sort_order}})
 
             try:
-                res, count = self.search(
+                res, meta = self.search(
                     index=index,
                     query=query,
                     aggregations=aggregations,
@@ -341,7 +341,7 @@ class JSONAPIRouteRegistrar(object):
 
             links = {"self": JSONAPIRouteRegistrar.make_url(request.base_url, OrderedDict(request.args))}
 
-            if count <= 0:
+            if meta["total"] <= 0:
                 facade_objs = []
                 included_resources = None
             else:
@@ -394,9 +394,9 @@ class JSONAPIRouteRegistrar(object):
                     )
 
                 args = OrderedDict(request.args)
-                nb_pages = max(1, int(ceil(count / page_size)))
+                nb_pages = max(1, int(ceil(meta["total"] / page_size)))
 
-                keep_pagination = "page[size]" in args or "page[number]" in args or count > page_size
+                keep_pagination = "page[size]" in args or "page[number]" in args or meta["total"] > page_size
                 if keep_pagination:
                     args["page[size]"] = page_size
 
@@ -407,7 +407,7 @@ class JSONAPIRouteRegistrar(object):
                     links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
                     if num_page > 1:
                         n = max(1, num_page - 1)
-                        if n * page_size <= count:
+                        if n * page_size <= meta["total"]:
                             args["page[number]"] = max(1, num_page - 1)
                             links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
                     if num_page < nb_pages:
@@ -444,11 +444,19 @@ class JSONAPIRouteRegistrar(object):
                             if (_res["type"], _res["id"]) not in [(r["type"], r["id"]) for r in included_resources]:
                                 included_resources.append(_res)
                         # included_resources.extend(included_res)
+
+            res_meta = {
+                "total-count": meta["total"],
+                "duration": float('%.4f' % (time.time() - start_time))
+            }
+            if meta["after"] is not None:
+                res_meta["after"] = meta["after"]
+
             return JSONAPIResponseFactory.make_data_response(
                 [f.resource for f in facade_objs],
                 links=links,
                 included_resources=included_resources,
-                meta={"total-count": count, "duration": float('%.4f' % (time.time() - start_time))}
+                meta=res_meta
             )
 
         # APPLY decorators if any
