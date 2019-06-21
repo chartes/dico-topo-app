@@ -1,3 +1,5 @@
+from copy import copy
+
 from app.api.abstract_facade import JSONAPIAbstractFacade
 from app.api.feature_type.facade import FeatureTypeFacade
 
@@ -123,25 +125,24 @@ class PlacenameFacade(JSONAPIAbstractFacade):
 
             "dep-id": self.obj.dpt,
             "reg-id": co.region.insee_code if co and co.region else None,
-            "is-localized": co is not None,
-            # "#arr-id": co.arrondissement.id if co and co.arrondissement else None,
-            # "ct-id": co.canton.id if co and co.canton else None,
-
-            # 'geoname-id': co.geoname_id if co else None,
-            # 'wikidata-item-id': co.wikidata_item_id if co else None,
-            # 'wikipedia-url': co.wikipedia_url if co else None,
-            # 'databnf-ark': co.databnf_ark if co else None,
-            # 'viaf-id': co.viaf_id if co else None,
-
             # "old-labels": [ol.rich_label for ol in self.obj.old_labels],
             # "alt-labels": [al.label for al in self.obj.alt_labels]
-
         }
-        return [{"id": self.obj.id, "index": self.get_index_name(), "payload": payload}]
+
+        payload_groupby_placename = copy(payload)
+        #payload_groupby_placename["old-labels"] = [ol.rich_label for ol in self.obj.old_labels]
+
+        return [
+            {"id": self.obj.id, "index": self.get_index_name(), "payload": payload},
+            #{"id": self.obj.id, "index": "{0}_agg".format(self.get_index_name()), "payload": payload_groupby_placename}
+        ]
 
     def get_data_to_index_when_removed(self, propagate):
         print("GOING TO BE REMOVED FROM INDEX:", [{"id": self.obj.id, "index": self.get_index_name()}])
-        return [{"id": self.obj.id, "index": self.get_index_name()}]
+        return [
+            {"id": self.obj.id, "index": self.get_index_name()},
+            #{"id": self.obj.id, "index": "{0}_agg".format(self.get_index_name())}
+        ]
 
 
 class PlacenameSearchFacade(PlacenameFacade):

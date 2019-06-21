@@ -236,23 +236,25 @@ class JSONAPIRouteRegistrar(object):
                 res_dict[res_type].append(res.id)
         else:
             # aggregations mode
+            print("[aggregation mode] fetching obj from ids")
             res_type = request.args['groupby[model]'].replace("-", "_")
             m = self.models[res_type]
             if res_type not in res_dict:
                 res_dict[res_type] = []
             for bucket in buckets:
-                #print(bucket["key"]["item"])
                 res_dict[res_type].append(bucket["key"]["item"])
+            print("ids fetched !")
 
         # fetch the actual objets from their ids
         for res_type, res_ids in res_dict.items():
-           when = []
-           for i, id in enumerate(res_ids):
-               when.append((id, i))
-               m = self.models[res_type]
-               res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids)).order_by(
-                   db.case(when, value=m.id))
+            when = []
+            for i, id in enumerate(res_ids):
+                when.append((id, i))
+            m = self.models[res_type]
+            res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids)).order_by(
+                db.case(when, value=m.id))
 
+        print({"total": total, "after": after_key})
         return res_dict, {"total": total, "after": after_key}
 
     def register_search_route(self, decorators=()):
@@ -299,8 +301,16 @@ class JSONAPIRouteRegistrar(object):
                                 {
                                     "item": {
                                         "terms": {
-                                            "field": request.args["groupby[field]"]
-                                        }
+                                            "field": request.args["groupby[field]"],
+                                        },
+                                    }
+                                },
+                                {
+                                    "label": {
+                                        "terms": {
+                                            "field": "label.keyword",
+                                        },
+                                        "order": "asc"
                                     }
                                 }
                             ],
