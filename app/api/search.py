@@ -6,7 +6,7 @@ from flask import current_app
 class SearchIndexManager(object):
 
     @staticmethod
-    def query_index(index, query, groupby=None, sort_criteriae=None, page=None, per_page=None, after_key=None):
+    def query_index(index, query, groupby=None, sort_criteriae=None, page=None, per_page=None, after=None):
         if sort_criteriae is None:
             sort_criteriae = []
         if hasattr(current_app, 'elasticsearch'):
@@ -50,9 +50,6 @@ class SearchIndexManager(object):
                 }
                 body["size"] = 0
 
-                if after_key is not None:
-                    body["aggregations"]["items"]["composite"]["after"] = {"item": str(after_key)}
-
                 for crit in sort_criteriae:
                     for crit_name, crit_order in crit.items():
                         body["aggregations"]["items"]["composite"]["sources"].insert(0,
@@ -62,8 +59,11 @@ class SearchIndexManager(object):
                                 }
                             }
                         )
-                        if "after" in body["aggregations"]["items"]["composite"]:
-                            body["aggregations"]["items"]["composite"]["after"][crit_name] = ""
+
+                if after is not None:
+                    sources_keys = [list(s.keys())[0] for s in body["aggregations"]["items"]["composite"]["sources"]]
+                    body["aggregations"]["items"]["composite"]["after"] = dict(zip(sources_keys, after))
+                    print(sources_keys, after, dict(zip(sources_keys, after)))
 
             if per_page is not None:
                 if page is None or groupby is not None:
@@ -80,7 +80,7 @@ class SearchIndexManager(object):
                 if index is None or len(index) == 0:
                     index = current_app.config["DEFAULT_INDEX_NAME"]
 
-                pprint.pprint(body)
+                #pprint.pprint(body)
                 search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
                 # from elasticsearch import Elasticsearch
                 # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type="_doc", body=body)
@@ -97,13 +97,13 @@ class SearchIndexManager(object):
                 count = search['hits']['total']
 
                 #print(body, len(results), search['hits']['total'], index)
-                pprint.pprint(search)
+                #pprint.pprint(search)
                 if 'aggregations' in search:
                     buckets = search["aggregations"]["items"]["buckets"]
 
-                    # greb the after_key returned by ES for future queries
+                    # grab the after_key returned by ES for future queries
                     if "after_key" in search["aggregations"]["items"]:
-                        after_key = search["aggregations"]["items"]["after_key"]["item"]
+                        after_key = search["aggregations"]["items"]["after_key"]
                     print("aggregations: {0} buckets; after_key: {1}".format(len(buckets), after_key))
                     count = search["aggregations"]["type_count"]["value"]
 

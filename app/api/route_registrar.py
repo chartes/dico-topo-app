@@ -26,7 +26,7 @@ else:
 # TODO: voir si le param api_version est encore utile (on peut peut-être juste utiliser url_prefix
 # TODO: gérer les références transitives (qui passent par des relations)
 # TODO: gérer les sparse fields
-
+# TODO: gérer le cas de la pagination dans les links lors des aggregations; virer le link "last"
 
 class JSONAPIRouteRegistrar(object):
     """
@@ -221,7 +221,7 @@ class JSONAPIRouteRegistrar(object):
             groupby=groupby,
             sort_criteriae=sort_criteriae,
             page=page_id,
-            after_key=page_after,
+            after=page_after,
             per_page=page_size
         )
 
@@ -384,18 +384,25 @@ class JSONAPIRouteRegistrar(object):
                     args["page[size]"] = page_size
 
                 if keep_pagination:
-                    args["page[number]"] = 1
-                    links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    args["page[number]"] = nb_pages
-                    links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page > 1:
-                        n = max(1, num_page - 1)
-                        if n * page_size <= meta["total"]:
-                            args["page[number]"] = max(1, num_page - 1)
-                            links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
-                    if num_page < nb_pages:
-                        args["page[number]"] = min(nb_pages, num_page + 1)
-                        links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                    if groupby is not None:
+                        if "after" in meta and meta["after"] is not None:
+                            args["page[after]"] = ",".join(list(meta["after"].values()))
+                            links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                            if links["next"] == links["self"]:
+                                links.pop("next")
+                    else:
+                        args["page[number]"] = 1
+                        links["first"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        args["page[number]"] = nb_pages
+                        links["last"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        if num_page > 1:
+                            n = max(1, num_page - 1)
+                            if n * page_size <= meta["total"]:
+                                args["page[number]"] = max(1, num_page - 1)
+                                links["prev"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
+                        if num_page < nb_pages:
+                            args["page[number]"] = min(nb_pages, num_page + 1)
+                            links["next"] = JSONAPIRouteRegistrar.make_url(request.base_url, args)
 
                 # should we retrieve relationships too ?
                 w_rel_links, w_rel_data = JSONAPIRouteRegistrar.get_relationships_mode(request.args)
