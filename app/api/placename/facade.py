@@ -121,6 +121,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
             "type": self.TYPE,
 
             "label": self.obj.label,
+            "placename-label": self.obj.label,
             "localization-insee-code": co.id if co else None,
 
             "dep-id": self.obj.dpt,
@@ -129,7 +130,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
             # "alt-labels": [al.label for al in self.obj.alt_labels]
         }
 
-        payload_groupby_placename = copy(payload)
+        #payload_groupby_placename = copy(payload)
         #payload_groupby_placename["old-labels"] = [ol.rich_label for ol in self.obj.old_labels]
 
         return [

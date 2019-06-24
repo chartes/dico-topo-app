@@ -17,6 +17,9 @@ class SearchIndexManager(object):
                         # 'fields': ['collections'] if fields is None or len(fields) == 0 else fields
                     }
                 },
+                "aggregations": {
+
+                },
                 "sort": [
                     #  {"creation": {"order": "desc"}}
                     *sort_criteriae
@@ -26,6 +29,15 @@ class SearchIndexManager(object):
             if aggregations is not None:
                 body["aggregations"] = aggregations
                 body["size"] = 0
+                for crit in sort_criteriae:
+                    body["aggregations"]["items"]["composite"]["sources"].append(
+                        {
+                            crit_name: {
+                                "terms": {"field": crit_name, **crit_order},
+                            }
+                            for crit_name, crit_order in crit.items()
+                        }
+                    )
 
             if per_page is not None:
                 if page is None:

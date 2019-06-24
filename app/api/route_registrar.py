@@ -305,14 +305,14 @@ class JSONAPIRouteRegistrar(object):
                                         },
                                     }
                                 },
-                                {
-                                    "label": {
-                                        "terms": {
-                                            "field": "label.keyword",
-                                        },
-                                        "order": "asc"
-                                    }
-                                }
+                                #{
+                                #    "label": {
+                                #        "terms": {
+                                #            "field": "label.keyword",
+                                #        },
+                                #        "order": "asc"
+                                #    }
+                                #}
                             ],
                             "size": page_size  # TODO: le lier au paramètre page_size et utiliser after_key somehow
                         }

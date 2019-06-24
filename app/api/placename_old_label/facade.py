@@ -139,10 +139,11 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
         payload = {
             "id": self.obj.id,
             "placename-id": self.obj.placename.id,
+            "placename-label": self.obj.placename.label,
 
             "type": self.TYPE,
-
             "label": self.obj.rich_label,
+
             "localization-insee-code": co.id if co else None,
 
             "dep-id": self.obj.placename.dpt,
