@@ -213,14 +213,15 @@ class JSONAPIRouteRegistrar(object):
             objs_query = objs_query.order_by(sort_order(*sort_criteriae))
         return objs_query
 
-    def search(self, index, query, aggregations, sort_criteriae, num_page, page_size):
+    def search(self, index, query, groupby, sort_criteriae, page_id, page_size, page_after):
         # query the search engine
         results, buckets, after_key, total = SearchIndexManager.query_index(
             index=index,
             query=query,
-            aggregations=aggregations,
+            groupby=groupby,
             sort_criteriae=sort_criteriae,
-            page=num_page,
+            page=page_id,
+            after_key=page_after,
             per_page=page_size
         )
 
@@ -228,14 +229,14 @@ class JSONAPIRouteRegistrar(object):
             return {}, {"total": 0}
 
         res_dict = {}
-        if aggregations is None:
+        if groupby is None:
             for res in results:
                 res_type = res.type.replace("-", "_")
                 if res_type not in res_dict:
                     res_dict[res_type] = []
                 res_dict[res_type].append(res.id)
         else:
-            # aggregations mode
+            # groupby mode
             print("[aggregation mode] fetching obj from ids")
             res_type = request.args['groupby[model]'].replace("-", "_")
             m = self.models[res_type]
@@ -245,14 +246,16 @@ class JSONAPIRouteRegistrar(object):
                 res_dict[res_type].append(bucket["key"]["item"])
             print("ids fetched !")
 
-        # fetch the actual objets from their ids
+        # fetch the actual objects from their ids
         for res_type, res_ids in res_dict.items():
             when = []
             for i, id in enumerate(res_ids):
                 when.append((id, i))
+
             m = self.models[res_type]
-            res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids)).order_by(
-                db.case(when, value=m.id))
+            res_dict[res_type] = db.session.query(m).filter(m.id.in_(res_ids))
+            if len(when) > 0:
+                res_dict[res_type] = res_dict[res_type].order_by(db.case(when, value=m.id))
 
         print({"total": total, "after": after_key})
         return res_dict, {"total": total, "after": after_key}
@@ -272,14 +275,9 @@ class JSONAPIRouteRegistrar(object):
             url_prefix = request.host_url[:-1] + self.url_prefix
 
             # PARAMETERS
-            index = request.args.get("index", "")
+            index = request.args.get("index", None)
             query = request.args["query"]
-            aggregations = None
-
-            if "," in index:
-                return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "search on multiple indexes is not allowed"}, status=403
-                )
+            groupby = request.args["groupby[field]"] if "groupby[field]" in request.args else None
 
             # if request has pagination parameters
             # add links to the top-level object
@@ -292,32 +290,6 @@ class JSONAPIRouteRegistrar(object):
             else:
                 num_page = 1
                 page_size = int(current_app.config["SEARCH_RESULT_PER_PAGE"])
-
-            if "groupby[field]" in request.args:
-                aggregations = {
-                    "items": {
-                        "composite": {
-                            "sources": [
-                                {
-                                    "item": {
-                                        "terms": {
-                                            "field": request.args["groupby[field]"],
-                                        },
-                                    }
-                                },
-                                #{
-                                #    "label": {
-                                #        "terms": {
-                                #            "field": "label.keyword",
-                                #        },
-                                #        "order": "asc"
-                                #    }
-                                #}
-                            ],
-                            "size": page_size  # TODO: le lier au paramètre page_size et utiliser after_key somehow
-                        }
-                    }
-                }
 
             # Search, retrieve, filter, sort and paginate objs
             sort_criteriae = None
@@ -336,9 +308,10 @@ class JSONAPIRouteRegistrar(object):
                 res, meta = self.search(
                     index=index,
                     query=query,
-                    aggregations=aggregations,
+                    groupby=groupby,
                     sort_criteriae=sort_criteriae,
-                    num_page=num_page,
+                    page_id=num_page,
+                    page_after=request.args["page[after]"] if "page[after]" in request.args else None,
                     page_size=page_size
                 )
             except Exception as e:
@@ -366,33 +339,33 @@ class JSONAPIRouteRegistrar(object):
                             {"status": 403, "title": "Cannot fetch data", "detail": str(e)}, status=403
                         )
 
-                # if request has sorting parameter
-                if "sort" in request.args:
-                    sort_criteriae = {}
-                    sort_order = asc
-                    for criteria in request.args["sort"].split(','):
-                        # prefixing with minus means a DESC order
-                        if criteria.startswith('-'):
-                            sort_order = desc
-                            criteria = criteria[1:]
-                        # try to add criteria
-                        c = criteria.split(".")
-                        if len(c) == 2:
-                            m = self.models.get(c[0])
-                            if m:
-                                if hasattr(m, c[1]):
-                                    if c[0] not in sort_criteriae:
-                                        sort_criteriae[c[0]] = []
-                                    sort_criteriae[c[0]].append(getattr(m, c[1]))
-
-                    print("sort criteriae: ", request.args["sort"], sort_criteriae)
-                    for criteria_table_name in sort_criteriae.keys():
-                        # reset the order clause
-                        if criteria_table_name in res.keys():
-                            res[criteria_table_name] = res[criteria_table_name].order_by(False)
-                            # then apply the user order criteriae
-                            for c in sort_criteriae[criteria_table_name]:
-                                res[criteria_table_name] = res[criteria_table_name].order_by(sort_order(c))
+                # if request has sorting parameter and not doing aggregation (sort is performed
+                #if "sort" in request.args and groupby is None:
+                #    sort_criteriae = {}
+                #    sort_order = asc
+                #    for criteria in request.args["sort"].split(','):
+                #        # prefixing with minus means a DESC order
+                #        if criteria.startswith('-'):
+                #            sort_order = desc
+                #            criteria = criteria[1:]
+                #        # try to add criteria
+                #        c = criteria.split(".")
+                #        if len(c) == 2:
+                #            m = self.models.get(c[0])
+                #            if m:
+                #                if hasattr(m, c[1]):
+                #                    if c[0] not in sort_criteriae:
+                #                        sort_criteriae[c[0]] = []
+                #                    sort_criteriae[c[0]].append(getattr(m, c[1]))
+                #
+                #    print("sort criteriae: ", request.args["sort"], sort_criteriae)
+                #    for criteria_table_name in sort_criteriae.keys():
+                #        # reset the order clause
+                #        if criteria_table_name in res.keys():
+                #            res[criteria_table_name] = res[criteria_table_name].order_by(False)
+                #            # then apply the user order criteriae
+                #            for c in sort_criteriae[criteria_table_name]:
+                #                res[criteria_table_name] = res[criteria_table_name].order_by(sort_order(c))
 
                 try:
                     for idx in res.keys():

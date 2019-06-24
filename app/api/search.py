@@ -6,7 +6,7 @@ from flask import current_app
 class SearchIndexManager(object):
 
     @staticmethod
-    def query_index(index, query, aggregations=None, sort_criteriae=None, page=None, per_page=None):
+    def query_index(index, query, groupby=None, sort_criteriae=None, page=None, per_page=None, after_key=None):
         if sort_criteriae is None:
             sort_criteriae = []
         if hasattr(current_app, 'elasticsearch'):
@@ -26,21 +26,47 @@ class SearchIndexManager(object):
                 ]
             }
 
-            if aggregations is not None:
-                body["aggregations"] = aggregations
-                body["size"] = 0
-                for crit in sort_criteriae:
-                    body["aggregations"]["items"]["composite"]["sources"].append(
-                        {
-                            crit_name: {
-                                "terms": {"field": crit_name, **crit_order},
-                            }
-                            for crit_name, crit_order in crit.items()
+            if groupby is not None:
+                body["aggregations"] = {
+                    "items": {
+                        "composite": {
+                            "sources": [
+                                {
+                                    "item": {
+                                        "terms": {
+                                            "field": groupby,
+                                        },
+                                    }
+                                },
+                            ],
+                            "size": per_page
                         }
-                    )
+                    },
+                    "type_count": {
+                        "cardinality": {
+                            "field": "placename-id.keyword"
+                        }
+                    }
+                }
+                body["size"] = 0
+
+                if after_key is not None:
+                    body["aggregations"]["items"]["composite"]["after"] = {"item": str(after_key)}
+
+                for crit in sort_criteriae:
+                    for crit_name, crit_order in crit.items():
+                        body["aggregations"]["items"]["composite"]["sources"].insert(0,
+                            {
+                                crit_name: {
+                                    "terms": {"field": crit_name, **crit_order},
+                                }
+                            }
+                        )
+                        if "after" in body["aggregations"]["items"]["composite"]:
+                            body["aggregations"]["items"]["composite"]["after"][crit_name] = ""
 
             if per_page is not None:
-                if page is None:
+                if page is None or groupby is not None:
                     page = 0
                 else:
                     page = page - 1  # is it correct ?
@@ -51,8 +77,10 @@ class SearchIndexManager(object):
                 body["size"] = per_page
                 # print("WARNING: /!\ for debug purposes the query size is limited to", body["size"])
             try:
-                if index is None:
+                if index is None or len(index) == 0:
                     index = current_app.config["DEFAULT_INDEX_NAME"]
+
+                pprint.pprint(body)
                 search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
                 # from elasticsearch import Elasticsearch
                 # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type="_doc", body=body)
@@ -66,15 +94,20 @@ class SearchIndexManager(object):
 
                 buckets = []
                 after_key = None
+                count = search['hits']['total']
 
-                print(body, len(results), search['hits']['total'], index)
-
+                #print(body, len(results), search['hits']['total'], index)
+                pprint.pprint(search)
                 if 'aggregations' in search:
                     buckets = search["aggregations"]["items"]["buckets"]
-                    after_key = search["aggregations"]["items"]["after_key"]["item"]
-                    print("aggregations: {0} buckets; after_key: {1}".format(len(buckets), after_key))
 
-                return results, buckets, after_key, search['hits']['total']
+                    # greb the after_key returned by ES for future queries
+                    if "after_key" in search["aggregations"]["items"]:
+                        after_key = search["aggregations"]["items"]["after_key"]["item"]
+                    print("aggregations: {0} buckets; after_key: {1}".format(len(buckets), after_key))
+                    count = search["aggregations"]["type_count"]["value"]
+
+                return results, buckets, after_key, count
 
             except Exception as e:
                 raise e
