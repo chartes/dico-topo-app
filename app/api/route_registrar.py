@@ -238,7 +238,7 @@ class JSONAPIRouteRegistrar(object):
         else:
             # groupby mode
             print("[aggregation mode] fetching obj from ids")
-            res_type = request.args['groupby[model]'].replace("-", "_")
+            res_type = request.args['groupby[doc-type]'].replace("-", "_")
             m = self.models[res_type]
             if res_type not in res_dict:
                 res_dict[res_type] = []
