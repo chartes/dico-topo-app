@@ -62,8 +62,8 @@ class SearchIndexManager(object):
 
                 if after is not None:
                     sources_keys = [list(s.keys())[0] for s in body["aggregations"]["items"]["composite"]["sources"]]
-                    body["aggregations"]["items"]["composite"]["after"] = dict(zip(sources_keys, after))
-                    print(sources_keys, after, dict(zip(sources_keys, after)))
+                    body["aggregations"]["items"]["composite"]["after"] = {key: value for key, value in zip(sources_keys, after.split(','))}
+                    print(sources_keys, after, {key: value for key, value in zip(sources_keys, after.split(','))})
 
             if per_page is not None:
                 if page is None or groupby is not None:
@@ -80,7 +80,7 @@ class SearchIndexManager(object):
                 if index is None or len(index) == 0:
                     index = current_app.config["DEFAULT_INDEX_NAME"]
 
-                #pprint.pprint(body)
+                pprint.pprint(body)
                 search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
                 # from elasticsearch import Elasticsearch
                 # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type="_doc", body=body)

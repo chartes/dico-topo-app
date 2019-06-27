@@ -162,6 +162,7 @@ class PlacenameSearchFacade(PlacenameFacade):
             "attributes": {
                 "placename-id": self.obj.id,
                 "placename-label": self.obj.label,
+                "old-labels": [o.rich_label for o in self.obj.old_labels],
                 "localization-insee-code": co.id if co else None,
                 "dpt": self.obj.dpt,
                 "region": co.region.label if co else None,
