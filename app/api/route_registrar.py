@@ -1,3 +1,4 @@
+import pprint
 import time
 
 import json
@@ -239,11 +240,22 @@ class JSONAPIRouteRegistrar(object):
             # groupby mode
             print("[aggregation mode] fetching obj from ids")
             res_type = request.args['groupby[doc-type]'].replace("-", "_")
-            m = self.models[res_type]
-            if res_type not in res_dict:
-                res_dict[res_type] = []
+            if "groupby[id-mapping]" in request.args:
+                mapper_name = request.args['groupby[id-mapping]'].replace("-", "_")
+            else:
+                mapper_name = "default"
+
+            res_dict[res_type] = []
             for bucket in buckets:
-                res_dict[res_type].append(bucket["key"]["item"])
+                # transform the id if needed
+                if res_type in JSONAPIFacadeManager.IDMapper:
+                    mapper = JSONAPIFacadeManager.IDMapper[res_type]
+                    if mapper_name in mapper:
+                        mapper = mapper[mapper_name]
+                else:
+                    mapper = lambda s: s
+
+                res_dict[res_type].append(mapper(bucket["key"]["item"]))
             print("ids fetched !")
 
         # fetch the actual objects from their ids
@@ -439,7 +451,7 @@ class JSONAPIRouteRegistrar(object):
                 "total-count": meta["total"],
                 "duration": float('%.4f' % (time.time() - start_time))
             }
-            if meta["after"] is not None:
+            if "after" in meta:
                 res_meta["after"] = meta["after"]
 
             return JSONAPIResponseFactory.make_data_response(

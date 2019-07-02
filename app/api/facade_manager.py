@@ -12,6 +12,13 @@ class JSONAPIFacadeManager(object):
 
     FACADE_TYPES = ("default", "search", "map")
 
+    IDMapper = {
+        InseeRef.__tablename__: {
+            "default": lambda id: "DEP_%s" % id,
+            "department": lambda id: "DEP_%s" % id
+        },
+    }
+
     FACADES = {
         Placename.__name__: {
             "default": PlacenameFacade,
@@ -36,7 +43,7 @@ class JSONAPIFacadeManager(object):
         InseeRef.__name__: {
             "default": InseeRefFacade,
             "search": InseeRefFacade,
-            "map": InseeRefFacade
+            "map": InseeRefFacade,
         },
         FeatureType.__name__: {
             "default": FeatureTypeFacade,

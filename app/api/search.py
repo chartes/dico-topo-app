@@ -105,6 +105,7 @@ class SearchIndexManager(object):
                     if "after_key" in search["aggregations"]["items"]:
                         after_key = search["aggregations"]["items"]["after_key"]
                     print("aggregations: {0} buckets; after_key: {1}".format(len(buckets), after_key))
+                    pprint.pprint(buckets)
                     count = search["aggregations"]["type_count"]["value"]
 
                 return results, buckets, after_key, count
