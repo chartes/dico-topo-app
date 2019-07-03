@@ -72,7 +72,9 @@ def insert_placename_values(db, cursor, dt_id):
         placename['label'] = entry.xpath('vedette/sm[1]')[0].text.rstrip(',')
         placename['label'] = placename['label'].strip()
         # DT01 : des labels préfixés avec "*" (les formes reconstituées/hypothétiques pour les lieux disparus, selon SN)
-        placename['label'] = format(placename['label'][1:] if placename['label'].startswith('*') else placename['label'])
+        # placename['label'] = format(placename['label'][1:] if placename['label'].startswith('*') else placename['label'])
+        # Parfois à la fin de la vedette (cf DT72), plus radical :
+        placename['label'] = placename['label'].replace('*', '')
 
         # code insee (si commune, optionnel)
         placename['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
@@ -158,17 +160,20 @@ def insert_placename_values(db, cursor, dt_id):
         xslt_commentaire2html = etree.parse(commentaire2html)
         transform_commentaire2html = etree.XSLT(xslt_commentaire2html)
 
-
+        placename['comment'] = ''
         if entry.xpath('commentaire'):
-            #placename['comment'] = tostring(entry.xpath('commentaire')[0], encoding='unicode')
-            placename['comment'] = str(transform_commentaire2html(entry.xpath('commentaire')[0])).strip()
-            placename['comment'] = " ".join(placename['comment'].split()) # remove multiple spaces
-            print(placename['comment'])
-            continue
+            for commentaire in entry.xpath('commentaire'):
+                comment = str(transform_commentaire2html(commentaire)).strip()
+                # remove multiple spaces
+                comment = " ".join(comment.split())
+                # hack bad XML format (plus à ça près)
+                comment = comment.replace('.</a>', '</a>.')
+                comment = comment.replace('.">', '">')
+                comment = comment.replace(' <sup>', '<sup>')
+                # optimiser append
+                placename['comment'] += comment
         else:
-            continue
-            #placename['comment'] = None
-
+            placename['comment'] = None
 
         # INSERTIONS
         try:
