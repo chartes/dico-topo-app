@@ -14,11 +14,13 @@ templates = {}
 def addLink(id):
     return {"type": "closeMatch", "identifer": id}
 
+
 def addPrefix(name):
     if name[0].lower() in 'aeiouyïäâëüûôöéèê':
         return "l'{0}".format(name)
     else:
         return name
+
 
 def from_template(fn):
     if fn not in templates:
@@ -41,7 +43,6 @@ def export_placename_to_linkedplace(request, input_data):
     if not isinstance(input_data["data"], list):
         input_data["data"] = [input_data["data"]]
 
-    frontend_url = current_app.config['APP_FRONTEND_URL']
     # just converting the incoming jsonapi data into a simpler json format of my own
     for placename_jsonapi in input_data["data"]:
 
@@ -54,14 +55,14 @@ def export_placename_to_linkedplace(request, input_data):
         resource = placename_f.resource
 
         feature = from_template('Feature.json')
-        feature["@id"] = resource["links"]["self"] #'""{0}/placenames/{1}".format(frontend_url, resource["id"])
+        feature["@id"] = resource["links"]["self"]  # '""{0}/placenames/{1}".format(frontend_url, resource["id"])
         feature["properties"]["title"] = resource["attributes"]["label"]
         feature["properties"]["ccodes"] = [resource["attributes"]["country"]]
 
         if resource["attributes"]["desc"] and len(resource["attributes"]["desc"]) > 0:
             feature["descriptions"] = [
                 {
-                    "@id": feature["@id"], #input_data["links"]["self"].split('?')[0],
+                    "@id": feature["@id"],  # input_data["links"]["self"].split('?')[0],
                     "value": resource["attributes"]["desc"],
                     "lang": "fr"
                 }
@@ -147,22 +148,22 @@ def export_placename_to_linkedplace(request, input_data):
                     "relationType": "gvp:broaderPartitive",
                     "relationTo": "http://id.insee.fr/geo/region/{0}".format(co.region.insee_code),
                     "label": "région de {0}".format(addPrefix(co.region.label)),
-                    #"when": {"timespans": []}
+                    # "when": {"timespans": []}
                 })
             if co.departement:
                 feature["relations"].append({
                     "relationType": "gvp:broaderPartitive",
                     "relationTo": "http://id.insee.fr/geo/departement/{0}".format(co.departement.insee_code),
                     "label": "département de {0}".format(addPrefix(co.departement.label)),
-                    #"when": {"timespans": []}
+                    # "when": {"timespans": []}
                 })
             # need proper ids
-            #if co.arrondissement:
+            # if co.arrondissement:
             #    feature["relations"].append({
             #        "relationType": "gvp:broaderPartitive",
             #        "relationTo": "http://id.insee.fr/geo/arrondissement/{0}".format(co.arrondissement.insee_code)
             #    })
-            #if co.canton:
+            # if co.canton:
             #    feature["relations"].append({
             #        "relationType": "gvp:broaderPartitive",
             #        "relationTo": "http://id.insee.fr/geo/canton/{0}".format(co.canton.insee_code)
@@ -177,7 +178,7 @@ def export_placename_to_linkedplace(request, input_data):
                     "relationType": "gvp:tgn3000_related_to",
                     "relationTo": lp_f.self_link,
                     "label": lp_f.resource["attributes"]["label"],
-                    #"when": {"timespans": []}
+                    # "when": {"timespans": []}
                 })
 
         # links
@@ -215,3 +216,25 @@ def export_placename_to_linkedplace(request, input_data):
     return feature_collection, 200, {}, "application/json"
 
 
+def export_placename_to_inline_linkedplace(request, input_data):
+    exp, _, _, _ = export_placename_to_linkedplace(request, input_data)
+    filename = "/tmp/feat.json"
+
+    num_page = 1 if "page[number]" not in request.args else request.args["page[number]"]
+    output = "/tmp/inlined-feats.{0}.json".format(num_page)
+
+    try:
+        os.remove(output)
+    except Exception as e:
+        pass
+
+    for i, feat in enumerate(exp["features"]):
+        with open(filename, "w", encoding='utf-8') as jsonfile:
+            json.dump(feat, jsonfile, ensure_ascii=False)
+
+        code = os.system('jq -c . {0} >> {1}'.format(filename, output))
+        print(i, code)
+
+    with open(output, "r", encoding='utf-8') as inlined:
+        print(len(exp["features"]))
+        return inlined.read(), 200, {}, "text/plain"

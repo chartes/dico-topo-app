@@ -9,7 +9,10 @@ filename = '../communes-linking.tsv'
 
 if __name__ == "__main__":
     # python communes-linking.py dev
-    app = create_app(sys.argv[1])
+    try:
+        app = create_app(sys.argv[1])
+    except Exception as e:
+        raise e
 
     with app.app_context():
 

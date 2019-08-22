@@ -49,25 +49,14 @@ def api_require_roles(*required_roles):
     return wrap
 
 
-from app.api.placename.decorators.exports.linkedplaces import export_placename_to_linkedplace
-
-export_funcs = {
-    # the export format will be available under this http parameter value.
-    # ex: http://localhost:5003/dico-topo/api/1.0/placenames?page[size]=200&without-relationships&export=linkedplaces
-    #     or
-    #     http://localhost:5003/dico-topo/api/1.0/placenames/DT02-02878?export=linkedplaces
-    "linkedplaces": export_placename_to_linkedplace
-}
-
-
-def export_to(export_format):
+def export_to(export_funcs):
     def wrap(view_function):
         @wraps(view_function)
         def wrapped_f(*args, **kwargs):
             response = view_function(*args, **kwargs)
             if "export" in request.args:
                 asked_format = request.args["export"]
-                if asked_format not in export_funcs or export_format not in export_funcs:
+                if asked_format not in export_funcs:
                     raise ValueError('export format unknown or unavailable')
                 func = export_funcs[asked_format]
                 try:
