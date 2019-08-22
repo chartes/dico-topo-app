@@ -6,16 +6,30 @@ from flask import current_app
 class SearchIndexManager(object):
 
     @staticmethod
-    def query_index(index, query, groupby=None, sort_criteriae=None, page=None, per_page=None, after=None):
+    def query_index(index, query, range=None, groupby=None, sort_criteriae=None, page=None, per_page=None, after=None):
         if sort_criteriae is None:
             sort_criteriae = []
         if hasattr(current_app, 'elasticsearch'):
             body = {
-                'query': {
-                    'query_string': {
-                        'query': query,
-                        # 'fields': ['collections'] if fields is None or len(fields) == 0 else fields
-                    }
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "query_string": {
+                                    "query": query
+                                }
+                            }
+                            #,
+                            #{
+                            #    "range": {
+                            #        "text-date": {
+                            #            "gte": 1780,
+                            #            "boost": 2.0
+                            #        }
+                            #    }
+                            #}
+                        ]
+                    },
                 },
                 "aggregations": {
 
@@ -25,6 +39,10 @@ class SearchIndexManager(object):
                     *sort_criteriae
                 ]
             }
+
+            if range is not None:
+                body["query"]["bool"]["must"].append({"range": range})
+                pprint.pprint(body)
 
             if groupby is not None:
                 body["aggregations"] = {

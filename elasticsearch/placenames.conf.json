@@ -9,6 +9,10 @@
               "type": "keyword"
             }
           }
+        },
+        "text-date" : {
+          "type": "date",
+          "format": "year"
         }
       }
     }

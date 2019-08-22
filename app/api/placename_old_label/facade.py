@@ -70,6 +70,16 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
             self.with_relationships_data
         ).resource
 
+    @staticmethod
+    def parse_date(d):
+        # try parsing the date field and put NULL if impossible
+        try:
+            parsed_text_date = int(d)
+        except Exception as e:
+            print(e)
+            parsed_text_date = None
+        return parsed_text_date
+
     @property
     def resource(self):
         """ """
@@ -128,6 +138,8 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
             index_name=PlacenameFacade.TYPE_PLURAL
         )
 
+
+
     def get_data_to_index_when_added(self, propagate):
         if self.obj.placename.commune:
             co = self.obj.placename.commune
@@ -150,8 +162,10 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
             "reg-id": co.region.insee_code if co and co.region else None,
             "is-localized": co is not None,
 
+            "text-date": self.parse_date(self.obj.text_date),
             #"old-labels": [self.obj.rich_label],
         }
+
         return [{"id": self.obj.id, "index": self.get_index_name(), "payload": payload}]
 
     def get_data_to_index_when_removed(self, propagate):
@@ -187,6 +201,7 @@ class PlacenameOldLabelSearchFacade(PlacenameOldLabelFacade):
                 "longlat": co.longlat if co else None,
                 "rich-label": self.obj.rich_label,
                 "text-label-node": self.obj.text_label_node,
+                "text-date": self.parse_date(self.obj.text_date),
                 "rich-date": self.obj.rich_date,
                 "rich-reference": self.obj.rich_reference,
 
