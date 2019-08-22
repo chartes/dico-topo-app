@@ -91,9 +91,8 @@ def insert_placename_values(db, cursor, dt_id):
 
         # COMMENTAIRE**S**
         # possiblement plusieurs commentaires et plusieurs paragraphes par commentaire (//commentaire[2]/p[2])
-        # CHOIX de regrouper tous les commentaires en conservant la séquence des <p>:
-        # éviter de changer le modèle en autorisant plusieurs commentaires par Place – TODO: valider ce choix avec JP
-        # NB. impossible de déterminer sur quoi porte un commentaire (l’article, la forme ?): choix de le faire porter par défaut sur le Place
+        # un html5:article par commentaire, avec html5:p
+        # NB. impossible de déterminer sur quoi porte un commentaire (l’article, la forme ?)
 
         # conversion HTML5 de chaque commentaire
         # contient els: p, pg, date, forme_ancienne2, i, sm, sup, note, reference, renvoi
@@ -103,7 +102,9 @@ def insert_placename_values(db, cursor, dt_id):
             <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <xsl:output method="text"/>
                 <xsl:template match="/">
+                    <xsl:text>&lt;article></xsl:text>
                     <xsl:apply-templates/>
+                    <xsl:text>&lt;/article></xsl:text>
                 </xsl:template>
                 <xsl:template match="pg"/>
                 <xsl:template match="p">
@@ -320,6 +321,9 @@ def insert_placename_old_label(db, cursor, dt_id):
     clean_markup = re.compile(',(</[^>]+>)') # sortir la virgule du markup (span, cite, dfn, ?)
 
     # utilitaires pour extraire et nettoyer les formes anciennes
+    # relou, support xpath incomplet, on ne peut pas sortir le texte qui suit le dernier élément <i>
+    # <xsl:template match="i[position()=last()]/following-sibling::text()"/>
+    # On corrige plus loin en traitement de chaîne de chars.
     get_old_label = io.StringIO('''\
         <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             <xsl:output method="text"/>
@@ -454,13 +458,7 @@ def insert_placename_old_label(db, cursor, dt_id):
                 old_label_html_str = "<p>%s</p>" % (old_label_html_str) # on encapsule dans un <p> ? dans <li> ? Todo: à (re)voir
                 # sortir les préfixes "*" des formes anciennes et les conserver dans les références (moche)
                 old_label_html_str = old_label_html_str.replace('<dfn>*', '<dfn>')
-                """
-                if '*' not in old_label_html_str:
-                    continue
-                else:
-                    print(placename['id'] + '=>' + old_label_html_str)
-                    continue
-                """
+
                 # tout le contenu de l’élément forme_ancienne, dépouillé des balises
                 old_label_nude_str = re.sub(tags, '', old_label_html_str)
                 # DFN
@@ -470,10 +468,24 @@ def insert_placename_old_label(db, cursor, dt_id):
                 dfn = dfn.replace('<dfn>*', '<dfn>') # déprime de la gestion de l’"*" initiale (cf plus haut aussi)
                 dfn = dfn.replace(',</dfn>', '</dfn>,') # sortir la ponctuation avant normalisation de la fin de la chaîne
                 dfn = re.sub(clean_end, '', dfn)
+                dfn = dfn.rstrip()  # ceintures bretelles
+                # On vire le texte qui suit le dernier élément <dfn> (support xpath insuffisant avec lxml)
+                pos = dfn.rfind('</dfn>')
+                dfn = dfn[:pos+6]
+                # 7201 formes anciennes font plus de 100 chars : on coupe !
+                # TODO: corriger XML ou le code de chargement pour repositionner les balises dans la chaîne conservée
+                # use iterator: re.finditer('</dfn>', dfn)
+                if len(dfn) > 100:
+                    # on vire les balises, pour rien risquer…
+                    dfn = re.sub(tags, '', dfn)
+                    dfn = dfn[:100].strip() + '…'
+
                 # DATE – Attention au mauvais formatage des dates dans les XML (des sauts de lignes intempestifs…)
                 # TODO: du code pour normaliser les dates "textuelles"
                 rich_date = str(transform_old_label2rich_date(tree))
                 date = re.sub(tags, '', rich_date)
+                # remove multiple spaces
+                date = " ".join(date.split())
                 # print(rich_date + ' = ' + date)
                 # Ref (référence de la forme ancienne) ; 1 forme_ancienne avec plus d’une réf ! (pour l’instant, on les vire = choix du prestataire d’ailleurs…)
                 # contenu riche : i, sup, pg (on les sort en XSLT), date, sm
