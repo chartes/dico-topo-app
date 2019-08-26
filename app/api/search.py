@@ -19,15 +19,6 @@ class SearchIndexManager(object):
                                     "query": query
                                 }
                             }
-                            #,
-                            #{
-                            #    "range": {
-                            #        "text-date": {
-                            #            "gte": 1780,
-                            #            "boost": 2.0
-                            #        }
-                            #    }
-                            #}
                         ]
                     },
                 },
@@ -42,7 +33,6 @@ class SearchIndexManager(object):
 
             if range is not None:
                 body["query"]["bool"]["must"].append({"range": range})
-                pprint.pprint(body)
 
             if groupby is not None:
                 body["aggregations"] = {
