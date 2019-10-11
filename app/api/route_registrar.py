@@ -932,23 +932,23 @@ class JSONAPIRouteRegistrar(object):
                 request_data = json_loads(request.data)
             except json.decoder.JSONDecodeError as e:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "The request body is malformed", "detail": str(e)}, status=403
+                    {"status": 400, "title": "The request body is malformed", "detail": str(e)}, status=400
                 )
 
             if "data" not in request_data:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "Missing 'data' section" % request.data}, status=403
+                    {"status": 400, "title": "Missing 'data' section" % request.data}, status=400
                 )
             else:
                 # let's check the request body
                 if "type" not in request_data["data"]:
                     return JSONAPIResponseFactory.make_errors_response(
-                        {"status": 403, "title": "Missing 'type' attribute"}, status=403
+                        {"status": 400, "title": "Missing 'type' attribute"}, status=400
                     )
 
                 if request_data["data"]["type"] != facade_class.TYPE:
                     return JSONAPIResponseFactory.make_errors_response(
-                        {"status": 403, "title": "Wrong resource type"}, status=403
+                        {"status": 400, "title": "Wrong resource type"}, status=400
                     )
 
                 d = request_data["data"]
@@ -975,9 +975,9 @@ class JSONAPIRouteRegistrar(object):
                     related_resources[rel_name] = []
                     if not rel or "data" not in rel:
                         return JSONAPIResponseFactory.make_errors_response(
-                            {"status": 403,
+                            {"status": 400,
                              "title": "Section 'data' is missing from relationship '%s'" % rel_name},
-                            status=403
+                            status=400
                         )
                     elif not rel["data"]:
                         # if rel data is null then just skip this relationships
@@ -992,17 +992,17 @@ class JSONAPIRouteRegistrar(object):
 
                         if "type" not in rel_item:
                             return JSONAPIResponseFactory.make_errors_response(
-                                {"status": 403,
+                                {"status": 400,
                                  "title": "Attribute 'type' is missing from an item of the relationship '%s'" % rel_name},
-                                status=403
+                                status=400
                             )
 
                         # In a relationship, you cant reference a resource which does not exist yet
                         if "id" not in rel_item:
                             return JSONAPIResponseFactory.make_errors_response(
-                                {"status": 403,
+                                {"status": 400,
                                  "title": "Attribute 'id' is missing from an item of the relationship '%s'" % rel_name},
-                                status=403
+                                status=400
                             )
                         else:
                             related_resource, errors = self.get_obj_from_resource_identifier(rel_item)
