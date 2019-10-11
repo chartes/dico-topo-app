@@ -11,18 +11,9 @@ from app import create_app
 
 from app.api.placename.facade import PlacenameFacade
 from app.api.placename_old_label.facade import PlacenameOldLabelFacade
-from app.models import UserRole, User, Placename, PlacenameOldLabel
+from app.models import Placename, PlacenameOldLabel
 
 app = None
-
-
-def add_default_users(db):
-    try:
-        UserRole.add_default_roles()
-        User.add_default_users()
-    except sqlalchemy.exc.IntegrityError as e:
-        db.session.rollback()
-        print(e)
 
 
 def load_elastic_conf(conf_name, index_name, delete=False):
@@ -74,8 +65,6 @@ def make_cli():
             from app import db
             db.create_all()
 
-            add_default_users(db)
-
             db.session.commit()
             click.echo("Created the database")
 
@@ -88,8 +77,6 @@ def make_cli():
             from app import db
             db.drop_all()
             db.create_all()
-
-            add_default_users(db)
 
             db.session.commit()
             click.echo("Dropped then recreated the database")

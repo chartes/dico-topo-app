@@ -1,7 +1,6 @@
 import datetime
 
 from app import db
-from flask_user import UserMixin
 
 
 class Placename(db.Model):
@@ -165,82 +164,3 @@ class FeatureType(db.Model):
     # relationships
     placename = db.relationship(Placename, backref=db.backref('feature_types'))
 
-
-
-class User(db.Model, UserMixin):
-    """ Utilisateur """
-    __tablename__ = 'user'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-
-    # User authentication information
-    username = db.Column(db.String(), nullable=False, unique=True)
-    password = db.Column(db.String(), nullable=False, server_default='')
-
-    # User email information
-    email = db.Column(db.String(), nullable=False, unique=True)
-    email_confirmed_at = db.Column('confirmed_at', db.DateTime())
-
-    # User information
-    active = db.Column('is_active', db.Boolean(), nullable=False, server_default='0')
-    first_name = db.Column('firstname', db.String(), nullable=False, server_default='')
-    last_name = db.Column('lastname', db.String(), nullable=False, server_default='')
-
-    roles = db.relationship('UserRole', secondary='user_has_role')
-
-    @staticmethod
-    def add_default_users():
-        admin = UserRole.query.filter(UserRole.name == "admin").first()
-        contributor = UserRole.query.filter(UserRole.name == "contributor").first()
-        password = "pbkdf2:sha256:50000$RyjGxAYv$02c62c497306be557eb4080a432c466453f297eb9dbfb62dc0160fe376f22689" # Lettres2019!
-        db.session.add(User(username="admin",
-                            password=password,
-                            email="admin.lettres@chartes.psl.eu",
-                            active=True,
-                            email_confirmed_at=datetime.datetime.now(),
-                            roles=[admin, contributor]))
-
-        db.session.add(User(username="contributor",
-                            password=password,
-                            email="contributor.lettres@chartes.psl.eu",
-                            active=True,
-                            email_confirmed_at=datetime.datetime.now(),
-                            roles=[contributor]))
-
-    def to_json(self):
-        return {
-            "username": self.username,
-            "roles": [r.name for r in self.roles]
-        }
-
-
-class UserRole(db.Model):
-    """ Rôle des utilisateurs (administrateur ou contributeur) """
-    __tablename__ = 'user_role'
-
-    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    name = db.Column(db.String(50), unique=True)
-    description = db.Column(db.String(200))
-
-    @staticmethod
-    def add_default_roles():
-        db.session.add(UserRole(name="admin", description="Administrator"))
-        db.session.add(UserRole(name="contributor", description="Contributor"))
-
-
-class UserHasRole(db.Model):
-    __tablename__ = 'user_has_role'
-    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('user.id', ondelete='CASCADE'))
-    role_id = db.Column(db.Integer(), db.ForeignKey('user_role.id', ondelete='CASCADE'))
-
-
-class UserInvitation(db.Model):
-    __tablename__ = 'user_invitation'
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    # UserInvitation email information. The collation='NOCASE' is required
-    # to search case insensitively when USER_IFIND_MODE is 'nocase_collation'.
-    email = db.Column(db.String(255, collation='NOCASE'), nullable=False)
-    # save the user of the invitee
-    invited_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
