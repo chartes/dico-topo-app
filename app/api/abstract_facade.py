@@ -124,7 +124,7 @@ class JSONAPIAbstractFacade(object):
         except Exception as e:
             print(e)
             errors = {
-                "status": 403,
+                "status": 409,
                 "title": "Error creating resource with data: %s" % str([attributes, related_resources]),
                 "detail": str(e)
             }
@@ -187,7 +187,7 @@ class JSONAPIAbstractFacade(object):
         except Exception as e:
             print(e)
             errors = {
-                "status": 404 if obj is None else 403,
+                "status": 404 if obj is None else 400,
                 "title": "Error updating resource '%s' with data: %s" % (
                     obj_type, str([id, attributes, related_resources, append])),
                 "detail": str(e)
@@ -226,7 +226,7 @@ class JSONAPIAbstractFacade(object):
         except Exception as e:
             print(e)
             errors = {
-                "status": 404 if obj is None else 403,
+                "status": 404 if obj is None else 400,
                 "title": "Error deleting related resource from '%s' with data: %s" % (
                     obj.__class__.__name__, str([obj.id, related_resources])),
                 "detail": str(e)
@@ -246,7 +246,7 @@ class JSONAPIAbstractFacade(object):
             db.session.commit()
         except Exception as e:
             errors = {
-                "status": 404 if obj is None else 403,
+                "status": 404 if obj is None else 400,
                 "title": "Cannot delete the resource",
                 "detail": str(e)
             }

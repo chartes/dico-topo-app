@@ -76,7 +76,7 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
         try:
             parsed_text_date = int(d)
         except Exception as e:
-            print(e)
+            #print(e)
             parsed_text_date = None
         return parsed_text_date
 

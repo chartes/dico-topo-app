@@ -344,12 +344,12 @@ class JSONAPIRouteRegistrar(object):
                     page_size=page_size
                 )
             except Exception as e:
-                raise e
+                #raise e
                 return JSONAPIResponseFactory.make_errors_response({
-                    "status": 403,
+                    "status": 400,
                     "title": "Cannot perform search operations",
                     "details": str(e)
-                }, status=403)
+                }, status=400)
 
             links = {"self": JSONAPIRouteRegistrar.make_url(request.base_url, OrderedDict(request.args))}
 
@@ -365,7 +365,7 @@ class JSONAPIRouteRegistrar(object):
                     except Exception as e:
                         print(e)
                         return JSONAPIResponseFactory.make_errors_response(
-                            {"status": 403, "title": "Cannot fetch data", "detail": str(e)}, status=403
+                            {"status": 400, "title": "Cannot fetch data", "detail": str(e)}, status=400
                         )
 
                 # if request has sorting parameter and not doing aggregation (sort is performed
@@ -402,7 +402,7 @@ class JSONAPIRouteRegistrar(object):
                 except Exception as e:
                     print(e)
                     return JSONAPIResponseFactory.make_errors_response(
-                        {"status": 403, "title": "Cannot fetch data", "detail": str(e)}, status=403
+                        {"status": 400, "title": "Cannot fetch data", "detail": str(e)}, status=400
                     )
 
                 args = OrderedDict(request.args)
@@ -1070,12 +1070,12 @@ class JSONAPIRouteRegistrar(object):
 
             except json.decoder.JSONDecodeError as e:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "The request body is malformed", "detail": str(e)}, status=403
+                    {"status": 400, "title": "The request body is malformed", "detail": str(e)}, status=400
                 )
 
             if "data" not in request_data:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "Missing 'data' section" % request.data}, status=403
+                    {"status": 400, "title": "Missing 'data' section" % request.data}, status=400
                 )
             else:
                 if not isinstance(request_data["data"], list):
@@ -1087,7 +1087,7 @@ class JSONAPIRouteRegistrar(object):
                 for rdi in request_data:
                     related_resource, errors = self.get_obj_from_resource_identifier(rdi)
                     if errors:
-                        return JSONAPIResponseFactory.make_errors_response(errors, status=403)
+                        return JSONAPIResponseFactory.make_errors_response(errors, status=400)
 
                     if related_resource is None:
                         return JSONAPIResponseFactory.make_errors_response(
@@ -1120,7 +1120,7 @@ class JSONAPIRouteRegistrar(object):
                                                                      status=200,
                                                                      headers=headers)
                 else:
-                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
+                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 400))
 
         # APPLY decorators if any
         for dec in decorators:
@@ -1156,29 +1156,29 @@ class JSONAPIRouteRegistrar(object):
                 request_data = json_loads(request.data)
             except json.decoder.JSONDecodeError as e:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "The request body is malformed", "detail": str(e)}, status=403
+                    {"status": 400, "title": "The request body is malformed", "detail": str(e)}, status=400
                 )
 
             if "data" not in request_data:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "Missing 'data' section" % request.data}, status=403
+                    {"status": 400, "title": "Missing 'data' section" % request.data}, status=400
                 )
             else:
                 # let's check the request body
                 if "type" not in request_data["data"]:
                     return JSONAPIResponseFactory.make_errors_response(
-                        {"status": 403, "title": "Missing 'type' attribute"}, status=403
+                        {"status": 400, "title": "Missing 'type' attribute"}, status=400
                     )
 
                 # let's check the request body
                 if "id" not in request_data["data"]:
                     return JSONAPIResponseFactory.make_errors_response(
-                        {"status": 403, "title": "Missing 'id' attribute"}, status=403
+                        {"status": 400, "title": "Missing 'id' attribute"}, status=400
                     )
 
                 if request_data["data"]["type"] != facade_class.TYPE:
                     return JSONAPIResponseFactory.make_errors_response(
-                        {"status": 403, "title": "Wrong resource type"}, status=403
+                        {"status": 400, "title": "Wrong resource type"}, status=400
                     )
 
                 d = request_data["data"]
@@ -1201,9 +1201,9 @@ class JSONAPIRouteRegistrar(object):
 
                     if not rel or "data" not in rel:
                         return JSONAPIResponseFactory.make_errors_response(
-                            {"status": 403,
+                            {"status": 400,
                              "title": "Section 'data' is missing from relationship '%s'" % rel_name},
-                            status=403
+                            status=400
                         )
                     elif not rel["data"]:
                         related_resources[rel_name] = None
@@ -1218,17 +1218,17 @@ class JSONAPIRouteRegistrar(object):
 
                         if "type" not in rel_item:
                             return JSONAPIResponseFactory.make_errors_response(
-                                {"status": 403,
+                                {"status": 400,
                                  "title": "Attribute 'type' is missing from an item of the relationship '%s'" % rel_name},
-                                status=403
+                                status=400
                             )
 
                         # In a relationship, you cant reference a resource which does not exist yet
                         if "id" not in rel_item:
                             return JSONAPIResponseFactory.make_errors_response(
-                                {"status": 403,
+                                {"status": 400,
                                  "title": "Attribute 'id' is missing from an item of the relationship '%s'" % rel_name},
-                                status=403
+                                status=400
                             )
                         else:
                             related_resource, errors = self.get_obj_from_resource_identifier(rel_item)
@@ -1268,7 +1268,7 @@ class JSONAPIRouteRegistrar(object):
                                                                      status=200,
                                                                      headers=headers)
                 else:
-                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
+                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 400))
 
         # APPLY decorators if any
         for dec in decorators:
@@ -1297,12 +1297,12 @@ class JSONAPIRouteRegistrar(object):
 
             except json.decoder.JSONDecodeError as e:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "The request body is malformed", "detail": str(e)}, status=403
+                    {"status": 400, "title": "The request body is malformed", "detail": str(e)}, status=400
                 )
 
             if "data" not in request_data:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "Missing 'data' section" % request.data}, status=403
+                    {"status": 400, "title": "Missing 'data' section" % request.data}, status=400
                 )
             else:
                 if not isinstance(request_data["data"], list):
@@ -1317,7 +1317,7 @@ class JSONAPIRouteRegistrar(object):
                     else:
                         related_resource, errors = self.get_obj_from_resource_identifier(rdi)
                         if errors:
-                            return JSONAPIResponseFactory.make_errors_response(errors, status=403)
+                            return JSONAPIResponseFactory.make_errors_response(errors, status=400)
 
                         if related_resource is None:
                             return JSONAPIResponseFactory.make_errors_response(
@@ -1354,7 +1354,7 @@ class JSONAPIRouteRegistrar(object):
                                                                      status=200,
                                                                      headers=headers)
                 else:
-                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 403))
+                    return JSONAPIResponseFactory.make_errors_response(e, status=e.get("status", 400))
 
         # APPLY decorators if any
         for dec in decorators:
@@ -1441,12 +1441,12 @@ class JSONAPIRouteRegistrar(object):
 
             except json.decoder.JSONDecodeError as e:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "The request body is malformed", "detail": str(e)}, status=403
+                    {"status": 400, "title": "The request body is malformed", "detail": str(e)}, status=400
                 )
 
             if "data" not in request_data:
                 return JSONAPIResponseFactory.make_errors_response(
-                    {"status": 403, "title": "Missing 'data' section" % request.data}, status=403
+                    {"status": 400, "title": "Missing 'data' section" % request.data}, status=400
                 )
             else:
                 if not isinstance(request_data["data"], list):
@@ -1461,7 +1461,7 @@ class JSONAPIRouteRegistrar(object):
                     else:
                         related_resource, errors = self.get_obj_from_resource_identifier(rdi)
                         if errors:
-                            return JSONAPIResponseFactory.make_errors_response(errors, status=403)
+                            return JSONAPIResponseFactory.make_errors_response(errors, status=400)
 
                         if related_resource is None:
                             return JSONAPIResponseFactory.make_errors_response(
