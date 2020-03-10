@@ -179,8 +179,8 @@ def insert_placename_values(db, cursor, dt_id):
         # INSERTIONS
         try:
             cursor.execute(
-                "INSERT INTO placename ("
-                    "placename_id,"
+                "INSERT INTO place ("
+                    "place_id,"
                     "label,"
                     "country,"
                     "dpt,"
@@ -208,14 +208,14 @@ def insert_placename_values(db, cursor, dt_id):
         # insert secondary labels
         if placename['alt_labels']:
             for alt_label in placename['alt_labels']:
-                cursor.execute("INSERT INTO placename_alt_label (placename_id, label) VALUES (?, ?)", (placename['id'], alt_label))
+                cursor.execute("INSERT INTO place_alt_label (place_id, label) VALUES (?, ?)", (placename['id'], alt_label))
                 db.commit()
 
         # insert feature types
         if placename['feature_types']:
             for feature_type in placename['feature_types']:
                 try:
-                    cursor.execute("INSERT INTO feature_type (placename_id, term) VALUES (?, ?);", (placename['id'], feature_type))
+                    cursor.execute("INSERT INTO feature_type (place_id, term) VALUES (?, ?);", (placename['id'], feature_type))
                 except sqlite3.IntegrityError as e:
                     print(e, (": placename %s – FT '%s'" % (placename['id'], feature_type)))
                 db.commit()
@@ -226,20 +226,20 @@ def update_localization_placename_id(db, cursor, dpt_code):
     """ """
     print("** TABLE placename – SET localization_placename_id, dpt "+dpt_code)
     # MySQL
-    add_localization_placename_id = """UPDATE placename AS a
+    add_localization_placename_id = """UPDATE place AS a
         INNER JOIN placename AS b
         ON a.localization_commune_insee_code = b.commune_insee_code
         SET a.localization_placename_id = b.placename_id"""
     # SQLite3
-    add_localization_placename_id = """UPDATE placename
-        SET localization_placename_id = (SELECT placename_id
-            FROM placename as t2
-            WHERE (placename.localization_commune_insee_code = t2.commune_insee_code))
+    add_localization_placename_id = """UPDATE place
+        SET localization_place_id = (SELECT place_id
+            FROM place as t2
+            WHERE (place.localization_commune_insee_code = t2.commune_insee_code))
         WHERE
-            placename.dpt = '%s'
+            place.dpt = '%s'
             AND
-            EXISTS (SELECT * FROM placename as t2
-                WHERE (placename.localization_commune_insee_code = t2.commune_insee_code))""" % dpt_code
+            EXISTS (SELECT * FROM place as t2
+                WHERE (place.localization_commune_insee_code = t2.commune_insee_code))""" % dpt_code
     # on abandonne la résolution 100% sqlite
     #cursor.execute(add_localization_placename_id)
     #db.commit()
@@ -248,14 +248,14 @@ def update_localization_placename_id(db, cursor, dpt_code):
     # dico: {'insee_code': 'placename_id',…}, ie {'02001': 'DT02-00009', '02002': 'DT02-00017', '02003': 'DT02-00023'}
     map_DT_insee = {}
     for row in cursor.execute("""SELECT commune_insee_code, placename_id
-                              FROM placename
+                              FROM place
                               WHERE commune_insee_code IS NOT NULL
                               AND dpt = '%s'""" % dpt_code):
         map_DT_insee[row[0]] = row[1]
 
     for insee_code, placename_id in map_DT_insee.items():
-        add_localization_placename_id = """UPDATE placename
-            SET localization_placename_id = '%s'
+        add_localization_placename_id = """UPDATE place
+            SET localization_place_id = '%s'
             WHERE localization_commune_insee_code = '%s'""" % (placename_id, insee_code)
         #print(add_localization_placename_id)
         cursor.execute(add_localization_placename_id)
@@ -497,9 +497,9 @@ def insert_placename_old_label(db, cursor, dt_id):
                 i += 1
                 try:
                     cursor.execute(
-                        "INSERT INTO placename_old_label ("
+                        "INSERT INTO place_old_label ("
                             "old_label_id,"
-                            "placename_id,"
+                            "place_id,"
                             "rich_label,"
                             "rich_date,"
                             "text_date,"
@@ -524,7 +524,7 @@ def insert_placename_old_label(db, cursor, dt_id):
 
     # Remettre les valeurs vides à NULL… honteux et efficace:
     cursor.execute("""
-        UPDATE placename_old_label
+        UPDATE place_old_label
         SET
         rich_date = CASE rich_date WHEN '' THEN NULL ELSE rich_date END,
         text_date = CASE text_date WHEN '' THEN NULL ELSE text_date END,
