@@ -37,14 +37,14 @@ class Config(object):
     SCSS_ASSET_DIR = os.path.join(basedir, "app", "assets", "scss")
     CSRF_ENABLED = parse_var_env('CSRF_ENABLED')
 
-    APP_URL_PREFIX = parse_var_env('APP_URL_PREFIX')
-    APP_FRONTEND_URL = parse_var_env('APP_FRONTEND_URL')
+    #APP_URL_PREFIX = parse_var_env('APP_URL_PREFIX')
+    #APP_FRONTEND_URL = parse_var_env('APP_FRONTEND_URL')
 
     API_VERSION = parse_var_env('API_VERSION')
     API_URL_PREFIX = parse_var_env('API_URL_PREFIX')
 
     # Flask-User settings
-    USER_APP_NAME = parse_var_env("USER_APP_NAME") or "Lettres"     # Shown in and email templates and page footers
+    USER_APP_NAME = parse_var_env("USER_APP_NAME") or "Dicotopo"     # Shown in and email templates and page footers
     USER_ENABLE_EMAIL = True       # Disable email authentication
     USER_ENABLE_USERNAME = True    # Enable username authentication
     USER_REQUIRE_RETYPE_PASSWORD = False    # Simplify register form
