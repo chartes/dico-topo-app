@@ -5,7 +5,7 @@ from app.models import FeatureType
 
 def register_feature_type_api_urls(app):
     app.api_url_registrar.register_get_routes(FeatureType, FeatureTypeFacade)
-    app.api_url_registrar.register_relationship_get_route(FeatureTypeFacade, 'placename')
+    app.api_url_registrar.register_relationship_get_route(FeatureTypeFacade, 'place')
 
 
 

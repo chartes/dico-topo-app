@@ -3,7 +3,7 @@ import datetime
 from app import db
 
 
-class Placename(db.Model):
+class Place(db.Model):
     """Illustrate class-level docstring.
 
     Classes use a special whitespace convention: the opening and closing quotes
@@ -20,37 +20,37 @@ class Placename(db.Model):
     the closing quotation marks should certainly be on a line by themselves.
 
     """
-    __tablename__ = 'placename'
+    __tablename__ = 'place'
 
-    id = db.Column("placename_id", db.String(10), primary_key=True)
+    id = db.Column("place_id", db.String(10), primary_key=True)
     label = db.Column(db.String(200), nullable=False)
     country = db.Column(db.String(2), nullable=False)
     dpt = db.Column(db.String(2), nullable=False)
-    # not null if the placename is known as being commune
+    # not null if the place is known as being commune
     commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
-    # not null if the placename is localized somewhere
+    # not null if the place is localized somewhere
     localization_commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
-    localization_placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), index=True)
+    localization_place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), index=True)
     localization_certainty = db.Column(db.Enum('high', 'low'))
-    # description of the placename
+    # description of the place
     desc = db.Column(db.Text)
-    # first num of the page where the placename appears (within its source)
+    # first num of the page where the place appears (within its source)
     num_start_page = db.Column(db.Integer, index=True)
-    # comment on the placename
+    # comment on the place
     comment = db.Column(db.Text)
 
     # relationships
     commune = db.relationship(
-        'InseeCommune', backref=db.backref('placename', uselist=False),
-        primaryjoin="InseeCommune.id==Placename.commune_insee_code",
+        'InseeCommune', backref=db.backref('place', uselist=False),
+        primaryjoin="InseeCommune.id==Place.commune_insee_code",
         uselist=False
     )
     localization_commune = db.relationship(
-        'InseeCommune', backref=db.backref('localized_placenames'),
-        primaryjoin="InseeCommune.id==Placename.localization_commune_insee_code",
+        'InseeCommune', backref=db.backref('localized_places'),
+        primaryjoin="InseeCommune.id==Place.localization_commune_insee_code",
         uselist=False
     )
-    linked_placenames = db.relationship('Placename')
+    linked_places = db.relationship('Place')
 
     @property
     def longlat(self):
@@ -63,28 +63,28 @@ class Placename(db.Model):
         return co.longlat if co else None
 
 
-class PlacenameAltLabel(db.Model):
+class PlaceAltLabel(db.Model):
     """ """
-    __tablename__ = 'placename_alt_label'
+    __tablename__ = 'place_alt_label'
     __table_args__ = (
-        db.UniqueConstraint('placename_id', 'label', name='_placename_label_uc'),
+        db.UniqueConstraint('place_id', 'label', name='_place_label_uc'),
     )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    placename_id = db.Column(db.String(10), db.ForeignKey(Placename.id), index=True)
+    place_id = db.Column(db.String(10), db.ForeignKey(Place.id), index=True)
     label = db.Column(db.String(200))
 
     # relationships
-    placename = db.relationship(Placename, backref=db.backref('alt_labels'))
+    place = db.relationship(Place, backref=db.backref('alt_labels'))
 
 
-class PlacenameOldLabel(db.Model):
+class PlaceOldLabel(db.Model):
     """ """
-    __tablename__ = 'placename_old_label'
+    __tablename__ = 'place_old_label'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     old_label_id = db.Column(db.String(13), nullable=False, unique=True)
-    placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), nullable=False, index=True)
+    place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False, index=True)
     rich_label = db.Column(db.String(250), nullable=False)
     # date with tags
     rich_date = db.Column(db.String(100))
@@ -98,11 +98,11 @@ class PlacenameOldLabel(db.Model):
     text_label_node = db.Column(db.Text)
 
     # relationships
-    placename = db.relationship(Placename, backref=db.backref('old_labels'))
+    place = db.relationship(Place, backref=db.backref('old_labels'))
 
     @property
     def longlat(self):
-        return self.placename.longlat
+        return self.place.longlat
 
     @property
     def label(self):
@@ -154,13 +154,13 @@ class FeatureType(db.Model):
     """ """
     __tablename__ = 'feature_type'
     __table_args__ = (
-        db.UniqueConstraint('placename_id', 'term', name='_placename_term_uc'),
+        db.UniqueConstraint('place_id', 'term', name='_place_term_uc'),
     )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    placename_id = db.Column(db.String(10), db.ForeignKey('placename.placename_id'), index=True)
+    place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), index=True)
     term = db.Column(db.String(400))
 
     # relationships
-    placename = db.relationship(Placename, backref=db.backref('feature_types'))
+    place = db.relationship(Place, backref=db.backref('feature_types'))
 

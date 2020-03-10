@@ -1,12 +1,12 @@
 from app.api.abstract_facade import JSONAPIAbstractFacade
 
 
-class PlacenameAltLabelFacade(JSONAPIAbstractFacade):
+class PlaceAltLabelFacade(JSONAPIAbstractFacade):
     """
 
     """
-    TYPE = "placename-alt-label"
-    TYPE_PLURAL = "placename-alt-labels"
+    TYPE = "place-alt-label"
+    TYPE_PLURAL = "place-alt-labels"
 
     @property
     def id(self):
@@ -14,14 +14,14 @@ class PlacenameAltLabelFacade(JSONAPIAbstractFacade):
 
     @staticmethod
     def get_resource_facade(url_prefix, id, **kwargs):
-        from app.models import PlacenameAltLabel
+        from app.models import PlaceAltLabel
 
-        e = PlacenameAltLabel.query.filter(PlacenameAltLabel.id == id).first()
+        e = PlaceAltLabel.query.filter(PlaceAltLabel.id == id).first()
         if e is None:
             kwargs = {"status": 404}
-            errors = [{"status": 404, "title": "PlacenameAltLabel %s does not exist" % id}]
+            errors = [{"status": 404, "title": "PlaceAltLabel %s does not exist" % id}]
         else:
-            e = PlacenameAltLabelFacade(url_prefix, e, **kwargs)
+            e = PlaceAltLabelFacade(url_prefix, e, **kwargs)
             kwargs = {}
             errors = []
         return e, kwargs, errors
@@ -47,13 +47,13 @@ class PlacenameAltLabelFacade(JSONAPIAbstractFacade):
         return res
 
     def __init__(self, *args, **kwargs):
-        super(PlacenameAltLabelFacade, self).__init__(*args, **kwargs)
-        from app.api.placename.facade import PlacenameFacade
+        super(PlaceAltLabelFacade, self).__init__(*args, **kwargs)
+        from app.api.place.facade import PlaceFacade
 
         self.relationships = {
-            "placename": {
-                "links": self._get_links(rel_name="placename"),
-                "resource_identifier_getter": self.get_related_resource_identifiers(PlacenameFacade, "placename"),
-                "resource_getter":self.get_related_resources(PlacenameFacade, "placename")
+            "place": {
+                "links": self._get_links(rel_name="place"),
+                "resource_identifier_getter": self.get_related_resource_identifiers(PlaceFacade, "place"),
+                "resource_getter":self.get_related_resources(PlaceFacade, "place")
             }
         }

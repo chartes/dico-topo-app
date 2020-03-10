@@ -1,4 +1,4 @@
-from app.api.placename.facade import PlacenameFacade
+from app.api.place.facade import PlacenameFacade
 from app.models import Placename
 from tests.base_server import TestBaseServer
 from tests.data.fixtures.placename import load_fixtures

@@ -81,17 +81,17 @@ def create_app(config_name="dev"):
     from app.api import routes
     from app.api.insee_commune.routes import register_insee_commune_api_urls
     from app.api.insee_ref.routes import register_insee_ref_api_urls
-    from app.api.placename.routes import register_placename_api_urls
-    from app.api.placename_alt_label.routes import register_placename_alt_label_api_urls
-    from app.api.placename_old_label.routes import register_placename_old_label_api_urls
+    from app.api.place.routes import register_place_api_urls
+    from app.api.place_alt_label.routes import register_place_alt_label_api_urls
+    from app.api.place_old_label.routes import register_place_old_label_api_urls
     from app.api.feature_type.routes import register_feature_type_api_urls
     from app.api.decorators import export_to
 
     with app.app_context():
         # generate resources endpoints
-        register_placename_api_urls(app)
-        register_placename_alt_label_api_urls(app)
-        register_placename_old_label_api_urls(app)
+        register_place_api_urls(app)
+        register_place_alt_label_api_urls(app)
+        register_place_old_label_api_urls(app)
         register_insee_commune_api_urls(app)
         register_insee_ref_api_urls(app)
         register_feature_type_api_urls(app)

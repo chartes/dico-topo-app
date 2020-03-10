@@ -51,11 +51,11 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
         """Make a JSONAPI resource object describing what is a Feature Type
         """
 
-        from app.api.placename.facade import PlacenameFacade
+        from app.api.place.facade import PlaceFacade
         self.relationships = {
-            "placename": {
-                "links": self._get_links(rel_name="placename"),
-                "resource_identifier_getter": self.get_related_resource_identifiers(PlacenameFacade, "placename"),
-                "resource_getter": self.get_related_resources(PlacenameFacade, "placename"),
+            "place": {
+                "links": self._get_links(rel_name="place"),
+                "resource_identifier_getter": self.get_related_resource_identifiers(PlaceFacade, "place"),
+                "resource_getter": self.get_related_resources(PlaceFacade, "place"),
             }
         }

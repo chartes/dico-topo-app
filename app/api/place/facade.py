@@ -4,11 +4,11 @@ from app.api.abstract_facade import JSONAPIAbstractFacade
 from app.api.feature_type.facade import FeatureTypeFacade
 
 
-class PlacenameFacade(JSONAPIAbstractFacade):
+class PlaceFacade(JSONAPIAbstractFacade):
     """
     """
-    TYPE = "placename"
-    TYPE_PLURAL = "placenames"
+    TYPE = "place"
+    TYPE_PLURAL = "places"
 
     @property
     def id(self):
@@ -16,22 +16,22 @@ class PlacenameFacade(JSONAPIAbstractFacade):
 
     @staticmethod
     def get_resource_facade(url_prefix, id, **kwargs):
-        from app.models import Placename
+        from app.models import Place
 
-        e = Placename.query.filter(Placename.id == id).first()
+        e = Place.query.filter(Place.id == id).first()
         if e is None:
             kwargs = {"status": 404}
-            errors = [{"status": 404, "title": "Placename %s does not exist" % id}]
+            errors = [{"status": 404, "title": "Place %s does not exist" % id}]
         else:
-            e = PlacenameFacade(url_prefix, e, **kwargs)
+            e = PlaceFacade(url_prefix, e, **kwargs)
             kwargs = {}
             errors = []
         return e, kwargs, errors
 
     @property
     def resource(self):
-        """Make a JSONAPI resource object describing what is a dictionnary placename
-        A dictionnary placename is made of:
+        """Make a JSONAPI resource object describing what is a dictionnary place
+        A dictionnary place is made of:
         attributes:
             label:
             country:
@@ -83,20 +83,20 @@ class PlacenameFacade(JSONAPIAbstractFacade):
         return res
 
     def __init__(self, *args, **kwargs):
-        super(PlacenameFacade, self).__init__(*args, **kwargs)
+        super(PlaceFacade, self).__init__(*args, **kwargs)
 
         from app.api.insee_commune.facade import CommuneFacade
-        from app.api.placename_alt_label.facade import PlacenameAltLabelFacade
-        from app.api.placename_old_label.facade import PlacenameOldLabelFacade
+        from app.api.place_alt_label.facade import PlaceAltLabelFacade
+        from app.api.place_old_label.facade import PlaceOldLabelFacade
 
         self.relationships = {}
 
         for rel_name, (rel_facade, to_many) in {
             "commune": (CommuneFacade, False),
             "localization-commune": (CommuneFacade, False),
-            "linked-placenames": (PlacenameFacade, True),
-            "alt-labels": (PlacenameAltLabelFacade, True),
-            "old-labels": (PlacenameOldLabelFacade, True),
+            "linked-places": (PlaceFacade, True),
+            "alt-labels": (PlaceAltLabelFacade, True),
+            "old-labels": (PlaceOldLabelFacade, True),
             "feature-types": (FeatureTypeFacade, True),
         }.items():
             u_rel_name = rel_name.replace("-", "_")
@@ -117,11 +117,11 @@ class PlacenameFacade(JSONAPIAbstractFacade):
 
         payload = {
             "id": self.obj.id,
-            "placename-id": self.obj.id,
+            "place-id": self.obj.id,
             "type": self.TYPE,
 
             "label": self.obj.label,
-            "placename-label": self.obj.label,
+            "place-label": self.obj.label,
             "localization-insee-code": co.id if co else None,
 
             "dep-id": self.obj.dpt,
@@ -130,12 +130,12 @@ class PlacenameFacade(JSONAPIAbstractFacade):
             # "alt-labels": [al.label for al in self.obj.alt_labels]
         }
 
-        #payload_groupby_placename = copy(payload)
-        #payload_groupby_placename["old-labels"] = [ol.rich_label for ol in self.obj.old_labels]
+        #payload_groupby_place = copy(payload)
+        #payload_groupby_place["old-labels"] = [ol.rich_label for ol in self.obj.old_labels]
 
         return [
             {"id": self.obj.id, "index": self.get_index_name(), "payload": payload},
-            #{"id": self.obj.id, "index": "{0}_agg".format(self.get_index_name()), "payload": payload_groupby_placename}
+            #{"id": self.obj.id, "index": "{0}_agg".format(self.get_index_name()), "payload": payload_groupby_place}
         ]
 
     def get_data_to_index_when_removed(self, propagate):
@@ -146,7 +146,7 @@ class PlacenameFacade(JSONAPIAbstractFacade):
         ]
 
 
-class PlacenameSearchFacade(PlacenameFacade):
+class PlaceSearchFacade(PlaceFacade):
 
     @property
     def resource(self):
@@ -160,8 +160,8 @@ class PlacenameSearchFacade(PlacenameFacade):
         res = {
             **self.resource_identifier,
             "attributes": {
-                "placename-id": self.obj.id,
-                "placename-label": self.obj.label,
+                "place-id": self.obj.id,
+                "place-label": self.obj.label,
                 "old-labels": [o.rich_label for o in self.obj.old_labels],
                 "localization-insee-code": co.id if co else None,
                 "dpt": self.obj.dpt,
@@ -184,11 +184,11 @@ class PlacenameSearchFacade(PlacenameFacade):
         return res
 
     def __init__(self, *args, **kwargs):
-        super(PlacenameSearchFacade, self).__init__(*args, **kwargs)
+        super(PlaceSearchFacade, self).__init__(*args, **kwargs)
         #self.relationships = {}
 
 
-class PlacenameMapFacade(PlacenameSearchFacade):
+class PlaceMapFacade(PlaceSearchFacade):
 
     @property
     def resource(self):

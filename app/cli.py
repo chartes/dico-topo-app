@@ -9,9 +9,9 @@ from jsonschema import validate
 
 from app import create_app
 
-from app.api.placename.facade import PlacenameFacade
-from app.api.placename_old_label.facade import PlacenameOldLabelFacade
-from app.models import Placename, PlacenameOldLabel
+from app.api.place.facade import PlaceFacade
+from app.api.place_old_label.facade import PlaceOldLabelFacade
+from app.models import Place, PlaceOldLabel
 
 app = None
 
@@ -86,7 +86,7 @@ def make_cli():
     def db_validate(between):
         SCHEMA_URL = "https://raw.githubusercontent.com/kgeographer/whgazetteer/master/datasets/static/validate/lpf-schema.json"
         getAPIUrl = lambda \
-            id: "http://localhost/dico-topo/api/1.0/placenames/{0}?export=linkedplaces&without-relationships".format(id)
+            id: "http://localhost/dico-topo/api/1.0/places/{0}?export=linkedplaces&without-relationships".format(id)
         print("Fetching schema from {0}... ".format(SCHEMA_URL), end='', flush=False)
         r = requests.get(SCHEMA_URL)
         print(r.status_code)
@@ -94,20 +94,20 @@ def make_cli():
 
         with app.app_context():
 
-            stmt = Placename.query
+            stmt = Place.query
             if between:
                 boundaries = between.split(",")
                 if len(boundaries) == 1:
                     lower_bound = boundaries[0]
-                    stmt = stmt.filter(Placename.id >= lower_bound)
+                    stmt = stmt.filter(Place.id >= lower_bound)
                 else:
                     lower_bound, upper_bound = boundaries
                     bt_op = sqlalchemy.sql.expression.between
-                    stmt = stmt.filter(bt_op(Placename.id, lower_bound, upper_bound))
+                    stmt = stmt.filter(bt_op(Place.id, lower_bound, upper_bound))
 
-            for placename in stmt.all():
-                print("validating '{0}'... ".format(placename.id), end='', flush=False)
-                res_url = getAPIUrl(placename.id)
+            for place in stmt.all():
+                print("validating '{0}'... ".format(place.id), end='', flush=False)
+                res_url = getAPIUrl(place.id)
                 r = requests.get(res_url)
                 data = r.json()
                 features = data.get('features', [])
@@ -133,8 +133,8 @@ def make_cli():
         Rebuild the elasticsearch indexes from the current database
         """
         indexes_info = {
-            "placenames": {"facade": PlacenameFacade, "model": Placename, "reload-conf": True},
-            "old-labels": {"facade": PlacenameOldLabelFacade, "model": PlacenameOldLabel, "reload-conf": False},
+            "places": {"facade": PlaceFacade, "model": Place, "reload-conf": True},
+            "old-labels": {"facade": PlaceOldLabelFacade, "model": PlaceOldLabel, "reload-conf": False},
         }
 
         def reindex_from_info(name, info):

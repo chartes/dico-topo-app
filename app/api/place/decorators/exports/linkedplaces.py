@@ -5,7 +5,7 @@ import os
 from flask import url_for, current_app
 
 from app.api.abstract_facade import JSONAPIAbstractFacade
-from app.models import InseeCommune, Placename
+from app.models import InseeCommune, Place
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 templates = {}
@@ -29,7 +29,7 @@ def from_template(fn):
     return copy.deepcopy(templates[fn])
 
 
-def export_placename_to_linkedplace(request, input_data):
+def export_place_to_linkedplace(request, input_data):
     """
     Demonstration of the export feature.
     :param data:
@@ -44,18 +44,18 @@ def export_placename_to_linkedplace(request, input_data):
         input_data["data"] = [input_data["data"]]
 
     # just converting the incoming jsonapi data into a simpler json format of my own
-    for placename_jsonapi in input_data["data"]:
+    for place_jsonapi in input_data["data"]:
 
-        p = Placename.query.filter(Placename.id == placename_jsonapi["id"]).first()
+        p = Place.query.filter(Place.id == place_jsonapi["id"]).first()
         if not p:
-            print("WARNING: placename %s not found in db" % placename_jsonapi["id"])
+            print("WARNING: place %s not found in db" % place_jsonapi["id"])
             continue
 
-        placename_f, _, _ = JSONAPIAbstractFacade.get_facade(url_prefix, p)
-        resource = placename_f.resource
+        place_f, _, _ = JSONAPIAbstractFacade.get_facade(url_prefix, p)
+        resource = place_f.resource
 
         feature = from_template('Feature.json')
-        feature["@id"] = resource["links"]["self"]  # '""{0}/placenames/{1}".format(frontend_url, resource["id"])
+        feature["@id"] = resource["links"]["self"]  # '""{0}/places/{1}".format(frontend_url, resource["id"])
         feature["properties"]["title"] = resource["attributes"]["label"]
         feature["properties"]["ccodes"] = [resource["attributes"]["country"]]
 
@@ -70,10 +70,10 @@ def export_placename_to_linkedplace(request, input_data):
 
         insee_code = resource["attributes"]["localization-insee-code"]
         if insee_code:
-            if placename_f.obj.commune:
-                co = placename_f.obj.commune
+            if place_f.obj.commune:
+                co = place_f.obj.commune
             else:
-                co = placename_f.obj.localization_commune
+                co = place_f.obj.localization_commune
         else:
             co = None
 
@@ -100,7 +100,7 @@ def export_placename_to_linkedplace(request, input_data):
             feature.pop("geometry")
 
         # old labels
-        old_labels = placename_f.obj.old_labels
+        old_labels = place_f.obj.old_labels
         if len(old_labels) > 0:
             start_in = sorted([ol.text_date for ol in old_labels if ol.text_date])
             if len(start_in) > 0:
@@ -133,7 +133,7 @@ def export_placename_to_linkedplace(request, input_data):
                 feature["names"].append(name)
 
         # feature types
-        for ftype in placename_f.obj.feature_types:
+        for ftype in place_f.obj.feature_types:
             if ftype.term:
                 feature_type = {
                     "label": ftype.term
@@ -170,8 +170,8 @@ def export_placename_to_linkedplace(request, input_data):
             #    })
 
         ## subcommunal linked places
-        if len(placename_f.obj.linked_placenames) > 0:
-            for lp in placename_f.obj.linked_placenames:
+        if len(place_f.obj.linked_places) > 0:
+            for lp in place_f.obj.linked_places:
                 lp_f, _, _ = JSONAPIAbstractFacade.get_facade(url_prefix, lp)
 
                 feature["relations"].append({
@@ -216,8 +216,8 @@ def export_placename_to_linkedplace(request, input_data):
     return feature_collection, 200, {}, "application/json"
 
 
-def export_placename_to_inline_linkedplace(request, input_data):
-    exp, _, _, _ = export_placename_to_linkedplace(request, input_data)
+def export_place_to_inline_linkedplace(request, input_data):
+    exp, _, _, _ = export_place_to_linkedplace(request, input_data)
     filename = "/tmp/feat.json"
 
     num_page = 1 if "page[number]" not in request.args else request.args["page[number]"]

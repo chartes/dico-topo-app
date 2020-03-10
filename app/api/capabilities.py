@@ -67,7 +67,7 @@ def api_get_capabilities(api_version):
                     "examples": [
                         {
                             "description": "Recherche de la vedette 'Metz'",
-                            "content": "%s/placenames?filter[label]=Metz" % url_prefix
+                            "content": "%s/places?filter[label]=Metz" % url_prefix
                         }
                     ]
                 }
@@ -95,7 +95,7 @@ def api_get_capabilities(api_version):
                     "examples": [
                         {
                             "description": "Export d'un lieu",
-                            "content": "%s/placenames/DT80-02001?export=linkedplaces" % url_prefix
+                            "content": "%s/places/DT80-02001?export=linkedplaces" % url_prefix
                         },
                         {
                             "description": "Export d'une collection de lieux",
@@ -106,12 +106,12 @@ def api_get_capabilities(api_version):
             },
             {
                 "type": "resource",
-                "id": "placename",
+                "id": "place",
                 "attributes": {
                     "description": "Toponyme",
                     "endpoints":  {
                         "resource": {
-                            "url": "%s/placename/<id>" % url_prefix,
+                            "url": "%s/place/<id>" % url_prefix,
                             "parameters": {},
                             "attributes": [
                                 {"name": "label", "description": "Vedette de l'article telle que présente dans l'ouvrage d'origine "},
@@ -128,19 +128,19 @@ def api_get_capabilities(api_version):
                                  "ref": "commune"},
                                 {"name": "localization-commune", "description": "La relation est renseignée si le lieu peut être attaché à une commune", "type": "resource",
                                  "ref": "commune"},
-                                {"name": "linked-placenames", "description": "Lieux attachés", "type": "collection",
-                                 "ref": "placename"},
-                                {"name": "alt-labels", "description": "Formes alternatives du toponyme", "type": "collection", "ref": "placename-alt-label"},
-                                {"name": "old-labels", "description": "Formes anciennes du toponyme", "type": "collection", "ref": "placename-old-label"}
+                                {"name": "linked-places", "description": "Lieux attachés", "type": "collection",
+                                 "ref": "place"},
+                                {"name": "alt-labels", "description": "Formes alternatives du toponyme", "type": "collection", "ref": "place-alt-label"},
+                                {"name": "old-labels", "description": "Formes anciennes du toponyme", "type": "collection", "ref": "place-old-label"}
                             ]
                         },
                         "collection": {
-                            "url": "%s/placenames?page[size]=10" % url_prefix,
+                            "url": "%s/places?page[size]=10" % url_prefix,
 
                         }
                     },
                     "examples": {
-                        "url": "%s/placenames/DT80-03029" % url_prefix
+                        "url": "%s/places/DT80-03029" % url_prefix
                     }
                 },
 
@@ -162,10 +162,10 @@ def api_get_capabilities(api_version):
                                 {"name": "longlat", "description": ""}
                             ],
                             "relationships": [
-                                {"name": "localized-placenames", "description": "",
-                                 "type": "collection", "ref": "placename"},
-                                {"name": "placename", "description": "",
-                                 "type": "resource", "ref": "placename"},
+                                {"name": "localized-places", "description": "",
+                                 "type": "collection", "ref": "place"},
+                                {"name": "place", "description": "",
+                                 "type": "resource", "ref": "place"},
                                 {"name": "region", "description": "",
                                  "type": "resource", "ref": "insee-ref"},
                                 {"name": "departement", "description": "",
@@ -201,8 +201,8 @@ def api_get_capabilities(api_version):
                                 {"name": "term", "description": ""},
                             ],
                             "relationships": [
-                                {"name": "placename", "description": "",
-                                 "type": "resource", "ref": "placename"},
+                                {"name": "place", "description": "",
+                                 "type": "resource", "ref": "place"},
                             ]
                         },
                         "collection": {
@@ -253,12 +253,12 @@ def api_get_capabilities(api_version):
 
             {
                 "type": "resource",
-                "id": "placename-old-label",
+                "id": "place-old-label",
                 "attributes": {
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "%s/placename-old-label/<id>" % url_prefix,
+                            "url": "%s/place-old-label/<id>" % url_prefix,
                             "parameters": {},
                             "attributes": [
                                 {"name": "rich-label", "description": ""},
@@ -269,8 +269,8 @@ def api_get_capabilities(api_version):
                                 {"name": "text-label-node", "description": ""},
                             ],
                             "relationships": [
-                                {"name": "placename", "description": "",
-                                 "type": "resource", "ref": "placename"},
+                                {"name": "place", "description": "",
+                                 "type": "resource", "ref": "place"},
                                 {"name": "commune", "description": "",
                                  "type": "resource", "ref": "commune"},
                                 {"name": "localization-commune", "description": "",
@@ -278,12 +278,12 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/placename-old-labels?page[size]=10" % url_prefix,
+                            "url": "%s/place-old-labels?page[size]=10" % url_prefix,
 
                         }
                     },
                     "examples": {
-                        "url": "%s/placename-old-labels/93" % url_prefix
+                        "url": "%s/place-old-labels/93" % url_prefix
                     }
                 },
 
@@ -291,28 +291,28 @@ def api_get_capabilities(api_version):
 
             {
                 "type": "resource",
-                "id": "placename-alt-label",
+                "id": "place-alt-label",
                 "attributes": {
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "%s/placename-alt-label/<id>" % url_prefix,
+                            "url": "%s/place-alt-label/<id>" % url_prefix,
                             "parameters": {},
                             "attributes": [
                                 {"name": "label", "description": ""},
                             ],
                             "relationships": [
-                                {"name": "placename", "description": "",
-                                 "type": "resource", "ref": "placename"},
+                                {"name": "place", "description": "",
+                                 "type": "resource", "ref": "place"},
                             ]
                         },
                         "collection": {
-                            "url": "%s/placename-alt-labels?page[size]=10" % url_prefix,
+                            "url": "%s/place-alt-labels?page[size]=10" % url_prefix,
 
                         }
                     },
                     "examples": {
-                        "url": "%s/placename-alt-labels/24" % url_prefix
+                        "url": "%s/place-alt-labels/24" % url_prefix
                     }
                 },
 

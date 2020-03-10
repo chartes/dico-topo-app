@@ -42,18 +42,18 @@ class InseeRefFacade(JSONAPIAbstractFacade):
     #        communes.extend(communes_arrondissement)
     #    return communes
     #
-    #def get_placenames(self):
-    #    return [p for c in self.get_communes() for p in c.placenames]
+    #def get_places(self):
+    #    return [p for c in self.get_communes() for p in c.places]
 
     #def get_communes_resource_identifiers(self):
     #    communes = self.get_communes()
     #    from app.api.insee_commune.facade import CommuneFacade
     #    return [] if len(communes) == 0 else [CommuneFacade(self.url_prefix, c).resource_identifier for c in communes]
     #
-    #def get_placenames_resource_identifiers(self):
-    #    placenames = self.get_placenames()
-    #    return [] if len(placenames) == 0 else [PlacenameFacade(self.url_prefix, p).resource_identifier for p in
-    #                                            placenames]
+    #def get_places_resource_identifiers(self):
+    #    places = self.get_places()
+    #    return [] if len(places) == 0 else [PlaceFacade(self.url_prefix, p).resource_identifier for p in
+    #                                            places]
 
     #def get_communes_resource(self):
     #    communes = self.get_communes()
@@ -62,12 +62,12 @@ class InseeRefFacade(JSONAPIAbstractFacade):
     #                                                        self.with_relationships_links,
     #                                                        self.with_relationships_data).resource for c in communes]
     #
-    #def get_placenames_resource(self):
-    #    placenames = self.get_placenames()
-    #    return [] if len(placenames) == 0 else [PlacenameFacade(self.url_prefix, p,
+    #def get_places_resource(self):
+    #    places = self.get_places()
+    #    return [] if len(places) == 0 else [PlaceFacade(self.url_prefix, p,
     #                                                            self.with_relationships_links,
     #                                                            self.with_relationships_data).resource
-    #                                            for p in placenames]
+    #                                            for p in places]
 
 
     @property
@@ -112,9 +112,9 @@ class InseeRefFacade(JSONAPIAbstractFacade):
             #    "resource_identifier_getter": self.get_communes_resource_identifiers,
             #    "resource_getter": self.get_communes_resource
             #},
-            #"placenames": {
-            #    "links": self._get_links(rel_name="placenames"),
-            #    "resource_identifier_getter": self.get_placenames_resource_identifiers,
-            #    "resource_getter": self.get_placenames_resource
+            #"places": {
+            #    "links": self._get_links(rel_name="places"),
+            #    "resource_identifier_getter": self.get_places_resource_identifiers,
+            #    "resource_getter": self.get_places_resource
             #}
         }

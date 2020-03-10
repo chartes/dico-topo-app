@@ -3,11 +3,11 @@ from flask import current_app
 from app.api.abstract_facade import JSONAPIAbstractFacade
 
 
-class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
+class PlaceOldLabelFacade(JSONAPIAbstractFacade):
     """
     """
-    TYPE = "placename-old-label"
-    TYPE_PLURAL = "placename-old-labels"
+    TYPE = "place-old-label"
+    TYPE_PLURAL = "place-old-labels"
 
     @property
     def id(self):
@@ -15,47 +15,47 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
 
     @staticmethod
     def get_resource_facade(url_prefix, id, **kwargs):
-        from app.models import PlacenameOldLabel
-        e = PlacenameOldLabel.query.filter(PlacenameOldLabel.id == id).first()
+        from app.models import PlaceOldLabel
+        e = PlaceOldLabel.query.filter(PlaceOldLabel.id == id).first()
         if e is None:
             kwargs = {"status": 404}
-            errors = [{"status": 404, "title": "PlacenameOldLabel %s does not exist" % id}]
+            errors = [{"status": 404, "title": "PlaceOldLabel %s does not exist" % id}]
         else:
-            e = PlacenameOldLabelFacade(url_prefix, e, **kwargs)
+            e = PlaceOldLabelFacade(url_prefix, e, **kwargs)
             kwargs = {}
             errors = []
         return e, kwargs, errors
 
-    def get_placename_resource_identifier(self):
-        from app.api.placename.facade import PlacenameFacade
-        return None if self.obj.placename is None else PlacenameFacade.make_resource_identifier(self.obj.placename.id,
-                                                                                                PlacenameFacade.TYPE)
+    def get_place_resource_identifier(self):
+        from app.api.place.facade import PlaceFacade
+        return None if self.obj.place is None else PlaceFacade.make_resource_identifier(self.obj.place.id,
+                                                                                                PlaceFacade.TYPE)
 
     def get_commune_resource_identifier(self):
         from app.api.insee_commune.facade import CommuneFacade
 
         return None if (
-                    self.obj.placename or self.obj.placename.commune is None) else CommuneFacade.make_resource_identifier(
-            self.obj.placename.commune.id, CommuneFacade.TYPE)
+                    self.obj.place or self.obj.place.commune is None) else CommuneFacade.make_resource_identifier(
+            self.obj.place.commune.id, CommuneFacade.TYPE)
 
     def get_localization_commune_resource_identifier(self):
         from app.api.insee_commune.facade import CommuneFacade
 
         return None if (
-                self.obj.placename is None or self.obj.placename.localization_commune is None
-        ) else CommuneFacade.make_resource_identifier(self.obj.placename.localization_commune.id, CommuneFacade.TYPE)
+                self.obj.place is None or self.obj.place.localization_commune is None
+        ) else CommuneFacade.make_resource_identifier(self.obj.place.localization_commune.id, CommuneFacade.TYPE)
 
-    def get_placename_resource(self):
-        from app.api.placename.facade import PlacenameFacade
-        return None if self.obj.placename is None else PlacenameFacade(self.url_prefix, self.obj.placename,
+    def get_place_resource(self):
+        from app.api.place.facade import PlaceFacade
+        return None if self.obj.place is None else PlaceFacade(self.url_prefix, self.obj.place,
                                                                        self.with_relationships_links,
                                                                        self.with_relationships_data).resource
 
     def get_commune_resource(self):
         from app.api.insee_commune.facade import CommuneFacade
 
-        return None if (self.obj.placename is None or self.obj.placename.commune is None) else CommuneFacade(
-            self.url_prefix, self.obj.placename.commune,
+        return None if (self.obj.place is None or self.obj.place.commune is None) else CommuneFacade(
+            self.url_prefix, self.obj.place.commune,
             self.with_relationships_links,
             self.with_relationships_data
         ).resource
@@ -64,8 +64,8 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
         from app.api.insee_commune.facade import CommuneFacade
 
         return None if (
-                self.obj.placename is None or self.obj.placename.localization_commune is None) else CommuneFacade(
-            self.url_prefix, self.obj.placename.localization_commune,
+                self.obj.place is None or self.obj.place.localization_commune is None) else CommuneFacade(
+            self.url_prefix, self.obj.place.localization_commune,
             self.with_relationships_links,
             self.with_relationships_data
         ).resource
@@ -104,14 +104,14 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
         return res
 
     def __init__(self, *args, **kwargs):
-        super(PlacenameOldLabelFacade, self).__init__(*args, **kwargs)
-        """Make a JSONAPI resource object describing what is a PlacenameOldLabel
+        super(PlaceOldLabelFacade, self).__init__(*args, **kwargs)
+        """Make a JSONAPI resource object describing what is a PlaceOldLabel
         """
         self.relationships = {
-            "placename": {
-                "links": self._get_links(rel_name="placename"),
-                "resource_identifier_getter": self.get_placename_resource_identifier,
-                "resource_getter": self.get_placename_resource
+            "place": {
+                "links": self._get_links(rel_name="place"),
+                "resource_identifier_getter": self.get_place_resource_identifier,
+                "resource_getter": self.get_place_resource
             },
             "commune": {
                 "links": self._get_links(rel_name="commune"),
@@ -128,37 +128,37 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
     @classmethod
     def get_index_name(cls):
         """
-        index the old labels along the placenames
+        index the old labels along the places
         :return:
         """
-        from app.api.placename.facade import PlacenameFacade
+        from app.api.place.facade import PlaceFacade
         return "{prefix}__{env}__{index_name}".format(
             prefix=current_app.config.get("INDEX_PREFIX", ""),
             env=current_app.config.get("ENV"),
-            index_name=PlacenameFacade.TYPE_PLURAL
+            index_name=PlaceFacade.TYPE_PLURAL
         )
 
 
 
     def get_data_to_index_when_added(self, propagate):
-        if self.obj.placename.commune:
-            co = self.obj.placename.commune
-        elif self.obj.placename.localization_commune:
-            co = self.obj.placename.localization_commune
+        if self.obj.place.commune:
+            co = self.obj.place.commune
+        elif self.obj.place.localization_commune:
+            co = self.obj.place.localization_commune
         else:
             co = None
 
         payload = {
             "id": self.obj.id,
-            "placename-id": self.obj.placename.id,
-            "placename-label": self.obj.placename.label,
+            "place-id": self.obj.place.id,
+            "place-label": self.obj.place.label,
 
             "type": self.TYPE,
             "label": self.obj.rich_label,
 
             "localization-insee-code": co.id if co else None,
 
-            "dep-id": self.obj.placename.dpt,
+            "dep-id": self.obj.place.dpt,
             "reg-id": co.region.insee_code if co and co.region else None,
             "is-localized": co is not None,
 
@@ -170,33 +170,33 @@ class PlacenameOldLabelFacade(JSONAPIAbstractFacade):
 
     def get_data_to_index_when_removed(self, propagate):
         print("GOING TO BE REMOVED FROM INDEX:", [{"id": self.obj.id, "index": self.get_index_name()}])
-        from app.api.placename.facade import PlacenameFacade
+        from app.api.place.facade import PlaceFacade
         return [
-            {"id": self.obj.placename.id, "index": PlacenameFacade.get_index_name()},
+            {"id": self.obj.place.id, "index": PlaceFacade.get_index_name()},
             {"id": self.obj.id, "index": self.get_index_name()}
         ]
 
 
-class PlacenameOldLabelSearchFacade(PlacenameOldLabelFacade):
+class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
 
     @property
     def resource(self):
         """ """
-        if self.obj.placename.commune:
-            co = self.obj.placename.commune
-        elif self.obj.placename.localization_commune:
-            co = self.obj.placename.localization_commune
+        if self.obj.place.commune:
+            co = self.obj.place.commune
+        elif self.obj.place.localization_commune:
+            co = self.obj.place.localization_commune
         else:
             co = None
 
         res = {
             **self.resource_identifier,
             "attributes": {
-                "placename-id": self.obj.placename.id,
-                "placename-label": self.obj.placename.label,
-                "placename-desc": self.obj.placename.desc,
+                "place-id": self.obj.place.id,
+                "place-label": self.obj.place.label,
+                "place-desc": self.obj.place.desc,
                 "localization-insee-code": co.id if co else None,
-                "dpt": self.obj.placename.dpt,
+                "dpt": self.obj.place.dpt,
                 "region": co.region.label if co else None,
                 "longlat": co.longlat if co else None,
                 "rich-label": self.obj.rich_label,
@@ -218,27 +218,27 @@ class PlacenameOldLabelSearchFacade(PlacenameOldLabelFacade):
         return res
 
     def __init__(self, *args, **kwargs):
-        super(PlacenameOldLabelSearchFacade, self).__init__(*args, **kwargs)
+        super(PlaceOldLabelSearchFacade, self).__init__(*args, **kwargs)
         self.relationships = {}
 
 
-class PlacenameOldLabelMapFacade(PlacenameOldLabelSearchFacade):
+class PlaceOldLabelMapFacade(PlaceOldLabelSearchFacade):
 
     @property
     def resource(self):
         """ """
 
-        if self.obj.placename.commune:
-            co = self.obj.placename.commune
-        elif self.obj.placename.localization_commune:
-            co = self.obj.placename.localization_commune
+        if self.obj.place.commune:
+            co = self.obj.place.commune
+        elif self.obj.place.localization_commune:
+            co = self.obj.place.localization_commune
         else:
             co = None
 
         res = {
             **self.resource_identifier,
             "attributes": {
-                "placename-id": self.obj.placename.id,
+                "place-id": self.obj.place.id,
                 "longlat": self.obj.longlat,
 
                 "dpt": "{0} - {1}".format(co.departement.insee_code, co.departement.label) if co else None,

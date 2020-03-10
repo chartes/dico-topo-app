@@ -57,14 +57,14 @@ class CommuneFacade(JSONAPIAbstractFacade):
         super(CommuneFacade, self).__init__(*args, **kwargs)
         """Make a JSONAPI resource object describing what is a Commune
         """
-        from app.api.placename.facade import PlacenameFacade
+        from app.api.place.facade import PlaceFacade
         from app.api.insee_ref.facade import InseeRefFacade
 
         self.relationships = {}
 
         for rel_name, (rel_facade, to_many) in {
-            "localized-placenames": (PlacenameFacade, True),
-            "placename": (PlacenameFacade, False),
+            "localized-places": (PlaceFacade, True),
+            "place": (PlaceFacade, False),
             "region": (InseeRefFacade, False),
             "departement": (InseeRefFacade, False),
             "arrondissement": (InseeRefFacade, False),
