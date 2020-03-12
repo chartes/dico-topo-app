@@ -1,5 +1,5 @@
 
-from app.models import InseeRef, InseeCommune, Placename, PlacenameAltLabel, PlacenameOldLabel
+from app.models import InseeRef, InseeCommune, Place, PlaceAltLabel, PlaceOldLabel
 
 
 def load_fixtures(db):
@@ -19,8 +19,8 @@ def load_fixtures(db):
     db.session.add(commune2)
     db.session.commit()
 
-    # PLACENAME
-    e1 = Placename(id="id1", label="Commune Un", country="FR", dpt="57",
+    # PLACE
+    e1 = Place(id="id1", label="Commune Un", country="FR", dpt="57",
                    commune_insee_code=commune1.id,
                    localization_commune_insee_code=commune2.id,
                    localization_certainty="low",
@@ -30,10 +30,10 @@ def load_fixtures(db):
     db.session.add(e1)
     db.session.commit()
 
-    e2 = Placename(id="id2", label="Commune Deux", country="FR", dpt="88",
+    e2 = Place(id="id2", label="Commune Deux", country="FR", dpt="88",
                    commune_insee_code=commune2.id,
                    localization_commune_insee_code=commune2.id,
-                   localization_placename_id=e1.id,
+                   localization_place_id=e1.id,
                    localization_certainty="high",
                    desc="this is a def col",
                    num_start_page=2,
@@ -42,10 +42,10 @@ def load_fixtures(db):
     db.session.add(e2)
     db.session.commit()
 
-    e3 = Placename(id="id3", label="Commune Trois", country="FR", dpt="03",
+    e3 = Place(id="id3", label="Commune Trois", country="FR", dpt="03",
                    commune_insee_code=None,
                    localization_commune_insee_code=None,
-                   localization_placename_id=None,
+                   localization_place_id=None,
                    localization_certainty=None,
                    desc=None,
                    num_start_page=None,
@@ -54,15 +54,15 @@ def load_fixtures(db):
     db.session.add(e3)
     db.session.commit()
 
-    placename_alt_label1 = PlacenameAltLabel(placename_id=e2.id, label="Commune numéro une")
-    placename_alt_label2 = PlacenameAltLabel(placename_id=e2.id, label="Commune n°1")
-    db.session.add(placename_alt_label1)
-    db.session.add(placename_alt_label2)
+    place_alt_label1 = PlaceAltLabel(place_id=e2.id, label="Commune numéro une")
+    place_alt_label2 = PlaceAltLabel(place_id=e2.id, label="Commune n°1")
+    db.session.add(place_alt_label1)
+    db.session.add(place_alt_label2)
     db.session.commit()
 
-    old_label1 = PlacenameOldLabel(old_label_id='PLACENAME1_OLD_1', placename_id=e1.id, rich_label="Cmune Un")
-    old_label2 = PlacenameOldLabel(old_label_id='PLACENAME1_OLD_2', placename_id=e1.id, rich_label="Cmn Un")
-    old_label3 = PlacenameOldLabel(old_label_id='PLACENAME1_OLD_3', placename_id=e1.id, rich_label="Comm Un")
+    old_label1 = PlaceOldLabel(old_label_id='PLACE1_OLD_1', place_id=e1.id, rich_label="Cmune Un")
+    old_label2 = PlaceOldLabel(old_label_id='PLACE1_OLD_2', place_id=e1.id, rich_label="Cmn Un")
+    old_label3 = PlaceOldLabel(old_label_id='PLACE1_OLD_3', place_id=e1.id, rich_label="Comm Un")
     db.session.add(old_label1)
     db.session.add(old_label2)
     db.session.add(old_label3)

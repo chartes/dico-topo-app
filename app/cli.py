@@ -132,6 +132,7 @@ def make_cli():
         """
         Rebuild the elasticsearch indexes from the current database
         """
+        print(indexes, host, between, delete)
         indexes_info = {
             "places": {"facade": PlaceFacade, "model": Place, "reload-conf": True},
             "old-labels": {"facade": PlaceOldLabelFacade, "model": PlaceOldLabel, "reload-conf": False},
@@ -141,7 +142,7 @@ def make_cli():
 
             with app.app_context():
 
-                prefix = "{host}{api_prefix}".format(host=host, api_prefix=app.config["API_URL_PREFIX"])
+                prefix = "{host}{api_prefix}".format(host=host, api_prefix=app.config.get("API_URL_PREFIX", ""))
                 print("Reindexing %s" % name, end=" ", flush=True)
 
                 index_name = info["facade"].get_index_name()

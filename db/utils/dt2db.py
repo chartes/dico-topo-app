@@ -6,41 +6,41 @@ import io
 import re
 
 
-def insert_placename_values(db, cursor, dt_id):
+def insert_place_values(db, cursor, dt_id):
     """ """
-    print("** TABLE placename, placename_alt_label, feature_type – INSERT")
+    print("** TABLE place, place_alt_label, feature_type – INSERT")
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
     # on enregistre le code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
 
     for entry in tree.xpath('/DICTIONNAIRE/article'):
         # un dictionnaire pour stocker les données relative à chaque nom de lieu
-        placename = {}
+        place = {}
 
         # id de l’article in XML (e.g. 'DT02-00001')
-        placename['id'] = entry.get('id')
+        place['id'] = entry.get('id')
 
         # code insee de la commune identifiée dans le champ localisation
         # (ie. code insee de la commune d’appartenance du lieu dit…)
-        placename['localization_commune_insee_code'] = entry.xpath('definition/localisation/commune')[0].get('insee') \
+        place['localization_commune_insee_code'] = entry.xpath('definition/localisation/commune')[0].get('insee') \
             if entry.xpath('definition/localisation/commune') \
             else None
         # sortir les codes erreur
         # TODO: revoir avec CB et JP ces valeurs, en particulier 'commune_is_empty' – documenter.
         control_vals = ['too_many_insee_codes', 'article_not_found', 'commune_is_empty']
-        if placename['localization_commune_insee_code'] in control_vals:
-            placename['localization_commune_insee_code'] = None
+        if place['localization_commune_insee_code'] in control_vals:
+            place['localization_commune_insee_code'] = None
 
         # degré de certitude de la localisation (commune attribuée au lieu)
         localization_certainty = entry.xpath('definition/localisation/commune')[0].get('precision') \
             if entry.xpath('definition/localisation/commune') \
             else None
         if localization_certainty == 'approximatif':
-            placename['localization_certainty'] = 'low'
+            place['localization_certainty'] = 'low'
         elif localization_certainty == 'certain':
-            placename['localization_certainty'] = 'high'
+            place['localization_certainty'] = 'high'
         else:
-            placename['localization_certainty'] = None
+            place['localization_certainty'] = None
 
         # definition (tei:def)
         insee_pattern = re.compile('[0-9]{5}')
@@ -49,45 +49,45 @@ def insert_placename_values(db, cursor, dt_id):
         rename_commune_cltag = re.compile('</commune>')
         rename_typo_tag = re.compile('<(/?)typologie[^>]*>')
         if entry.xpath('definition'):
-            placename['desc'] = tostring(entry.xpath('definition')[0], encoding='unicode')
-            placename['desc'] = ' '.join(placename['desc'].split())
+            place['desc'] = tostring(entry.xpath('definition')[0], encoding='unicode')
+            place['desc'] = ' '.join(place['desc'].split())
             # ATTENTION à la l’ordre des replace !!! (on réécrit commune avant de la supprimer…)
-            if placename['localization_commune_insee_code'] and insee_pattern.match(placename['localization_commune_insee_code']):
-                placename['desc'] = re.sub(rename_commune_optag, '<a href="\\1">', placename['desc'])
-                placename['desc'] = re.sub(rename_commune_cltag, '</a>', placename['desc'])
-            placename['desc'] = re.sub(rename_typo_tag, '<\\1a>', placename['desc'])
-            placename['desc'] = re.sub(remove_tags, '', placename['desc'])
+            if place['localization_commune_insee_code'] and insee_pattern.match(place['localization_commune_insee_code']):
+                place['desc'] = re.sub(rename_commune_optag, '<a href="\\1">', place['desc'])
+                place['desc'] = re.sub(rename_commune_cltag, '</a>', place['desc'])
+            place['desc'] = re.sub(rename_typo_tag, '<\\1a>', place['desc'])
+            place['desc'] = re.sub(remove_tags, '', place['desc'])
         else:
-            placename['desc'] = None
+            place['desc'] = None
 
         # id du département
-        placename['dpt'] = dpt
+        place['dpt'] = dpt
 
         # page de début
-        placename['num_start_page'] = entry.get('pg')
+        place['num_start_page'] = entry.get('pg')
 
         # la vedette principale (la première)
         # TODO: voir avec OC les différentes possibilités de ponctuation à la fin de la vedette ([,.…;:]) -> on supprime tout ?
         # TODO: voir les cas compliqués avec OC, par ex. DT10-02266 (pas de normalisation de la forme alternative)
-        placename['label'] = entry.xpath('vedette/sm[1]')[0].text.rstrip(',')
-        placename['label'] = placename['label'].strip()
+        place['label'] = entry.xpath('vedette/sm[1]')[0].text.rstrip(',')
+        place['label'] = place['label'].strip()
         # DT01 : des labels préfixés avec "*" (les formes reconstituées/hypothétiques pour les lieux disparus, selon SN)
-        # placename['label'] = format(placename['label'][1:] if placename['label'].startswith('*') else placename['label'])
+        # place['label'] = format(place['label'][1:] if place['label'].startswith('*') else place['label'])
         # Parfois à la fin de la vedette (cf DT72), plus radical :
-        placename['label'] = placename['label'].replace('*', '')
+        place['label'] = place['label'].replace('*', '')
 
         # code insee (si commune, optionnel)
-        placename['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
+        place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
 
         # les vedettes secondaires (optionnel, mais fréquent)
-        placename['alt_labels'] = []
+        place['alt_labels'] = []
         for i in entry.xpath('vedette//sm[position()>1]'):
-            placename['alt_labels'].append(i.text.rstrip(','))
+            place['alt_labels'].append(i.text.rstrip(','))
 
         # feature types
-        placename['feature_types'] = []
+        place['feature_types'] = []
         for i in entry.xpath('definition/typologie'):
-            placename['feature_types'].append(i.text.rstrip(','))
+            place['feature_types'].append(i.text.rstrip(','))
 
         # COMMENTAIRE**S**
         # possiblement plusieurs commentaires et plusieurs paragraphes par commentaire (//commentaire[2]/p[2])
@@ -161,7 +161,7 @@ def insert_placename_values(db, cursor, dt_id):
         xslt_commentaire2html = etree.parse(commentaire2html)
         transform_commentaire2html = etree.XSLT(xslt_commentaire2html)
 
-        placename['comment'] = ''
+        place['comment'] = ''
         if entry.xpath('commentaire'):
             for commentaire in entry.xpath('commentaire'):
                 comment = str(transform_commentaire2html(commentaire)).strip()
@@ -172,9 +172,9 @@ def insert_placename_values(db, cursor, dt_id):
                 comment = comment.replace('.">', '">')
                 comment = comment.replace(' <sup>', '<sup>')
                 # optimiser append
-                placename['comment'] += comment
+                place['comment'] += comment
         else:
-            placename['comment'] = None
+            place['comment'] = None
 
         # INSERTIONS
         try:
@@ -191,47 +191,47 @@ def insert_placename_values(db, cursor, dt_id):
                     "num_start_page,"
                     "comment)"
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (placename['id'],
-                     placename['label'],
+                    (place['id'],
+                     place['label'],
                      'FR',
-                     placename['dpt'],
-                     placename['commune_insee_code'],
-                     placename['localization_commune_insee_code'],
-                     placename['localization_certainty'],
-                     placename['desc'],
-                     placename['num_start_page'],
-                     placename['comment']))
+                     place['dpt'],
+                     place['commune_insee_code'],
+                     place['localization_commune_insee_code'],
+                     place['localization_certainty'],
+                     place['desc'],
+                     place['num_start_page'],
+                     place['comment']))
         except sqlite3.IntegrityError as e:
-            print(e, "placename %s" % (placename['id']))
+            print(e, "place %s" % (place['id']))
         db.commit()
 
         # insert secondary labels
-        if placename['alt_labels']:
-            for alt_label in placename['alt_labels']:
-                cursor.execute("INSERT INTO place_alt_label (place_id, label) VALUES (?, ?)", (placename['id'], alt_label))
+        if place['alt_labels']:
+            for alt_label in place['alt_labels']:
+                cursor.execute("INSERT INTO place_alt_label (place_id, label) VALUES (?, ?)", (place['id'], alt_label))
                 db.commit()
 
         # insert feature types
-        if placename['feature_types']:
-            for feature_type in placename['feature_types']:
+        if place['feature_types']:
+            for feature_type in place['feature_types']:
                 try:
-                    cursor.execute("INSERT INTO feature_type (place_id, term) VALUES (?, ?);", (placename['id'], feature_type))
+                    cursor.execute("INSERT INTO feature_type (place_id, term) VALUES (?, ?);", (place['id'], feature_type))
                 except sqlite3.IntegrityError as e:
-                    print(e, (": placename %s – FT '%s'" % (placename['id'], feature_type)))
+                    print(e, (": place %s – FT '%s'" % (place['id'], feature_type)))
                 db.commit()
 
 
-# Ramasser le entry.localization_placename_id (référence interne de la commune de rattachement)
-def update_localization_placename_id(db, cursor, dpt_code):
+# Ramasser le entry.localization_place_id (référence interne de la commune de rattachement)
+def update_localization_place_id(db, cursor, dpt_code):
     """ """
-    print("** TABLE placename – SET localization_placename_id, dpt "+dpt_code)
+    print("** TABLE place – SET localization_place_id, dpt "+dpt_code)
     # MySQL
-    add_localization_placename_id = """UPDATE place AS a
-        INNER JOIN placename AS b
+    add_localization_place_id = """UPDATE place AS a
+        INNER JOIN place AS b
         ON a.localization_commune_insee_code = b.commune_insee_code
-        SET a.localization_placename_id = b.placename_id"""
+        SET a.localization_place_id = b.place_id"""
     # SQLite3
-    add_localization_placename_id = """UPDATE place
+    add_localization_place_id = """UPDATE place
         SET localization_place_id = (SELECT place_id
             FROM place as t2
             WHERE (place.localization_commune_insee_code = t2.commune_insee_code))
@@ -241,30 +241,30 @@ def update_localization_placename_id(db, cursor, dpt_code):
             EXISTS (SELECT * FROM place as t2
                 WHERE (place.localization_commune_insee_code = t2.commune_insee_code))""" % dpt_code
     # on abandonne la résolution 100% sqlite
-    #cursor.execute(add_localization_placename_id)
+    #cursor.execute(add_localization_place_id)
     #db.commit()
 
     # approche 2 / perfs incomparables – todo: valider le résultat
-    # dico: {'insee_code': 'placename_id',…}, ie {'02001': 'DT02-00009', '02002': 'DT02-00017', '02003': 'DT02-00023'}
+    # dico: {'insee_code': 'place_id',…}, ie {'02001': 'DT02-00009', '02002': 'DT02-00017', '02003': 'DT02-00023'}
     map_DT_insee = {}
-    for row in cursor.execute("""SELECT commune_insee_code, placename_id
+    for row in cursor.execute("""SELECT commune_insee_code, place_id
                               FROM place
                               WHERE commune_insee_code IS NOT NULL
                               AND dpt = '%s'""" % dpt_code):
         map_DT_insee[row[0]] = row[1]
 
-    for insee_code, placename_id in map_DT_insee.items():
-        add_localization_placename_id = """UPDATE place
+    for insee_code, place_id in map_DT_insee.items():
+        add_localization_place_id = """UPDATE place
             SET localization_place_id = '%s'
-            WHERE localization_commune_insee_code = '%s'""" % (placename_id, insee_code)
-        #print(add_localization_placename_id)
-        cursor.execute(add_localization_placename_id)
+            WHERE localization_commune_insee_code = '%s'""" % (place_id, insee_code)
+        #print(add_localization_place_id)
+        cursor.execute(add_localization_place_id)
     db.commit()
 
 
-def insert_placename_old_label(db, cursor, dt_id):
+def insert_place_old_label(db, cursor, dt_id):
     """ """
-    print("** TABLE placename_old_label – INSERT")
+    print("** TABLE place_old_label – INSERT")
     tags = re.compile('<[^>]+>')
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
     # on enregistre le code du dpt
@@ -403,9 +403,9 @@ def insert_placename_old_label(db, cursor, dt_id):
     i = 0
     for entry in tree.xpath('/DICTIONNAIRE/article'):
         # un dictionnaire pour stocker les données relative à chaque article
-        placename = {}
+        place = {}
         # id de l’article
-        placename['id'] = entry.get('id')
+        place['id'] = entry.get('id')
 
         # formes anciennes et attestations
         # jusqu’à 47 formes anciennes pour une vedette, dans l’Aisne: `distinct-values(//article/count(forme_ancienne)`
@@ -446,7 +446,7 @@ def insert_placename_old_label(db, cursor, dt_id):
         if entry.xpath('forme_ancienne'):
             n = 1
             for old_label in entry.xpath('forme_ancienne'):
-                old_label_id = placename['id']+'-0'+str(n) if n < 10 else placename['id']+'-'+str(n)
+                old_label_id = place['id']+'-0'+str(n) if n < 10 else place['id']+'-'+str(n)
                 old_label_xml_str = tostring(old_label, encoding='unicode')
                 old_label_xml_str = ' '.join(old_label_xml_str.split())
                 tree = etree.fromstring(old_label_xml_str)
@@ -508,7 +508,7 @@ def insert_placename_old_label(db, cursor, dt_id):
                             "text_label_node)"
                         "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
                             (old_label_id,
-                             placename['id'],
+                             place['id'],
                              dfn,
                              rich_date,
                              date,
@@ -516,7 +516,7 @@ def insert_placename_old_label(db, cursor, dt_id):
                              old_label_html_str,
                              old_label_nude_str))
                 except sqlite3.IntegrityError as e:
-                    print(e, "placename %s" % (placename['id']))
+                    print(e, "place %s" % (place['id']))
                 db.commit()
 
         else:
