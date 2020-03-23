@@ -28,6 +28,26 @@ class PlaceFacade(JSONAPIAbstractFacade):
             errors = []
         return e, kwargs, errors
 
+    def get_linked_places_resource_identifier(self):
+        if self.obj.commune_insee_code is None:
+            return [] if self.obj.localization_commune is None else [ PlaceFacade.make_resource_identifier(self.obj.localization_commune.place.id, PlaceFacade.TYPE)]
+        else:
+            return [] if len(self.obj.linked_places) == 0 else [PlaceFacade.make_resource_identifier(lp.id, PlaceFacade.TYPE)
+                                                                for lp in self.obj.linked_places if
+                                                                lp.commune_insee_code is None]
+
+    def get_linked_places_resource(self):
+        if self.obj.commune_insee_code is None:
+            return [] if self.obj.localization_commune is None else [PlaceFacade(self.url_prefix,
+                                                                                 self.obj.localization_commune.place,
+                                                                                 self.with_relationships_links,
+                                                                                 self.with_relationships_data).resource]
+        else:
+            return [] if len(self.obj.linked_places) == 0 else [PlaceFacade(self.url_prefix, lp,
+                                                                   self.with_relationships_links,
+                                                                   self.with_relationships_data).resource
+                                                                for lp in self.obj.linked_places if lp.commune_insee_code is None]
+
     @property
     def resource(self):
         """Make a JSONAPI resource object describing what is a dictionnary place
@@ -82,6 +102,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
 
         return res
 
+
     def __init__(self, *args, **kwargs):
         super(PlaceFacade, self).__init__(*args, **kwargs)
 
@@ -89,12 +110,17 @@ class PlaceFacade(JSONAPIAbstractFacade):
         from app.api.place_alt_label.facade import PlaceAltLabelFacade
         from app.api.place_old_label.facade import PlaceOldLabelFacade
 
-        self.relationships = {}
+        self.relationships = {
+            "linked-places": {
+                "links": self._get_links(rel_name="linked-places"),
+                "resource_identifier_getter": self.get_linked_places_resource_identifier,
+                "resource_getter": self.get_linked_places_resource
+            },
+        }
 
         for rel_name, (rel_facade, to_many) in {
             "commune": (CommuneFacade, False),
             "localization-commune": (CommuneFacade, False),
-            "linked-places": (PlaceFacade, True),
             "alt-labels": (PlaceAltLabelFacade, True),
             "old-labels": (PlaceOldLabelFacade, True),
             "feature-types": (FeatureTypeFacade, True),

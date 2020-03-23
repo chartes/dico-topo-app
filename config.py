@@ -47,6 +47,7 @@ class Config(object):
 class DevelopmentConfig(Config):
 
     ENV = 'development'
+    DEBUG = True
 
     @staticmethod
     def init_app(app):
