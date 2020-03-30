@@ -2,7 +2,7 @@ from copy import copy
 
 from app.api.abstract_facade import JSONAPIAbstractFacade
 from app.api.feature_type.facade import FeatureTypeFacade
-
+import re
 
 class PlaceFacade(JSONAPIAbstractFacade):
     """
@@ -132,6 +132,15 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "resource_identifier_getter": self.get_related_resource_identifiers(rel_facade, u_rel_name, to_many),
                 "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
             }
+
+        # rewrite links in desc so they target to a better url
+        if self.obj.desc:
+            if self.obj.localization_commune_insee_code and self.obj.localization_place_id:
+                self.obj.desc = re.sub(r'<a href="{0}">'.format(self.obj.localization_commune_insee_code),
+                                       '<a href="/places/{0}">'.format(self.obj.localization_place_id), self.obj.desc)
+
+            # remove unused links to feature types
+            self.obj.desc = re.sub(r'<a>(.*?)</a>', r'\1', self.obj.desc)
 
     def get_data_to_index_when_added(self, propagate):
         if self.obj.commune:
