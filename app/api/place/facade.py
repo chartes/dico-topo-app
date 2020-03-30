@@ -158,6 +158,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
             "label": self.obj.label,
             "place-label": self.obj.label,
             "localization-insee-code": co.id if co else None,
+            "commune-label": co.NCCENR if co else None,
 
             "dep-id": self.obj.dpt,
             "reg-id": co.region.insee_code if co and co.region else None,
@@ -197,8 +198,9 @@ class PlaceSearchFacade(PlaceFacade):
             "attributes": {
                 "place-id": self.obj.id,
                 "place-label": self.obj.label,
-                "old-labels": [o.rich_label for o in self.obj.old_labels],
+                "old-labels": ["{0} ({1})".format(o.rich_label, o.rich_date) for o in self.obj.old_labels],
                 "localization-insee-code": co.id if co else None,
+                "commune-label": co.NCCENR if co else None,
                 "dpt": self.obj.dpt,
                 "region": co.region.label if co else None,
                 "longlat": co.longlat if co else None,
