@@ -16,7 +16,8 @@ class SearchIndexManager(object):
                         "must": [
                             {
                                 "query_string": {
-                                    "query": query
+                                    "query": query,
+                                    "default_operator": "AND"
                                 }
                             }
                         ]

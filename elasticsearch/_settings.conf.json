@@ -1,9 +1,10 @@
 {
   "analysis": {
     "analyzer": {
-      "rebuilt_whitespace": {
-        "tokenizer": "whitespace",
+      "my_icu_analyzer": {
+        "tokenizer": "icu_tokenizer",
         "filter": [
+          "icu_folding"
         ]
       }
     }

@@ -239,6 +239,7 @@ class PlaceMapFacade(PlaceSearchFacade):
         res = {
             **self.resource_identifier,
             "attributes": {
+                "place-label": self.obj.label,
                 "localization-insee-code": co.id if co else None,
                 "longlat": co.longlat if co else None,
 

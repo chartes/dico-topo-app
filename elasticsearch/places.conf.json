@@ -4,6 +4,7 @@
       "properties": {
         "label": {
           "type": "text",
+          "analyzer": "my_icu_analyzer",
           "fields": {
             "keyword": {
               "type": "keyword"

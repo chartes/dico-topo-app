@@ -241,6 +241,7 @@ class PlaceOldLabelMapFacade(PlaceOldLabelSearchFacade):
             **self.resource_identifier,
             "attributes": {
                 "place-id": self.obj.place.id,
+                "place-label": self.obj.place.label,
                 "longlat": self.obj.longlat,
 
                 "dpt": "{0} - {1}".format(co.departement.insee_code, co.departement.label) if co else None,
