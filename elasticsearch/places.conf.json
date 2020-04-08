@@ -3,13 +3,16 @@
     "_doc": {
       "properties": {
         "label": {
+         
           "type": "text",
-          "analyzer": "my_icu_analyzer",
+          "analyzer": "standard",
           "fields": {
-            "keyword": {
-              "type": "keyword"
+            "folded": {
+              "type": "text",
+              "analyzer": "folding"
             }
           }
+          
         },
         "text-date" : {
           "type": "date",

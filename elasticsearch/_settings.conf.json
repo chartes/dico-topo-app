@@ -1,10 +1,36 @@
 {
   "analysis": {
+    "filter": {
+      "french_elision": {
+        "type": "elision",
+        "articles_case": true,
+        "articles": [
+          "l",
+          "m",
+          "t",
+          "qu",
+          "n",
+          "s",
+          "j",
+          "d",
+          "c",
+          "jusqu",
+          "quoiqu",
+          "lorsqu",
+          "puisqu"
+        ]
+      },
+      "my_ascii_folding": {
+        "type": "asciifolding"
+      }
+    },
     "analyzer": {
-      "my_icu_analyzer": {
-        "tokenizer": "icu_tokenizer",
+      "folding": {
+        "tokenizer": "standard",
         "filter": [
-          "icu_folding"
+          "lowercase",
+          "french_elision",
+          "my_ascii_folding"
         ]
       }
     }
