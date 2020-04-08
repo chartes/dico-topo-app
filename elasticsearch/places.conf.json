@@ -6,10 +6,12 @@
          
           "type": "text",
           "analyzer": "standard",
+          "fielddata": "true",
           "fields": {
             "folded": {
               "type": "text",
-              "analyzer": "folding"
+              "analyzer": "folding",
+              "fielddata": "true"
             }
           }
           
