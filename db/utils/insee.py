@@ -22,6 +22,10 @@ on doit donc procéder en 2 passes pour cette table
  
 """
 
+# INSEE COG year (Code officiel géographique)
+# 2011: https://www.insee.fr/fr/information/2560625
+# 2018: https://www.insee.fr/fr/information/3363419)
+insee_COG = "2011"
 
 def insert_insee_ref(db, cursor):
     """ """
@@ -29,7 +33,7 @@ def insert_insee_ref(db, cursor):
     cursor.execute("INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                    "VALUES('FR', 'PAYS', 'FR', NULL, '1', 'France')")
     db.commit()
-    with open('insee/reg2018.txt') as csvfile:
+    with open('insee/2011/reg2011.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
@@ -37,7 +41,7 @@ def insert_insee_ref(db, cursor):
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('REG_'+row['REGION'], 'REG', row['REGION'], 'FR', '2', row['NCCENR']))
             db.commit()
-    with open('insee/depts2018.txt') as csvfile:
+    with open('insee/2011/depts2011.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
@@ -45,7 +49,7 @@ def insert_insee_ref(db, cursor):
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('DEP_'+row['DEP'], 'DEP', row['DEP'], 'REG_'+row['REGION'], '3', row['NCCENR']))
             db.commit()
-    with open('insee/arrond2018.txt') as csvfile:
+    with open('insee/2011/arrond2011.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
@@ -55,7 +59,7 @@ def insert_insee_ref(db, cursor):
             db.commit()
     # NB: les cantons ne dépendent pas toujours d’un arrondissement ! -> parent n’est pas obligatoire
     # todo: si les cantons ne dépendent pas d‘un arrondissement, rattacher au DEP (en parent_id) ?
-    with open('insee/canton2018.txt') as csvfile:
+    with open('insee/2011/canton2011.txt') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             id = 'CT_' + row['DEP'] + '-' + row['CANTON']
