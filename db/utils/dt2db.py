@@ -479,10 +479,16 @@ def insert_place_old_label(db, cursor, dt_id):
                     # on vire les balises, pour rien risquer…
                     dfn = re.sub(tags, '', dfn)
                     dfn = dfn[:100].strip() + '…'
+                # quand label du toponyme ancien est vide, on reprend celui de la vedette
+                # TODO: essayer d’affiner cette logique avec OC et SN
+                if not dfn:
+                    dfn = entry.xpath('vedette/sm[1]')[0].text.rstrip(',')
+                    dfn = dfn.strip()
+                    # print(placename['id']+' forme_ancienne sans label => '+dfn)
 
                 # DATE – Attention au mauvais formatage des dates dans les XML (des sauts de lignes intempestifs…)
                 # TODO: du code pour normaliser les dates "textuelles"
-                rich_date = str(transform_old_label2rich_date(tree))
+                rich_date = str(transform_old_label2rich_date(tree)).lstrip()
                 date = re.sub(tags, '', rich_date)
                 # remove multiple spaces
                 date = " ".join(date.split())
