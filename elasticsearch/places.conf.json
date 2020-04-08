@@ -3,10 +3,8 @@
     "_doc": {
       "properties": {
         "label": {
-         
           "type": "text",
           "analyzer": "standard",
-          "fielddata": "true",
           "fields": {
             "folded": {
               "type": "text",
@@ -14,7 +12,28 @@
               "fielddata": "true"
             }
           }
-          
+        },
+        "place-label": {
+          "type": "text",
+          "analyzer": "standard",
+          "fields": {
+            "folded": {
+              "type": "text",
+              "analyzer": "folding",
+              "fielddata": "true"
+            }
+          }
+        },
+        "commune-label": {
+          "type": "text",
+          "analyzer": "standard",
+          "fields": {
+            "folded": {
+              "type": "text",
+              "analyzer": "folding",
+              "fielddata": "true"
+            }
+          }
         },
         "text-date" : {
           "type": "date",
