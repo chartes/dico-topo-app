@@ -5,7 +5,7 @@ sys.path.append('../..')
 from app import create_app, db
 from app.models import InseeCommune
 
-filename = '../communes-linking.tsv'
+filename = '../communes_linking.tsv'
 
 if __name__ == "__main__":
     # python communes-linking.py dev
@@ -21,7 +21,7 @@ if __name__ == "__main__":
             f.readline()
             rejected = 0
             for l, line in enumerate(f.readlines()):
-                insee, geoname, wikidata, wikipedia, databnf, viaf = [i.strip() for i in line.split("\t")]
+                insee, geoname, wikidata, wikipedia, databnf, viaf, siaf = [i.strip() for i in line.split("\t")]
 
                 if len(insee) == 0:
                     print("Cannot parse line %s" % (l+2))
@@ -42,6 +42,8 @@ if __name__ == "__main__":
                             co.databnf_ark = databnf.strip()
                         if len(viaf) > 0:
                             co.viaf_id = viaf.strip()
+                        if len(siaf) >0:
+                            co.siaf_id = siaf.strip()
 
                         db.session.add(co)
             try:
