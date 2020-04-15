@@ -5,7 +5,7 @@ sys.path.append('../..')
 from app import create_app, db
 from app.models import InseeCommune
 
-filename = '../communes_linking.tsv'
+filename = '../communes-linking.tsv'
 
 if __name__ == "__main__":
     # python communes-linking.py dev
