@@ -100,7 +100,7 @@ def insert_insee_ref(db, COG_year, cursor):
             if 84 <= int(row['CT']) <= 99:
                 id = 'CT_' + row['DEP'] + '-' + row['CT']
                 parent_id = 'AR_' + row['DEP'] + '-' + row['AR']
-                label = row['NCCENR'] + '-NP'
+                label = row['NCCENR'] + ' (NP)'
                 #print(id + ' > ' + parent_id + ' > ' + label)
                 cursor.execute(
                     "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
