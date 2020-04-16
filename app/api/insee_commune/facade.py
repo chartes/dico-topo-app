@@ -42,6 +42,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'wikipedia-url': self.obj.wikipedia_url,
                 'databnf-ark': self.obj.databnf_ark,
                 'viaf-id': self.obj.viaf_id,
+                'siaf-id': self.obj.siaf_id,
             },
             "meta": self.meta,
             "links": {

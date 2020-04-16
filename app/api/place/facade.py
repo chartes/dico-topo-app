@@ -90,6 +90,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 'wikipedia-url': co.wikipedia_url if co else None,
                 'databnf-ark': co.databnf_ark if co else None,
                 'viaf-id': co.viaf_id if co else None,
+                'siaf-id': co.siaf_id if co else None,
             },
             "meta": self.meta,
             "links": {
