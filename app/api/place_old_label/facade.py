@@ -1,3 +1,5 @@
+import re
+
 from flask import current_app
 
 from app.api.abstract_facade import JSONAPIAbstractFacade
@@ -154,7 +156,7 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
             "place-label": self.obj.place.label,
 
             "type": self.TYPE,
-            "label": self.obj.rich_label,
+            "label": re.sub(r'<dfn>(.*?)</dfn>', r'\1', self.obj.rich_label),
 
             "localization-insee-code": co.id if co else None,
             "commune-label": co.NCCENR if co else None,

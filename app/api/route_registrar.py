@@ -346,6 +346,7 @@ class JSONAPIRouteRegistrar(object):
                     page_after=request.args["page[after]"] if "page[after]" in request.args else None,
                     page_size=page_size
                 )
+                print("sorted id lists:\n", sorted_ids_list)
             except Exception as e:
                 #raise e
                 return JSONAPIResponseFactory.make_errors_response({
@@ -441,7 +442,7 @@ class JSONAPIRouteRegistrar(object):
 
                 # finally make the facades
                 facade_objs = []
-                sorted_facade_objs = []
+                sorted_facade_objs = [None] * len(sorted_ids_list)
 
                 for idx, r in res.items():
                     for obj in r:
@@ -450,22 +451,29 @@ class JSONAPIRouteRegistrar(object):
                         f_obj = facade_class(url_prefix, obj, with_relationships_links=w_rel_links,
                                              with_relationships_data=w_rel_data)
                         facade_objs.append(f_obj)
-                        sorted_facade_objs.append(None)
 
-                # reapply the initial sorts to the spreaded resources (because the order may have been splitted
+                # reapply the initial sorts to the spread resources (because the order may have been split
                 # across different facades)
                 if groupby is None:
-                    print(sorted_ids_list)
+                    #print([(i, o)for i, o in enumerate(sorted_ids_list)])
+                    #print([(i, o.id) for i, o in enumerate(facade_objs)])
                     for f_obj in facade_objs:
                         try:
                             index = sorted_ids_list.index(str(f_obj.id))
-                            sorted_facade_objs[index] = f_obj
-                        except ValueError:
-                            print("Not in list", f_obj.obj.label)
+                            #print(index, str(f_obj.id))
+                            if index:
+                                sorted_facade_objs[index] = f_obj
+                            else:
+                                print("not in sorted_facades")
+                        except (ValueError, IndexError) as e:
+                            #print([o.id if o else None for o in sorted_facade_objs])
+                            #print("Not in list", index, f_obj.id, f_obj.obj.label)
+                            raise e
+
+                    sorted_facade_objs = [f for f in sorted_facade_objs if f is not None]
                 else:
                     # TODO gerer le groupby quand pas sur le doctype ? à revérifier
                     sorted_facade_objs = facade_objs
-
 
                 # find out if related resources must be included too
                 included_resources = None

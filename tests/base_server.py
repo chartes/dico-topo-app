@@ -24,8 +24,9 @@ class TestBaseServer(TestCase):
     ]
 
     def setUp(self):
+        #self.url_prefix = "http://localhost" + self.app.config["API_URL_PREFIX"]
         with self.app.app_context():
-            self.clear_data()
+            #self.clear_data()
             self.load_sql_fixtures(self.BASE_FIXTURES)
 
     def create_app(self):
@@ -38,7 +39,7 @@ class TestBaseServer(TestCase):
 
     def tearDown(self):
         db.session.remove()
-        db.drop_all()
+        #db.drop_all()
 
     @staticmethod
     def clear_data():
@@ -57,19 +58,20 @@ class TestBaseServer(TestCase):
                         trans.commit()
 
     def get(self, url, **kwargs):
-        return self.client.get(url, follow_redirects=True, **kwargs)
+        print("GET", self.url_prefix + url)
+        return self.client.get(self.url_prefix + url, follow_redirects=True, **kwargs)
 
     def post(self, url, data, **kwargs):
-        return self.client.post(url, data=json.dumps(data), follow_redirects=True, **kwargs)
+        return self.client.post(self.url_prefix + url, data=json.dumps(data), follow_redirects=True, **kwargs)
 
     def put(self, url, data, **kwargs):
-        return self.client.put(url, data=json.dumps(data), follow_redirects=True, **kwargs)
+        return self.client.put(self.url_prefix + url, data=json.dumps(data), follow_redirects=True, **kwargs)
 
     def patch(self, url, data, **kwargs):
-        return self.client.patch(url, data=json.dumps(data), follow_redirects=True, **kwargs)
+        return self.client.patch(self.url_prefix +  url, data=json.dumps(data), follow_redirects=True, **kwargs)
 
     def delete(self, url, **kwargs):
-        return self.client.delete(url, follow_redirects=True, **kwargs)
+        return self.client.delete(self.url_prefix +  url, follow_redirects=True, **kwargs)
 
     @staticmethod
     def api_query(method, *args, **kwargs):
