@@ -40,7 +40,7 @@ for dt_id in DT_with_insee:
     # dt2db.insert_place_values(db, cursor, dt_id)
     # dt2db.update_localization_place_id(db, cursor, dpt_code)
     # 3. insertion des formes anciennes
-    dt2db.insert_place_old_label(db, cursor, dt_id)
+    # dt2db.insert_place_old_label(db, cursor, dt_id)
 
 db.close()
 

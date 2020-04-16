@@ -1,3 +1,4 @@
+from sqlalchemy import CheckConstraint
 import datetime
 
 from app import db
@@ -141,7 +142,8 @@ class InseeRef(db.Model):
     __tablename__ = 'insee_ref'
 
     id = db.Column(db.String(10), primary_key=True)
-    type = db.Column(db.String(4), nullable=False, index=True)
+    # 'CTNP' for "Canton non précisé": https://www.insee.fr/fr/information/2560628#ct
+    type = db.Column(db.String(4), CheckConstraint('type IN ("PAYS","REG","DEP", "AR", "CT", "CTNP")'), nullable=False, index=True)
     insee_code = db.Column(db.String(3), nullable=False, index=True)
     parent_id = db.Column(db.String(10), db.ForeignKey('insee_ref.id'), index=True)
     level = db.Column(db.Integer, nullable=False, index=True)

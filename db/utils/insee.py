@@ -92,6 +92,21 @@ def insert_insee_ref(db, COG_year, cursor):
                     "VALUES(?, ?, ?, ?, ?, ?)",
                     (id, 'CT', row['CANTON'], parent_id, '5', row['NCCENR']))
                 db.commit()
+    # liste des cantons "non précisés" (type CTNP) pour les communes découpées en canton
+    with open('insee/{0}/comsimp{0}.txt'.format(COG_year)) as csvfile:
+        reader = csv.DictReader(csvfile, delimiter='\t')
+        for row in reader:
+            # https://www.insee.fr/fr/information/2560628#ct
+            if 84 <= int(row['CT']) <= 99:
+                id = 'CT_' + row['DEP'] + '-' + row['CT']
+                parent_id = 'AR_' + row['DEP'] + '-' + row['AR']
+                label = row['NCCENR'] + ' (NP)'
+                #print(id + ' > ' + parent_id + ' > ' + label)
+                cursor.execute(
+                    "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
+                    "VALUES(?, ?, ?, ?, ?, ?)",
+                    (id, 'CTNP', row['CT'], parent_id, '5', label))
+                db.commit()
 
     # EXCEPTIONS (à reprendre)
     # DEP_20, ancien département de la Corse, pour les anciennes communes (vieux codes communes)
