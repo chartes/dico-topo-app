@@ -209,13 +209,6 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
                 "text-date": self.parse_date(self.obj.text_date),
                 "rich-date": self.obj.rich_date,
                 "rich-reference": self.obj.rich_reference,
-
-                'geoname-id': co.geoname_id if co else None,
-                'wikidata-item-id': co.wikidata_item_id if co else None,
-                'wikipedia-url': co.wikipedia_url if co else None,
-                'databnf-ark': co.databnf_ark if co else None,
-                'viaf-id': co.viaf_id if co else None,
-                'siaf-id': co.siaf_id if co else None,
             },
             "links": {
                 "self": self.self_link
