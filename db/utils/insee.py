@@ -3,16 +3,34 @@ import csv
 import requests
 
 """
-import des données de l’INSEE, pour
-    * tester intégrité des données DT
-    * rétablir les hiérarchies administratives
-    * préparer les liages (OSM, wikidata, etc.)
+import en base des données du Code officiel géographique (COG) de l’INSEE utiles :
+    * aux tests d’intégrité des données DT;
+    * à l’affichage des hiérarchies administratives (Département > Canton > Commune);
+    * à la récupération des coordonnées géographiques des communes;
+    * au liage (OSM, wikidata, etc.) des entités.
 
-Sources
-    * Liste des régions: https://www.insee.fr/fr/information/3363419#titre-bloc-26
-    * Liste des départements: https://www.insee.fr/fr/information/3363419#titre-bloc-23
-    * Liste des arrondissements: https://www.insee.fr/fr/information/3363419#titre-bloc-19
-    * Liste des cantons: https://www.insee.fr/fr/information/3363419#titre-bloc-15
+Sources COG INSEE : https://www.insee.fr/fr/information/2560452
+
+Le choix a été fait de retenir le COG 2011 pour le pilotage de l’application.
+    * Liste des régions: https://www.insee.fr/fr/information/2560625#titre-bloc-29
+    * Liste des départements: https://www.insee.fr/fr/information/2560625#titre-bloc-26
+    * Liste des arrondissements: https://www.insee.fr/fr/information/2560625#titre-bloc-22
+    * Liste des cantons: https://www.insee.fr/fr/information/2560625#titre-bloc-19
+    * Liste des communes: https://www.insee.fr/fr/information/2560625#titre-bloc-7
+Ces ressources sont disponibles dans `./insee/2011/`
+
+Il est possible de générer la base de référence, en utilsant le COG d’une autre année:
+    * paramétrer COG_year
+    * enregister les données dans `./insee/{YEAR}/`
+
+NB1. Les liages (../communes-linking.tsv) et coordonnées (../commune_long_lat.tsv) disponibles le sont pour
+l’intégralité des communes listées dans le COG 2018 des communes existantes depuis 1943:
+https://www.insee.fr/fr/information/3363419#titre-bloc-3
+Ces données peuvent/doivent être mises à jour indépendemment du rechargement en base du COG INSEE.
+
+NB2. Pour mémoire, difficulté avec le COG2018 
+Le COG INSEE 2018 des cantons ne spécifie pas d’arrondissement de rattachement (pour les cantons).
+
 
 Problème: on a la table de référence insee (insee_ref), mais sans le parent pour les Cantons
 on doit donc procéder en 2 passes pour cette table
@@ -22,18 +40,13 @@ on doit donc procéder en 2 passes pour cette table
  
 """
 
-# INSEE COG year (Code officiel géographique)
-# 2011: https://www.insee.fr/fr/information/2560625
-# 2018: https://www.insee.fr/fr/information/3363419)
-insee_COG = "2011"
-
-def insert_insee_ref(db, cursor):
+def insert_insee_ref(db, COG_year, cursor):
     """ """
     print("BUILD INSEE REF: fill insee_ref\n===============================")
     cursor.execute("INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                    "VALUES('FR', 'PAYS', 'FR', NULL, '1', 'France')")
     db.commit()
-    with open('insee/2011/reg2011.txt') as csvfile:
+    with open('insee/{0}/reg{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
@@ -41,7 +54,7 @@ def insert_insee_ref(db, cursor):
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('REG_'+row['REGION'], 'REG', row['REGION'], 'FR', '2', row['NCCENR']))
             db.commit()
-    with open('insee/2011/depts2011.txt') as csvfile:
+    with open('insee/{0}/depts{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
@@ -49,7 +62,7 @@ def insert_insee_ref(db, cursor):
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('DEP_'+row['DEP'], 'DEP', row['DEP'], 'REG_'+row['REGION'], '3', row['NCCENR']))
             db.commit()
-    with open('insee/2011/arrond2011.txt') as csvfile:
+    with open('insee/{0}/arrond{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             cursor.execute(
@@ -57,35 +70,66 @@ def insert_insee_ref(db, cursor):
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('AR_' + row['DEP'] + '-' + row['AR'], 'AR', row['AR'], 'DEP_' + row['DEP'], '4', row['NCCENR']))
             db.commit()
-    # NB: les cantons ne dépendent pas toujours d’un arrondissement ! -> parent n’est pas obligatoire
-    # todo: si les cantons ne dépendent pas d‘un arrondissement, rattacher au DEP (en parent_id) ?
-    with open('insee/2011/canton2011.txt') as csvfile:
+    with open('insee/{0}/canton{0}.txt'.format(COG_year)) as csvfile:
+        reader = csv.DictReader(csvfile, delimiter='\t')
+        # canton2018.txt, ne renseigne pas l’arrondissement d’appartenance -> procédure plus complexe
+        # voir update_insee_ref()
+        if COG_year == '2018':
+            for row in reader:
+                id = 'CT_' + row['DEP'] + '-' + row['CANTON']
+                cursor.execute(
+                    "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
+                    "VALUES(?, ?, ?, ?, ?, ?)",
+                    (id, 'CT', row['CANTON'], None, '5', row['NCCENR']))
+                db.commit()
+        # A priori. Vérifier que la donnée (parent_id) est bien disponible pour toutes les autres années du COG.
+        else:
+            for row in reader:
+                id = 'CT_' + row['DEP'] + '-' + row['CANTON']
+                parent_id = 'AR_' + row['DEP'] + '-' + row['AR']
+                cursor.execute(
+                    "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
+                    "VALUES(?, ?, ?, ?, ?, ?)",
+                    (id, 'CT', row['CANTON'], parent_id, '5', row['NCCENR']))
+                db.commit()
+    # liste des cantons "non précisés" (type CTNP) pour les communes découpées en canton
+    with open('insee/{0}/comsimp{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
-            id = 'CT_' + row['DEP'] + '-' + row['CANTON']
-             # parent_id = ("SELECT DISTINCT AR_id FROM dicotopo.insee_commune WHERE CT_id = '%s'" % id)
-            cursor.execute(
-                "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
-                "VALUES(?, ?, ?, ?, ?, ?)",
-                (id, 'CT', row['CANTON'], None, '5', row['NCCENR']))
-            db.commit()
+            # https://www.insee.fr/fr/information/2560628#ct
+            if 84 <= int(row['CT']) <= 99:
+                id = 'CT_' + row['DEP'] + '-' + row['CT']
+                parent_id = 'AR_' + row['DEP'] + '-' + row['AR']
+                label = row['NCCENR'] + ' (NP)'
+                #print(id + ' > ' + parent_id + ' > ' + label)
+                cursor.execute(
+                    "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
+                    "VALUES(?, ?, ?, ?, ?, ?)",
+                    (id, 'CTNP', row['CT'], parent_id, '5', label))
+                db.commit()
+
     # EXCEPTIONS (à reprendre)
+    # DEP_20, ancien département de la Corse, pour les anciennes communes (vieux codes communes)
     cursor.execute("INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                    "VALUES('DEP_20', 'DEP', '20', 'REG_94', '3', 'Corse')")
     db.commit()
 
 
-# Liste des communes. On conserve les étiquettes de l’INSEE: https://www.insee.fr/fr/information/3363419#titre-bloc-7
-# On ne valide pas les cantons: problème de cantons antérieurs à 2018
-def insert_insee_commune(db, cursor):
+# Liste uniquement des communes existantes au 1er janvier (comsimp{AAAA}.txt).
+# On conserve les étiquettes de l’INSEE, par ex. https://www.insee.fr/fr/information/2560625#titre-bloc-7
+# NB. Écrit pour fonctionner aussi avec `france{AAAA}.txt en entrée.
+def insert_insee_commune(db, COG_year, cursor):
     """ """
     print("BUILD INSEE REF: fill insee_commune\n===================================")
-    with open('insee/France2018.txt') as csvfile:
+    with open('insee/{0}/comsimp{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         insee_code_list = []
         for row in reader:
             insee_COM = str(row['DEP']) + str(row['COM'])
-            # 278 codes insee réattribués 3 à 13 fois. On conserve le premier (utile que sur France2018.txt)
+            # Dans les listes des communes depuis 1943 (`france{AAAA}.txt`), des communes sont répétées pour
+            # rendre compte des différentes fractions cantonales dans le temps.
+            # ex. 278 codes commune sont répétés 3 à 13 fois dans `France2018.txt`
+            # Simplification : on ne conserve conserve que la première occurrence de la liste.
             if insee_COM in insee_code_list:
                 continue
             insee_code_list.append(insee_COM)
@@ -95,8 +139,7 @@ def insert_insee_commune(db, cursor):
             AR_id    = 'AR_'+row['DEP']+'-'+AR_insee if AR_insee else None
             CT_insee = row['CT'] if row['CT'] else None
             CT_id    = 'CT_' + row['DEP'] + '-' + CT_insee if CT_insee else None
-            # cas des communes localisées dans l’ancien département corse (20)
-            # TODO: corriger le référentiel ?
+            # cas des anciennes communes (anciens codes) localisées dans l’ancien département corse (20)
             REG_id   = 'REG_94' if row['DEP'] == '20' else 'REG_'+row['REG']
             try:
                 cursor.execute("INSERT INTO insee_commune"
@@ -158,9 +201,9 @@ def insert_longlat(db, cursor, method):
                 db.commit()
             else:
                 continue
-    # on dispose du mapping insee_id/coords in longlat-by-insee_id.tsv
+    # on dispose du mapping insee_code/coordonnées in communes-longlat.tsv
     elif method == 'tsv':
-        with open('insee/longlat-by-insee_id.tsv', 'r') as f:
+        with open('../communes-longlat.tsv', 'r') as f:
             data = csv.reader(f, delimiter="\t")
             for row in data:
                 insee_code = row[0]
