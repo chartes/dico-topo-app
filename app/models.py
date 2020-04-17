@@ -39,6 +39,7 @@ class Place(db.Model):
     num_start_page = db.Column(db.Integer, index=True)
     # comment on the place
     comment = db.Column(db.Text)
+    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), index=True)
 
     # relationships
     commune = db.relationship(
@@ -166,4 +167,19 @@ class FeatureType(db.Model):
 
     # relationships
     place = db.relationship(Place, backref=db.backref('feature_types'))
+
+
+class Bibl(db.Model):
+    """ """
+    __tablename__ = 'bibl'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    abbr = db.Column(db.String(20), nullable=False)
+    bibl = db.Column(db.Text, nullable=False)
+    bnf_catalogue_ark = db.Column(db.String(30))
+    gallica_ark = db.Column(db.String(30))
+    gallica_page_one = db.Column(db.String(15))
+    gallica_IIIF_availability = db.Column(db.Boolean)
+
+    # relationships ?
 

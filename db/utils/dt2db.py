@@ -4,10 +4,35 @@ from lxml import etree
 from lxml.etree import tostring
 import io
 import re
+import csv
+
+
+def insert_bibl(db, cursor, dt_id):
+    """ """
+    with open('bibl_gallica.tsv') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter='\t')
+        for row in reader:
+            if row['abbr'] == dt_id:
+                cursor.execute(
+                    "INSERT INTO bibl (abbr, bibl, bnf_catalogue_ark, gallica_ark, gallica_page_one, gallica_IIIF_availability)"
+                    "VALUES(?, ?, ?, ?, ?, ?)",
+                    (row['abbr'],
+                     row['bibl'],
+                     row['bnf_catalogue_ark'],
+                     row['gallica_ark'],
+                     row['gallica_page_one'],
+                     row['gallica_IIIF_availability'])
+                )
+                db.commit()
 
 
 def insert_place_values(db, cursor, dt_id):
     """ """
+    print("INSERT bibl for {0}".format(dt_id))
+    insert_bibl(db, cursor, dt_id)
+    # store id of bibl
+    bibl_id = cursor.lastrowid
+
     print("** TABLE place, place_alt_label, feature_type – INSERT")
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
     # on enregistre le code du dpt
@@ -189,8 +214,9 @@ def insert_place_values(db, cursor, dt_id):
                     "localization_certainty,"
                     "desc,"
                     "num_start_page,"
-                    "comment)"
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "comment,"
+                    "bibl_id)"
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (place['id'],
                      place['label'],
                      'FR',
@@ -200,7 +226,8 @@ def insert_place_values(db, cursor, dt_id):
                      place['localization_certainty'],
                      place['desc'],
                      place['num_start_page'],
-                     place['comment']))
+                     place['comment'],
+                     bibl_id))
         except sqlite3.IntegrityError as e:
             print(e, "place %s" % (place['id']))
         db.commit()
@@ -538,3 +565,4 @@ def insert_place_old_label(db, cursor, dt_id):
     """)
     db.commit()
     # db.close()
+
