@@ -346,7 +346,7 @@ class JSONAPIRouteRegistrar(object):
                     page_after=request.args["page[after]"] if "page[after]" in request.args else None,
                     page_size=page_size
                 )
-                print("sorted id lists:\n", sorted_ids_list)
+                #print("sorted id lists:\n", sorted_ids_list)
             except Exception as e:
                 #raise e
                 return JSONAPIResponseFactory.make_errors_response({
@@ -460,11 +460,7 @@ class JSONAPIRouteRegistrar(object):
                     for f_obj in facade_objs:
                         try:
                             index = sorted_ids_list.index(str(f_obj.id))
-                            #print(index, str(f_obj.id))
-                            if index:
-                                sorted_facade_objs[index] = f_obj
-                            else:
-                                print("not in sorted_facades")
+                            sorted_facade_objs[index] = f_obj
                         except (ValueError, IndexError) as e:
                             #print([o.id if o else None for o in sorted_facade_objs])
                             #print("Not in list", index, f_obj.id, f_obj.obj.label)

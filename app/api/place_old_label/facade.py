@@ -150,13 +150,14 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
         else:
             co = None
 
+        label = re.sub(r'<dfn>(.*?)</dfn>', r'\1', self.obj.rich_label)
         payload = {
             "id": self.obj.id,
             "place-id": self.obj.place.id,
             "place-label": self.obj.place.label,
 
             "type": self.TYPE,
-            "label": re.sub(r'<dfn>(.*?)</dfn>', r'\1', self.obj.rich_label),
+            "label": label,
 
             "localization-insee-code": co.id if co else None,
             "commune-label": co.NCCENR if co else None,

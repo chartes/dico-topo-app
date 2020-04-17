@@ -11,10 +11,13 @@
                 "type": "text",
                 "analyzer": "folding",
                 "fielddata": "true"
+              },
+              "keyword": {
+                "type": "keyword"
               }
             }
           },
-          "place-label": {
+        "place-label": {
             "type": "text",
             "analyzer": "standard",
             "fielddata": "true",
@@ -23,6 +26,9 @@
                 "type": "text",
                 "analyzer": "folding",
                 "fielddata": "true"
+              },
+              "keyword": {
+                "type": "keyword"
               }
             }
         },
@@ -35,6 +41,9 @@
               "type": "text",
               "analyzer": "folding",
               "fielddata": "true"
+            },
+            "keyword": {
+              "type": "keyword"
             }
           }
         },
