@@ -56,6 +56,7 @@ def make_cli():
         click.echo("Loading the application")
         global app
         app = create_app(config)
+        print(app.config['SQLALCHEMY_DATABASE_URI'])
 
     @click.command("db-create")
     def db_create():

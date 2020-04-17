@@ -241,7 +241,7 @@ class JSONAPIRouteRegistrar(object):
         )
 
         if total == 0:
-            return {}, {"total": 0}
+            return [], {}, {"total": 0}
 
         res_dict = {}
         if groupby is None:
@@ -260,6 +260,9 @@ class JSONAPIRouteRegistrar(object):
                 mapper_name = "default"
 
             res_dict[res_type] = []
+
+            def _identity(s):
+                return s
             for bucket in buckets:
                 # transform the id if needed
                 if res_type in JSONAPIFacadeManager.IDMapper:
@@ -267,12 +270,12 @@ class JSONAPIRouteRegistrar(object):
                     if mapper_name in mapper:
                         mapper = mapper[mapper_name]
                 else:
-                    mapper = lambda s: s
+                    mapper = _identity
 
                 res_dict[res_type].append(mapper(bucket["key"]["item"]))
             print("ids fetched !")
 
-        # fetch the actual objects from their ids
+        # build the query to get objects from their ids
         for res_type, res_ids in res_dict.items():
             when = []
             for i, id in enumerate(res_ids):
@@ -284,7 +287,7 @@ class JSONAPIRouteRegistrar(object):
                 res_dict[res_type] = res_dict[res_type].order_by(db.case(when, value=m.id))
 
         print({"total": total, "after": after_key})
-        return res_dict, {"total": total, "after": after_key}
+        return [r.id for r in results], res_dict, {"total": total, "after": after_key}
 
     def register_search_route(self, decorators=()):
 
@@ -333,7 +336,7 @@ class JSONAPIRouteRegistrar(object):
                     sort_criteriae.append({criteria: {"order": sort_order}})
 
             try:
-                res, meta = self.search(
+                sorted_ids_list, res, meta = self.search(
                     index=index,
                     query=query,
                     range=range,
@@ -343,6 +346,7 @@ class JSONAPIRouteRegistrar(object):
                     page_after=request.args["page[after]"] if "page[after]" in request.args else None,
                     page_size=page_size
                 )
+                #print("sorted id lists:\n", sorted_ids_list)
             except Exception as e:
                 #raise e
                 return JSONAPIResponseFactory.make_errors_response({
@@ -354,7 +358,7 @@ class JSONAPIRouteRegistrar(object):
             links = {"self": JSONAPIRouteRegistrar.make_url(request.base_url, OrderedDict(request.args))}
 
             if meta["total"] <= 0:
-                facade_objs = []
+                sorted_facade_objs = []
                 included_resources = None
             else:
                 for idx in res.keys():
@@ -438,6 +442,8 @@ class JSONAPIRouteRegistrar(object):
 
                 # finally make the facades
                 facade_objs = []
+                sorted_facade_objs = [None] * len(sorted_ids_list)
+
                 for idx, r in res.items():
                     for obj in r:
                         facade_class_type = request.args["facade"] if "facade" in request.args else "search"
@@ -446,11 +452,30 @@ class JSONAPIRouteRegistrar(object):
                                              with_relationships_data=w_rel_data)
                         facade_objs.append(f_obj)
 
+                # reapply the initial sorts to the spread resources (because the order may have been split
+                # across different facades)
+                if groupby is None:
+                    #print([(i, o)for i, o in enumerate(sorted_ids_list)])
+                    #print([(i, o.id) for i, o in enumerate(facade_objs)])
+                    for f_obj in facade_objs:
+                        try:
+                            index = sorted_ids_list.index(str(f_obj.id))
+                            sorted_facade_objs[index] = f_obj
+                        except (ValueError, IndexError) as e:
+                            #print([o.id if o else None for o in sorted_facade_objs])
+                            #print("Not in list", index, f_obj.id, f_obj.obj.label)
+                            raise e
+
+                    sorted_facade_objs = [f for f in sorted_facade_objs if f is not None]
+                else:
+                    # TODO gerer le groupby quand pas sur le doctype ? à revérifier
+                    sorted_facade_objs = facade_objs
+
                 # find out if related resources must be included too
                 included_resources = None
                 if "include" in request.args:
                     included_resources = []
-                    for facade_obj in facade_objs:
+                    for facade_obj in sorted_facade_objs:
                         included_res, errors = JSONAPIRouteRegistrar.get_included_resources(
                             request.args["include"].split(','),
                             facade_obj
@@ -472,7 +497,7 @@ class JSONAPIRouteRegistrar(object):
                 res_meta["after"] = meta["after"]
 
             return JSONAPIResponseFactory.make_data_response(
-                [f.resource for f in facade_objs],
+                [f.resource for f in sorted_facade_objs],
                 links=links,
                 included_resources=included_resources,
                 meta=res_meta

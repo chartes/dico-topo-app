@@ -5,33 +5,45 @@
         "label": {
           "type": "text",
           "analyzer": "standard",
+          "fielddata": "true",
           "fields": {
-            "folded": {
-              "type": "text",
-              "analyzer": "folding",
-              "fielddata": "true"
+              "folded": {
+                "type": "text",
+                "analyzer": "folding",
+                "fielddata": "true"
+              },
+              "keyword": {
+                "type": "keyword"
+              }
             }
-          }
-        },
+          },
         "place-label": {
-          "type": "text",
-          "analyzer": "standard",
-          "fields": {
-            "folded": {
-              "type": "text",
-              "analyzer": "folding",
-              "fielddata": "true"
+            "type": "text",
+            "analyzer": "standard",
+            "fielddata": "true",
+            "fields": {
+              "folded": {
+                "type": "text",
+                "analyzer": "folding",
+                "fielddata": "true"
+              },
+              "keyword": {
+                "type": "keyword"
+              }
             }
-          }
         },
         "commune-label": {
           "type": "text",
           "analyzer": "standard",
+          "fielddata": "true",
           "fields": {
             "folded": {
               "type": "text",
               "analyzer": "folding",
               "fielddata": "true"
+            },
+            "keyword": {
+              "type": "keyword"
             }
           }
         },
