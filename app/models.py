@@ -52,7 +52,12 @@ class Place(db.Model):
         primaryjoin="InseeCommune.id==Place.localization_commune_insee_code",
         uselist=False
     )
+    bibl = db.relationship(
+        'Bibl', backref=db.backref('places'),
+        primaryjoin="Bibl.id==Place.bibl_id"
+    )
     linked_places = db.relationship('Place')
+
 
     @property
     def longlat(self):
@@ -180,6 +185,4 @@ class Bibl(db.Model):
     gallica_ark = db.Column(db.String(30))
     gallica_page_one = db.Column(db.String(15))
     gallica_IIIF_availability = db.Column(db.Boolean)
-
-    # relationships ?
 

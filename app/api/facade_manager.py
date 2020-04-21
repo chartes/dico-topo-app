@@ -5,7 +5,8 @@ from app.api.place.facade import PlaceFacade, PlaceSearchFacade, PlaceMapFacade
 from app.api.place_alt_label.facade import PlaceAltLabelFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade, PlaceOldLabelSearchFacade, \
     PlaceOldLabelMapFacade
-from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, FeatureType, PlaceAltLabel
+from app.api.bibl.facade import BiblFacade
+from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, FeatureType, PlaceAltLabel, Bibl
 
 
 class JSONAPIFacadeManager(object):
@@ -50,6 +51,11 @@ class JSONAPIFacadeManager(object):
             "search": FeatureTypeFacade,
             "map": FeatureTypeFacade
         },
+        Bibl.__name__:{
+            "default": BiblFacade,
+            "search": BiblFacade,
+            "map": BiblFacade
+        }
     }
 
     @staticmethod

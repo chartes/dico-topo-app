@@ -110,6 +110,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
         from app.api.insee_commune.facade import CommuneFacade
         from app.api.place_alt_label.facade import PlaceAltLabelFacade
         from app.api.place_old_label.facade import PlaceOldLabelFacade
+        from app.api.bibl.facade import BiblFacade
 
         self.relationships = {
             "linked-places": {
@@ -119,12 +120,14 @@ class PlaceFacade(JSONAPIAbstractFacade):
             },
         }
 
+
         for rel_name, (rel_facade, to_many) in {
             "commune": (CommuneFacade, False),
             "localization-commune": (CommuneFacade, False),
             "alt-labels": (PlaceAltLabelFacade, True),
             "old-labels": (PlaceOldLabelFacade, True),
             "feature-types": (FeatureTypeFacade, True),
+            "bibl": (BiblFacade, False)
         }.items():
             u_rel_name = rel_name.replace("-", "_")
 
