@@ -30,7 +30,10 @@ class PlaceFacade(JSONAPIAbstractFacade):
 
     def get_linked_places_resource_identifier(self):
         if self.obj.commune_insee_code is None:
-            return [] if self.obj.localization_commune is None else [ PlaceFacade.make_resource_identifier(self.obj.localization_commune.place.id, PlaceFacade.TYPE)]
+            return [] if self.obj.localization_commune is None else [
+                PlaceFacade.make_resource_identifier(lp.id, PlaceFacade.TYPE)
+                for lp in self.obj.localization_commune.place.linked_places if
+                lp.commune_insee_code is None and lp.id != self.obj.id]
         else:
             return [] if len(self.obj.linked_places) == 0 else [PlaceFacade.make_resource_identifier(lp.id, PlaceFacade.TYPE)
                                                                 for lp in self.obj.linked_places if
@@ -38,10 +41,11 @@ class PlaceFacade(JSONAPIAbstractFacade):
 
     def get_linked_places_resource(self):
         if self.obj.commune_insee_code is None:
-            return [] if self.obj.localization_commune is None else [PlaceFacade(self.url_prefix,
-                                                                                 self.obj.localization_commune.place,
+            return [] if self.obj.localization_commune is None else [PlaceFacade(self.url_prefix, lp,
                                                                                  self.with_relationships_links,
-                                                                                 self.with_relationships_data).resource]
+                                                                                 self.with_relationships_data).resource
+                                                                     for lp in self.obj.localization_commune.place.linked_places if
+                                                                     lp.commune_insee_code is None and lp.id != self.obj.id]
         else:
             return [] if len(self.obj.linked_places) == 0 else [PlaceFacade(self.url_prefix, lp,
                                                                    self.with_relationships_links,
@@ -85,12 +89,12 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "localization-certainty": self.obj.localization_certainty,
                 "localization-insee-code": co.id if co else None,
 
-                'geoname-id': co.geoname_id if co else None,
-                'wikidata-item-id': co.wikidata_item_id if co else None,
-                'wikipedia-url': co.wikipedia_url if co else None,
-                'databnf-ark': co.databnf_ark if co else None,
-                'viaf-id': co.viaf_id if co else None,
-                'siaf-id': co.siaf_id if co else None,
+                'geoname-id': self.obj.commune.geoname_id if self.obj.commune else None,
+                'wikidata-item-id': self.obj.commune.wikidata_item_id if self.obj.commune else None,
+                'wikipedia-url': self.obj.commune.wikipedia_url if self.obj.commune else None,
+                'databnf-ark': self.obj.commune.databnf_ark if self.obj.commune else None,
+                'viaf-id': self.obj.commune.viaf_id if self.obj.commune else None,
+                'siaf-id': self.obj.commune.siaf_id if self.obj.commune else None,
             },
             "meta": self.meta,
             "links": {
