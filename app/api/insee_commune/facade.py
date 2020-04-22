@@ -33,6 +33,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
             **self.resource_identifier,
             "attributes": {
                 'insee-code': self.obj.id,
+                'place-id': self.obj.place.id if self.obj.place else None,
                 'NCCENR': self.obj.NCCENR,
                 'ARTMIN': self.obj.ARTMIN,
                 'longlat': self.obj.longlat,

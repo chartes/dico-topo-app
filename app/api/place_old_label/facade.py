@@ -1,3 +1,5 @@
+import re
+
 from flask import current_app
 
 from app.api.abstract_facade import JSONAPIAbstractFacade
@@ -148,13 +150,14 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
         else:
             co = None
 
+        label = re.sub(r'<dfn>(.*?)</dfn>', r'\1', self.obj.rich_label)
         payload = {
             "id": self.obj.id,
             "place-id": self.obj.place.id,
             "place-label": self.obj.place.label,
 
             "type": self.TYPE,
-            "label": self.obj.rich_label,
+            "label": label,
 
             "localization-insee-code": co.id if co else None,
             "commune-label": co.NCCENR if co else None,
@@ -206,13 +209,6 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
                 "text-date": self.parse_date(self.obj.text_date),
                 "rich-date": self.obj.rich_date,
                 "rich-reference": self.obj.rich_reference,
-
-                'geoname-id': co.geoname_id if co else None,
-                'wikidata-item-id': co.wikidata_item_id if co else None,
-                'wikipedia-url': co.wikipedia_url if co else None,
-                'databnf-ark': co.databnf_ark if co else None,
-                'viaf-id': co.viaf_id if co else None,
-                'siaf-id': co.siaf_id if co else None,
             },
             "links": {
                 "self": self.self_link
