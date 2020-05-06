@@ -1,5 +1,7 @@
 from copy import copy
 
+from flask import current_app
+
 from app.api.abstract_facade import JSONAPIAbstractFacade
 from app.api.feature_type.facade import FeatureTypeFacade
 import re
@@ -145,7 +147,8 @@ class PlaceFacade(JSONAPIAbstractFacade):
         if self.obj.desc:
             if self.obj.localization_commune_insee_code and self.obj.localization_place_id:
                 self.obj.desc = re.sub(r'<a href="{0}">'.format(self.obj.localization_commune_insee_code),
-                                       '<a href="/places/{0}">'.format(self.obj.localization_place_id), self.obj.desc)
+                                       '<a href="{0}/places/{1}">'.format(current_app.config['APP_URL_PREFIX'],
+                                                                          self.obj.localization_place_id), self.obj.desc)
 
             # remove unused links to feature types
             self.obj.desc = re.sub(r'<a>(.*?)</a>', r'\1', self.obj.desc)
