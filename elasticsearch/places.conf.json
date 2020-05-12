@@ -13,7 +13,9 @@
                 "fielddata": "true"
               },
               "keyword": {
-                "type": "keyword"
+                "type": "text",
+                "analyzer": "lowercaseKeyword",
+                "fielddata": "true"
               }
             }
           },
@@ -28,7 +30,9 @@
                 "fielddata": "true"
               },
               "keyword": {
-                "type": "keyword"
+                "type": "text",
+                "analyzer": "lowercaseKeyword",
+                "fielddata": "true"
               }
             }
         },
@@ -43,7 +47,9 @@
               "fielddata": "true"
             },
             "keyword": {
-              "type": "keyword"
+              "type": "text",
+              "analyzer": "lowercaseKeyword",
+              "fielddata": "true"
             }
           }
         },

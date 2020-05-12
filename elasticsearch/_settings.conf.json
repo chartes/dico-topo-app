@@ -32,6 +32,13 @@
           "french_elision",
           "my_ascii_folding"
         ]
+      },
+      "lowercaseKeyword": {
+        "tokenizer": "keyword",
+        "filter": [
+          "lowercase",
+          "my_ascii_folding"
+        ]
       }
     }
   }

@@ -93,3 +93,102 @@ class TestSortPlace(TestBaseServer):
 
         self.assertListEqual(expected, actual)
 
+
+    def test_sort_toponym_commune_with_dpt_filter(self):
+        pass
+
+    def test_sort_toponym_bourg(self):
+        # test du sort en mode 'Toponymes', colonne 'toponyme'
+        term = "bourg"
+        query = "label.folded:{term}".format(term=term)
+        sort = "label.keyword"
+        url = "/search?query={query}&sort={sort}".format(query=query, sort=sort)
+
+        r, status, res = self.api_get(url)
+
+        actual = [
+            (r['attributes']['place-label'], r['type'], r['id'])
+            for r in res['data']
+        ]
+        expected =  [
+            ('Bourg', 'place', 'DT10-00432'),
+            ('Bourg (en Bresse)', 'place', 'DT10-00435'),
+            ('bourg en bresse', 'place', 'DT10-00430'),
+            ('bourg en bresse', 'place', 'DT10-00437'),
+            ('Bourg en Bresse', 'place', 'DT10-00433'),
+            ('Bourg-en-Bresse', 'place', 'DT10-00431'),
+            ("Bourg-l'Évêque (Le)", 'place', 'DT10-00424'),
+            ('Bourg-Neuf (Le)', 'place', 'DT10-00425'),
+            ('Bourg-Partie (Le)', 'place', 'DT10-00426'),
+            ('Bourg-Partie (Le)', 'place-old-label', 35142),
+            ('Bresse en Bourg', 'place', 'DT10-00436'),
+            ('Brienne-le-Château', 'place-old-label', 35333),
+            ('Saint-Jacques', 'place-old-label', 40851),
+            ('Villiers', 'place-old-label', 42811),
+            ('Villiers-le-Bourg', 'place-old-label', 42457),
+            ('Villiers-le-Bourg', 'place', 'DT10-03461')
+        ]
+
+        self.assertListEqual(expected, actual)
+
+    def test_sort_toponym_bourg_and_filter_dpt(self):
+        # test du sort en mode 'Toponymes', colonne 'toponyme'
+        term = "bourg"
+        query = "label.folded:{term}".format(term=term)
+        sort = "label.keyword"
+        url = "/search?query={query}&sort={sort}".format(query=query, sort=sort)
+
+        r, status, res = self.api_get(url)
+
+        actual = [
+            (r['attributes']['place-label'], r['type'], r['id'])
+            for r in res['data']
+        ]
+        expected = [
+            ('Bourg', 'place', 'DT10-00432'),
+            ('Bourg (en Bresse)', 'place', 'DT10-00435'),
+            ('bourg en bresse', 'place', 'DT10-00430'),
+            ('bourg en bresse', 'place', 'DT10-00437'),
+            ('Bourg en Bresse', 'place', 'DT10-00433'),
+            ('Bourg-en-Bresse', 'place', 'DT10-00431'),
+            ("Bourg-l'Évêque (Le)", 'place', 'DT10-00424'),
+            ('Bourg-Neuf (Le)', 'place', 'DT10-00425'),
+            ('Bourg-Partie (Le)', 'place', 'DT10-00426'),
+            ('Bourg-Partie (Le)', 'place-old-label', 35142),
+            ('Bresse en Bourg', 'place', 'DT10-00436'),
+            ('Brienne-le-Château', 'place-old-label', 35333),
+            ('Saint-Jacques', 'place-old-label', 40851),
+            ('Villiers', 'place-old-label', 42811),
+            ('Villiers-le-Bourg', 'place-old-label', 42457),
+            ('Villiers-le-Bourg', 'place', 'DT10-03461')
+        ]
+
+        self.assertListEqual(expected, actual)
+
+    def test_sort_multi_criteriae_with_filter(self):
+        # test du sort en mode 'Toponymes', colonne 'toponyme'
+        term = "babelin"
+        query = "label.folded:{term}".format(term=term)
+        filter = " AND (dep-id:34 OR dep-id:10)"
+        sort = "-place-label.keyword,dep-id.keyword"
+        groupby="groupby[doc-type]=place&groupby[field]=place-id.keyword"
+        url = "/search?query={query}&sort={sort}&{groupby}".format(query=query+filter, sort=sort, groupby=groupby)
+
+        r, status, res = self.api_get(url)
+
+        actual = [
+            (r['attributes']['place-label'], r['type'], r['id'])
+            for r in res['data']
+        ]
+
+        pprint.pprint(actual)
+
+        expected = [('Babelin les trois quarts', 'place', 'DT10-00106'),  # dpt 10
+                    ("Babelin (l'église)", 'place', 'DT10-00111'),        # dpt 10
+                    ('Babelin plage', 'place', 'DT10-00124'),             # dpt 34
+                    ('babelin la moulasse', 'place', 'DT10-00125'),       # dpt 34
+                    ('Babelin saint loup', 'place', 'DT10-00123')]        # dpt 34
+
+
+        self.assertListEqual(expected, actual)
+
