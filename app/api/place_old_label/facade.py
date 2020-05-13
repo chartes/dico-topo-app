@@ -163,7 +163,11 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
             "commune-label": co.NCCENR if co else None,
 
             "dep-id": self.obj.place.dpt,
+            "ctn-id": co.canton.id if co and co.canton else None,
             "reg-id": co.region.insee_code if co and co.region else None,
+
+            "ctn-label": co.canton.label if co and co.canton else None,
+
             "is-localized": co is not None,
 
             "text-date": self.parse_date(self.obj.text_date),
@@ -202,6 +206,7 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
                 "localization-insee-code": co.id if co else None,
                 "commune-label": co.NCCENR if co else None,
                 "dpt": self.obj.place.dpt,
+                "canton": co.canton.label if co else None,
                 "region": co.region.label if co else None,
                 "longlat": co.longlat if co else None,
                 "rich-label": self.obj.rich_label,

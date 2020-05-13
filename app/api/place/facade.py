@@ -6,6 +6,7 @@ from app.api.abstract_facade import JSONAPIAbstractFacade
 from app.api.feature_type.facade import FeatureTypeFacade
 import re
 
+
 class PlaceFacade(JSONAPIAbstractFacade):
     """
     """
@@ -37,22 +38,26 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 for lp in self.obj.localization_commune.place.linked_places if
                 lp.commune_insee_code is None and lp.id != self.obj.id]
         else:
-            return [] if len(self.obj.linked_places) == 0 else [PlaceFacade.make_resource_identifier(lp.id, PlaceFacade.TYPE)
-                                                                for lp in self.obj.linked_places if
-                                                                lp.commune_insee_code is None]
+            return [] if len(self.obj.linked_places) == 0 else [
+                PlaceFacade.make_resource_identifier(lp.id, PlaceFacade.TYPE)
+                for lp in self.obj.linked_places if
+                lp.commune_insee_code is None]
 
     def get_linked_places_resource(self):
         if self.obj.commune_insee_code is None:
             return [] if self.obj.localization_commune is None else [PlaceFacade(self.url_prefix, lp,
                                                                                  self.with_relationships_links,
                                                                                  self.with_relationships_data).resource
-                                                                     for lp in self.obj.localization_commune.place.linked_places if
+                                                                     for lp in
+                                                                     self.obj.localization_commune.place.linked_places
+                                                                     if
                                                                      lp.commune_insee_code is None and lp.id != self.obj.id]
         else:
             return [] if len(self.obj.linked_places) == 0 else [PlaceFacade(self.url_prefix, lp,
-                                                                   self.with_relationships_links,
-                                                                   self.with_relationships_data).resource
-                                                                for lp in self.obj.linked_places if lp.commune_insee_code is None]
+                                                                            self.with_relationships_links,
+                                                                            self.with_relationships_data).resource
+                                                                for lp in self.obj.linked_places if
+                                                                lp.commune_insee_code is None]
 
     @property
     def resource(self):
@@ -109,7 +114,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
 
         return res
 
-
     def __init__(self, *args, **kwargs):
         super(PlaceFacade, self).__init__(*args, **kwargs)
 
@@ -125,7 +129,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "resource_getter": self.get_linked_places_resource
             },
         }
-
 
         for rel_name, (rel_facade, to_many) in {
             "commune": (CommuneFacade, False),
@@ -148,7 +151,8 @@ class PlaceFacade(JSONAPIAbstractFacade):
             if self.obj.localization_commune_insee_code and self.obj.localization_place_id:
                 self.obj.desc = re.sub(r'<a href="{0}">'.format(self.obj.localization_commune_insee_code),
                                        '<a href="{0}/places/{1}">'.format(current_app.config['APP_URL_PREFIX'],
-                                                                          self.obj.localization_place_id), self.obj.desc)
+                                                                          self.obj.localization_place_id),
+                                       self.obj.desc)
 
             # remove unused links to feature types
             self.obj.desc = re.sub(r'<a>(.*?)</a>', r'\1', self.obj.desc)
@@ -172,24 +176,20 @@ class PlaceFacade(JSONAPIAbstractFacade):
             "commune-label": co.NCCENR if co else None,
 
             "dep-id": self.obj.dpt,
+            "ctn-id": co.canton.id if co and co.canton else None,
             "reg-id": co.region.insee_code if co and co.region else None,
-            # "old-labels": [ol.rich_label for ol in self.obj.old_labels],
-            # "alt-labels": [al.label for al in self.obj.alt_labels]
-        }
 
-        #payload_groupby_place = copy(payload)
-        #payload_groupby_place["old-labels"] = [ol.rich_label for ol in self.obj.old_labels]
+            "ctn-label": co.canton.label if co and co.canton else None,
+        }
 
         return [
             {"id": self.obj.id, "index": self.get_index_name(), "payload": payload},
-            #{"id": self.obj.id, "index": "{0}_agg".format(self.get_index_name()), "payload": payload_groupby_place}
         ]
 
     def get_data_to_index_when_removed(self, propagate):
         print("GOING TO BE REMOVED FROM INDEX:", [{"id": self.obj.id, "index": self.get_index_name()}])
         return [
             {"id": self.obj.id, "index": self.get_index_name()},
-            #{"id": self.obj.id, "index": "{0}_agg".format(self.get_index_name())}
         ]
 
 
@@ -213,6 +213,7 @@ class PlaceSearchFacade(PlaceFacade):
                 "localization-insee-code": co.id if co else None,
                 "commune-label": co.NCCENR if co else None,
                 "dpt": self.obj.dpt,
+                "canton": co.canton.label if co else None,
                 "region": co.region.label if co else None,
                 "longlat": co.longlat if co else None,
                 "desc": self.obj.desc,
@@ -227,7 +228,7 @@ class PlaceSearchFacade(PlaceFacade):
 
     def __init__(self, *args, **kwargs):
         super(PlaceSearchFacade, self).__init__(*args, **kwargs)
-        #self.relationships = {}
+        # self.relationships = {}
 
 
 class PlaceMapFacade(PlaceSearchFacade):
