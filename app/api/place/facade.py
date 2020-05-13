@@ -204,12 +204,22 @@ class PlaceSearchFacade(PlaceFacade):
             co = self.obj.localization_commune
         else:
             co = None
+
+        old_labels = []
+        for o in self.obj.old_labels:
+            if o.rich_date:
+                old_labels.append("{0} ({1})".format(o.rich_label, o.rich_date))
+            else:
+                old_labels.append(o.rich_label)
+
+        old_labels.reverse()
+
         res = {
             **self.resource_identifier,
             "attributes": {
                 "place-id": self.obj.id,
                 "place-label": self.obj.label,
-                "old-labels": ["{0} ({1})".format(o.rich_label, o.rich_date) for o in self.obj.old_labels],
+                "old-labels": old_labels,
                 "localization-insee-code": co.id if co else None,
                 "commune-label": co.NCCENR if co else None,
                 "dpt": self.obj.dpt,
