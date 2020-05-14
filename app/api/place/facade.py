@@ -223,8 +223,8 @@ class PlaceSearchFacade(PlaceFacade):
                 "localization-insee-code": co.id if co else None,
                 "commune-label": co.NCCENR if co else None,
                 "dpt": self.obj.dpt,
-                "canton": co.canton.label if co else None,
-                "region": co.region.label if co else None,
+                "canton": co.canton.label if co and co.canton else None,
+                "region": co.region.label if co and co.region else None,
                 "longlat": co.longlat if co else None,
                 "desc": self.obj.desc,
                 "comment": self.obj.comment,
@@ -259,8 +259,8 @@ class PlaceMapFacade(PlaceSearchFacade):
                 "localization-insee-code": co.id if co else None,
                 "longlat": co.longlat if co else None,
 
-                "dpt": "{0} - {1}".format(co.departement.insee_code, co.departement.label) if co else None,
-                "region": "{0} - {1}".format(co.region.insee_code, co.region.label) if co else None,
+                "dpt": "{0} - {1}".format(co.departement.insee_code, co.departement.label) if co and co.departement else None,
+                "region": "{0} - {1}".format(co.region.insee_code, co.region.label) if co and co.region else None,
             },
             "links": {
                 "self": self.self_link
