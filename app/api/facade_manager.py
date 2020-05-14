@@ -15,7 +15,7 @@ class JSONAPIFacadeManager(object):
 
     IDMapper = {
         InseeRef.__tablename__: {
-            "default": lambda id: "DEP_%s" % id,
+            "default": lambda id: id,
             "department": lambda id: "DEP_%s" % id
         },
     }

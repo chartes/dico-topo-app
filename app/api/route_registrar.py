@@ -263,6 +263,7 @@ class JSONAPIRouteRegistrar(object):
 
             def _identity(s):
                 return s
+
             for bucket in buckets:
                 # transform the id if needed
                 if res_type in JSONAPIFacadeManager.IDMapper:
