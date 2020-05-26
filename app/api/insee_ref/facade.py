@@ -26,50 +26,6 @@ class InseeRefFacade(JSONAPIAbstractFacade):
             errors = []
         return e, kwargs, errors
 
-    #def get_communes(self):
-    #    communes = []
-    #    communes_region = self.obj.communes_region
-    #    communes_canton = self.obj.communes_canton
-    #    communes_departement = self.obj.communes_departement
-    #    communes_arrondissement = self.obj.communes_arrondissement
-    #    if communes_region:
-    #        communes.extend(communes_region)
-    #    if communes_canton:
-    #        communes.extend(communes_canton)
-    #    if communes_departement:
-    #        communes.extend(communes_departement)
-    #    if communes_arrondissement:
-    #        communes.extend(communes_arrondissement)
-    #    return communes
-    #
-    #def get_places(self):
-    #    return [p for c in self.get_communes() for p in c.places]
-
-    #def get_communes_resource_identifiers(self):
-    #    communes = self.get_communes()
-    #    from app.api.insee_commune.facade import CommuneFacade
-    #    return [] if len(communes) == 0 else [CommuneFacade(self.url_prefix, c).resource_identifier for c in communes]
-    #
-    #def get_places_resource_identifiers(self):
-    #    places = self.get_places()
-    #    return [] if len(places) == 0 else [PlaceFacade(self.url_prefix, p).resource_identifier for p in
-    #                                            places]
-
-    #def get_communes_resource(self):
-    #    communes = self.get_communes()
-    #    from app.api.insee_commune.facade import CommuneFacade
-    #    return [] if len(communes) == 0 else [CommuneFacade(self.url_prefix, c,
-    #                                                        self.with_relationships_links,
-    #                                                        self.with_relationships_data).resource for c in communes]
-    #
-    #def get_places_resource(self):
-    #    places = self.get_places()
-    #    return [] if len(places) == 0 else [PlaceFacade(self.url_prefix, p,
-    #                                                            self.with_relationships_links,
-    #                                                            self.with_relationships_data).resource
-    #                                            for p in places]
-
-
     @property
     def resource(self):
         """ """
@@ -118,3 +74,17 @@ class InseeRefFacade(JSONAPIAbstractFacade):
             #    "resource_getter": self.get_places_resource
             #}
         }
+
+
+class InseeRefSearchFacade(InseeRefFacade):
+
+    @property
+    def resource(self):
+        res = super(InseeRefSearchFacade, self).resource
+
+        if self.obj.type == 'AR':
+            res['attributes']['dep-insee-code'] = self.obj.parent.insee_code
+        if self.obj.type in ('CT', 'CTNP'):
+            res['attributes']['dep-insee-code'] = self.obj.parent.parent.insee_code
+
+        return res

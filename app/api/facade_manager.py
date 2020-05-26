@@ -1,6 +1,6 @@
 from app.api.feature_type.facade import FeatureTypeFacade
 from app.api.insee_commune.facade import CommuneFacade
-from app.api.insee_ref.facade import InseeRefFacade
+from app.api.insee_ref.facade import InseeRefFacade, InseeRefSearchFacade
 from app.api.place.facade import PlaceFacade, PlaceSearchFacade, PlaceMapFacade
 from app.api.place_alt_label.facade import PlaceAltLabelFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade, PlaceOldLabelSearchFacade, \
@@ -43,7 +43,7 @@ class JSONAPIFacadeManager(object):
         },
         InseeRef.__name__: {
             "default": InseeRefFacade,
-            "search": InseeRefFacade,
+            "search": InseeRefSearchFacade,
             "map": InseeRefFacade,
         },
         FeatureType.__name__: {
