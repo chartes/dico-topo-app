@@ -70,17 +70,33 @@ def make_cli():
             click.echo("Created the database")
 
     @click.command("db-recreate")
-    def db_recreate():
+    @click.option('--insert', required=False, default=[], help="--insert ../db/fixtures/file1.sql,../db/fixutres/file2/sql")
+    @click.option('--unstrict', is_flag=True, help="--unstrict disable foreign keys verification")
+    def db_recreate(insert, unstrict):
         """ Recreates a local database. You probably should not use this on
         production.
+        Example:
+            python manage.py db-recreate --insert tests/data/feature_type.sql,tests/data/place_alt_label.sql --unstrict
         """
         with app.app_context():
             from app import db
             db.drop_all()
             db.create_all()
-
+            click.echo("DB has been dropped and recreated")
             db.session.commit()
-            click.echo("Dropped then recreated the database")
+
+            if len(insert) > 0:
+                with db.engine.connect() as connection:
+                    if unstrict:
+                        connection.execute("PRAGMA foreign_keys=OFF")
+                    for file in insert.split(','):
+                        with open(file) as f:
+                            click.echo("Insertion of {0}...".format(file))
+                            for _s in f.readlines():
+                                trans = connection.begin()
+                                connection.execute(_s, multi=True)
+                                trans.commit()
+                click.echo("Insertions done")
 
     @click.command("db-validate")
     @click.option('--between', required=False)
