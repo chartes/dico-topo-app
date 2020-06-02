@@ -75,8 +75,6 @@ def make_cli():
     def db_recreate(insert, unstrict):
         """ Recreates a local database. You probably should not use this on
         production.
-        Example:
-            python manage.py db-recreate --insert tests/data/feature_type.sql,tests/data/place_alt_label.sql --unstrict
         """
         with app.app_context():
             from app import db
