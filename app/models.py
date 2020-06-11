@@ -1,6 +1,9 @@
 from sqlalchemy import CheckConstraint
 import datetime
 
+from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm.collections import attribute_mapped_collection
+
 from app import db
 
 
@@ -39,7 +42,7 @@ class Place(db.Model):
     num_start_page = db.Column(db.Integer, index=True)
     # comment on the place
     comment = db.Column(db.Text)
-    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), index=True)
+    # bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), index=True)
 
     # relationships
     commune = db.relationship(
@@ -52,12 +55,13 @@ class Place(db.Model):
         primaryjoin="InseeCommune.id==Place.localization_commune_insee_code",
         uselist=False
     )
-    bibl = db.relationship(
-        'Bibl', backref=db.backref('places'),
-        primaryjoin="Bibl.id==Place.bibl_id"
-    )
-    linked_places = db.relationship('Place')
+    # bibl = db.relationship(
+    #     'Bibl', backref=db.backref('places'),
+    #     primaryjoin="Bibl.id==Place.bibl_id"
+    # )
+    citable_elements = association_proxy('citables', 'citable')
 
+    linked_places = db.relationship('Place')
 
     @property
     def longlat(self):
@@ -137,10 +141,14 @@ class InseeCommune(db.Model):
     siaf_id = db.Column(db.String(64))
 
     # relationships
-    region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id", backref=db.backref('communes_region'))
-    departement = db.relationship('InseeRef', primaryjoin="InseeCommune.DEP_id==InseeRef.id", backref=db.backref('communes_departement'))
-    arrondissement = db.relationship('InseeRef', primaryjoin="InseeCommune.AR_id==InseeRef.id", backref=db.backref('communes_arrondissement'))
-    canton = db.relationship('InseeRef', primaryjoin="InseeCommune.CT_id==InseeRef.id", backref=db.backref('communes_canton'))
+    region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id",
+                             backref=db.backref('communes_region'))
+    departement = db.relationship('InseeRef', primaryjoin="InseeCommune.DEP_id==InseeRef.id",
+                                  backref=db.backref('communes_departement'))
+    arrondissement = db.relationship('InseeRef', primaryjoin="InseeCommune.AR_id==InseeRef.id",
+                                     backref=db.backref('communes_arrondissement'))
+    canton = db.relationship('InseeRef', primaryjoin="InseeCommune.CT_id==InseeRef.id",
+                             backref=db.backref('communes_canton'))
 
 
 class InseeRef(db.Model):
@@ -149,7 +157,8 @@ class InseeRef(db.Model):
 
     id = db.Column(db.String(10), primary_key=True)
     # 'CTNP' for "Canton non précisé": https://www.insee.fr/fr/information/2560628#ct
-    type = db.Column(db.String(4), CheckConstraint('type IN ("PAYS","REG","DEP", "AR", "CT", "CTNP")'), nullable=False, index=True)
+    type = db.Column(db.String(4), CheckConstraint('type IN ("PAYS","REG","DEP", "AR", "CT", "CTNP")'), nullable=False,
+                     index=True)
     insee_code = db.Column(db.String(3), nullable=False, index=True)
     parent_id = db.Column(db.String(10), db.ForeignKey('insee_ref.id'), index=True)
     level = db.Column(db.Integer, nullable=False, index=True)
@@ -186,3 +195,69 @@ class Bibl(db.Model):
     gallica_page_one = db.Column(db.String(15))
     gallica_IIIF_availability = db.Column(db.Boolean)
 
+    def __repr__(self):
+        return 'Bibl: {0}'.format(self.abbr)
+
+
+class User(db.Model):
+    __tablename__ = "user"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(20), nullable=False)
+
+
+class RespStatement(db.Model):
+    __tablename__ = "resp_statement"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=True)
+
+    # see http://www.loc.gov/marc/relators/relacode.html and https://tei-c.org/release/doc/tei-p5-doc/fr/html/ref-resp.html
+    resp = db.Column(db.String, db.CheckConstraint('resp in ("Abridger", "Art copyist", "Analyst", "Conservator")'),
+                     nullable=False, index=True)
+    note = db.Column(db.Text)
+
+    user = db.relationship("User")
+    bibl = db.relationship("Bibl")
+
+    def __repr__(self):
+        return 'RespStatement (user:{0}, resp:{1}, bibl:{2})'.format(
+            self.user.username if self.user else None,
+            self.resp,
+            self.bibl
+        )
+
+
+class CitableElement(db.Model):
+    __tablename__ = "citable_element"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    key = db.Column(db.String(20), nullable=False)
+    value = db.Column(db.Text, nullable=True)
+
+    resp_stmt_id = db.Column(db.Integer, db.ForeignKey('resp_statement.id'), nullable=False)
+    resp_stmt = db.relationship("RespStatement")
+
+    def __repr__(self):
+        return 'CitableElement: (key: {0}, value: {1})'.format(self.key, self.value)
+
+
+class PlaceCitableElement(db.Model):
+    __tablename__ = "place_citable_element"
+    __table_args__ = (
+        db.UniqueConstraint('place_id', 'citable_id', name='_place_id_citable_id_uc'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    place_id = db.Column(db.Integer, db.ForeignKey('place.place_id'))
+    citable_id = db.Column(db.Integer, db.ForeignKey('citable_element.id'))
+
+    # bidirectional place/citables relationships, mapping
+    place = db.relationship("Place", backref=db.backref("citables", cascade="all, delete-orphan"))
+    citable = db.relationship("CitableElement")
+
+    def __init__(self, place, citable):
+        self.place = place
+        self.citable = citable
