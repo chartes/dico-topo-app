@@ -234,7 +234,7 @@ class CitableElement(db.Model):
     __tablename__ = "citable_element"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    key = db.Column(db.String(20), nullable=False)
+    key = db.Column(db.String(20), nullable=False) # add constraint 'key in (...)' ?
     value = db.Column(db.Text, nullable=True)
 
     resp_stmt_id = db.Column(db.Integer, db.ForeignKey('resp_statement.id'), nullable=False)
