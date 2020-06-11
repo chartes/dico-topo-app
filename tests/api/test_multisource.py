@@ -32,7 +32,7 @@ class TestSortPlace(TestBaseServer):
         p = Place(id="DT99-0001", country="fr", dpt="99", label="Laon")
 
         # mention de responsabilité r1
-        data = [("description", "desc1"), ("comment", "comment1")]
+        data = [("description", "Ferme"), ("comment", "Ferme détruite après incendie")]
         for key, value in data:
             PlaceCitableElement(p, CitableElement(key=key, value=value, resp_stmt=r1))
 
@@ -40,14 +40,14 @@ class TestSortPlace(TestBaseServer):
         self.db.session.commit()
 
         for citable in p.citable_elements:
-            print(citable.key, citable.value, citable.resp_stmt)
+            print("{0}: '{1}'\n\t{2}\n".format(citable.key, citable.value, citable.resp_stmt))
 
         # mention de responsabilité r2
-        data = [("description", "desc2"), ("comment", "comment2")]
+        data = [("description", "Ferme réduite à l'état de ruine"), ("comment", "Ferme détruite après l'incendie qui ravagea toute la ville de Laon en 1857")]
         for key, value in data:
             PlaceCitableElement(p, CitableElement(key=key, value=value, resp_stmt=r2))
 
         self.db.session.commit()
         print('='*80)
         for citable in p.citable_elements:
-            print(citable.key, citable.value, citable.resp_stmt)
+            print("{0}: '{1}'\n\t{2}\n".format(citable.key, citable.value, citable.resp_stmt))
