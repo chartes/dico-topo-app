@@ -79,6 +79,12 @@ class Place(db.Model):
             if el.resp_stmt.reference is None or (el.resp_stmt.reference and el.resp_stmt.reference.bibl.abbr == abbr_src)
         ]
 
+    def old_labels_filtered_by_source(self, abbr_src):
+        return [
+            el for el in self.old_labels
+            if
+            el.resp_stmt.reference is None or (el.resp_stmt.reference and el.resp_stmt.reference.bibl.abbr == abbr_src)
+        ]
 
 class PlaceAltLabel(db.Model):
     """ """

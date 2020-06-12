@@ -1,7 +1,8 @@
 import pprint
 
 from app.api.place.facade import PlaceFacade
-from app.models import Place, User, Bibl, RespStatement, PlaceCitableElement, CitableElement, ReferencedByBibl
+from app.models import Place, User, Bibl, RespStatement, PlaceCitableElement, CitableElement, ReferencedByBibl, \
+    PlaceOldLabel
 from tests.base_server import TestBaseServer
 from tests.data.fixtures.place import load_fixtures
 
@@ -52,6 +53,9 @@ class TestMultisource(TestBaseServer):
         for key, value in data:
             PlaceCitableElement(p, CitableElement(key=key, value=value, resp_stmt=r4))
 
+        oldlabel_dt = PlaceOldLabel(old_label_id='OLD-001', place=p, resp_stmt=r3, rich_label="Lodanium")
+        old_label_pouilles = PlaceOldLabel(old_label_id='OLD-002', place=p, resp_stmt=r4, rich_label="Lodanivm")
+
         self.db.session.add(p)
         self.db.session.commit()
 
@@ -61,15 +65,23 @@ class TestMultisource(TestBaseServer):
         #==========================
         # Pouillés
         #==========================
-        print("-" * 80, "\nCitable elements filtered by source 'Pouillés'")
-        print("-" * 80)
+        print("=" * 80, "\nCitable elements filtered by source 'Pouillés'")
+        print("=" * 80)
         for citable in p.citable_elements_filtered_by_source('Pouillés'):
             print("{0}: '{1}'\n\t{2}\n".format(citable.key, citable.value, citable.resp_stmt))
+
+        print("----- old labels -------")
+        for old_label in p.old_labels_filtered_by_source('Pouillés'):
+            print('\t(old_label: {0}, {1}'.format(old_label.rich_label, old_label.resp_stmt))
 
         #==========================
         # DicoTopo
         #==========================
-        print("-" * 80, "\nCitable elements filtered by source 'DT01'")
-        print("-" * 80)
+        print("=" * 80, "\nCitable elements filtered by source 'DT01'")
+        print("=" * 80)
         for citable in p.citable_elements_filtered_by_source('DT01'):
             print("{0}: '{1}'\n\t{2}\n".format(citable.key, citable.value, citable.resp_stmt))
+
+        print("----- old labels -------")
+        for old_label in p.old_labels_filtered_by_source('DT01'):
+            print('\t(old_label: {0}, {1}'.format(old_label.rich_label, old_label.resp_stmt))
