@@ -37,12 +37,13 @@ class Place(db.Model):
     localization_place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), index=True)
     localization_certainty = db.Column(db.Enum('high', 'low'))
     # description of the place
-    desc = db.Column(db.Text)
+    #desc = db.Column(db.Text)
     # first num of the page where the place appears (within its source)
-    num_start_page = db.Column(db.Integer, index=True)
+    #num_start_page = db.Column(db.Integer, index=True)
     # comment on the place
-    comment = db.Column(db.Text)
-    # bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), index=True)
+    #comment = db.Column(db.Text)
+    # id of the responsibility statement
+    resp_stmt_id = db.Column(db.Integer,db.ForeignKey('resp_statement.id'), nullable=False)
 
     # relationships
     commune = db.relationship(
@@ -55,10 +56,9 @@ class Place(db.Model):
         primaryjoin="InseeCommune.id==Place.localization_commune_insee_code",
         uselist=False
     )
-    # bibl = db.relationship(
-    #     'Bibl', backref=db.backref('places'),
-    #     primaryjoin="Bibl.id==Place.bibl_id"
-    # )
+    # responsibility statement of the place itself
+    resp_stmt = db.relationship('RespStatement')
+    # a list of citable elements
     citable_elements = association_proxy('citables', 'citable')
 
     linked_places = db.relationship('Place')
@@ -72,6 +72,12 @@ class Place(db.Model):
         else:
             co = None
         return co.longlat if co else None
+
+    def citable_elements_filtered_by_source(self, abbr_src):
+        return [
+            el for el in self.citable_elements
+            if el.resp_stmt.reference is None or (el.resp_stmt.reference and el.resp_stmt.reference.bibl.abbr == abbr_src)
+        ]
 
 
 class PlaceAltLabel(db.Model):
@@ -96,6 +102,8 @@ class PlaceOldLabel(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     old_label_id = db.Column(db.String(13), nullable=False, unique=True)
     place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False, index=True)
+    resp_stmt_id = db.Column(db.Integer, db.ForeignKey('resp_statement.id'), nullable=False)
+
     rich_label = db.Column(db.String(250), nullable=False)
     # date with tags
     rich_date = db.Column(db.String(100))
@@ -107,6 +115,9 @@ class PlaceOldLabel(db.Model):
     rich_label_node = db.Column(db.Text)
     # full old label wo tags
     text_label_node = db.Column(db.Text)
+
+    # responsibility statement of the place itself
+    resp_stmt = db.relationship('RespStatement')
 
     # relationships
     place = db.relationship(Place, backref=db.backref('old_labels'))
@@ -183,6 +194,13 @@ class FeatureType(db.Model):
     place = db.relationship(Place, backref=db.backref('feature_types'))
 
 
+class User(db.Model):
+    __tablename__ = "user"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(20), nullable=False)
+
+
 class Bibl(db.Model):
     """ """
     __tablename__ = 'bibl'
@@ -196,14 +214,25 @@ class Bibl(db.Model):
     gallica_IIIF_availability = db.Column(db.Boolean)
 
     def __repr__(self):
-        return 'Bibl: {0}'.format(self.abbr)
+        return '{0}'.format(self.abbr)
 
 
-class User(db.Model):
-    __tablename__ = "user"
+class ReferencedByBibl(db.Model):
+    __tablename__ = "referenced_by_bibl"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(20), nullable=False)
+
+    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=False)
+    # first num of the page where the element appears (within its source)
+    num_start_page = db.Column(db.Integer, nullable=True)
+
+    bibl = db.relationship("Bibl")
+
+    def __repr__(self):
+        return '(source:{1}, page:{0})'.format(
+            self.num_start_page,
+            self.bibl
+        )
 
 
 class RespStatement(db.Model):
@@ -212,21 +241,21 @@ class RespStatement(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=True)
+    ref_id = db.Column(db.Integer, db.ForeignKey('referenced_by_bibl.id'), nullable=True)
 
     # see http://www.loc.gov/marc/relators/relacode.html and https://tei-c.org/release/doc/tei-p5-doc/fr/html/ref-resp.html
-    resp = db.Column(db.String, db.CheckConstraint('resp in ("Abridger", "Art copyist", "Analyst", "Conservator")'),
+    resp = db.Column(db.String, db.Enum("Abridger", "Art copyist", "Analyst", "Conservator"),
                      nullable=False, index=True)
     note = db.Column(db.Text)
 
     user = db.relationship("User")
-    bibl = db.relationship("Bibl")
+    reference = db.relationship("ReferencedByBibl", backref=db.backref('referrer', uselist=False))
 
     def __repr__(self):
-        return 'RespStatement (user:{0}, resp:{1}, bibl:{2})'.format(
+        return 'from:{0}, {1}, referenced-by:{2}'.format(
             self.user.username if self.user else None,
             self.resp,
-            self.bibl
+            self.reference
         )
 
 
@@ -251,8 +280,8 @@ class PlaceCitableElement(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    place_id = db.Column(db.Integer, db.ForeignKey('place.place_id'))
-    citable_id = db.Column(db.Integer, db.ForeignKey('citable_element.id'))
+    place_id = db.Column(db.Integer, db.ForeignKey('place.place_id'), nullable=False)
+    citable_id = db.Column(db.Integer, db.ForeignKey('citable_element.id'), nullable=False)
 
     # bidirectional place/citables relationships, mapping
     place = db.relationship("Place", backref=db.backref("citables", cascade="all, delete-orphan"))
