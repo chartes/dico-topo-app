@@ -8,22 +8,22 @@ from app import db
 class CitableElementMixin(object):
 
     @declared_attr
-    def resp_stmt_id(cls):
-        return db.Column(db.Integer, db.ForeignKey('resp_statement.id'), nullable=False)
+    def responsability_id(cls):
+        return db.Column(db.Integer, db.ForeignKey('responsability.id'), nullable=False)
 
     @declared_attr
-    def resp_stmt(cls):
-        return db.relationship("RespStatement")
+    def responsability(cls):
+        return db.relationship("Responsability")
 
     def filter_by_source(self, abbr_src):
-        return self.resp_stmt.bibl is None or (self.resp_stmt.bibl and self.resp_stmt.bibl.abbr == abbr_src)
+        return (self.responsability.bibl and self.responsability.bibl.abbr == abbr_src)
 
 
 def related_to_place_mixin(backref_name=None):
     class RelatedToPlaceMixin(object):
         @declared_attr
         def place_id(cls):
-            return db.Column(db.Integer, db.ForeignKey('place.place_id'), nullable=False)
+            return db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False)
 
         @declared_attr
         def place(cls):
@@ -227,8 +227,8 @@ class Bibl(db.Model):
         return '{0}'.format(self.abbr)
 
 
-class RespStatement(db.Model):
-    __tablename__ = "resp_statement"
+class Responsability(db.Model):
+    __tablename__ = "responsability"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
