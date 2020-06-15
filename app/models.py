@@ -16,7 +16,7 @@ class CitableElementMixin(object):
         return db.relationship("RespStatement")
 
     def filter_by_source(self, abbr_src):
-        return self.resp_stmt.reference is None or (self.resp_stmt.reference and self.resp_stmt.reference.bibl.abbr == abbr_src)
+        return self.resp_stmt.bibl is None or (self.resp_stmt.bibl and self.resp_stmt.bibl.abbr == abbr_src)
 
 
 def related_to_place_mixin(backref_name=None):
@@ -105,7 +105,7 @@ class PlaceComment(CitableElementMixin, related_to_place_mixin("comments"), db.M
     content = db.Column(db.Text, nullable=False)
 
 
-class PlaceAltLabel(related_to_place_mixin("alt_labels"), db.Model):
+class PlaceAltLabel(CitableElementMixin, related_to_place_mixin("alt_labels"), db.Model):
     """ """
     __tablename__ = 'place_alt_label'
     __table_args__ = (
@@ -116,7 +116,7 @@ class PlaceAltLabel(related_to_place_mixin("alt_labels"), db.Model):
     label = db.Column(db.String(200))
 
 
-class PlaceOldLabel(related_to_place_mixin("old_labels"), db.Model):
+class PlaceOldLabel(CitableElementMixin, related_to_place_mixin("old_labels"), db.Model):
     """ """
     __tablename__ = 'place_old_label'
 
@@ -192,7 +192,7 @@ class InseeRef(db.Model):
     children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
 
 
-class FeatureType(related_to_place_mixin("feature_types"), db.Model):
+class FeatureType(CitableElementMixin, related_to_place_mixin("feature_types"), db.Model):
     """ """
     __tablename__ = 'feature_type'
     __table_args__ = (
@@ -238,13 +238,15 @@ class RespStatement(db.Model):
     # first num of the page where the element appears (within its source)
     num_start_page = db.Column(db.Integer, nullable=True)
 
-    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     user = db.relationship("User")
     bibl = db.relationship("Bibl")
 
     def __repr__(self):
-        return '(source:{1}, page:{0})'.format(
+        return '{1}, page:{0}, created-at:{2}, created-by:{3}'.format(
             self.num_start_page,
-            self.bibl
+            self.bibl,
+            self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            self.user.username
         )

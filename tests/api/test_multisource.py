@@ -1,8 +1,8 @@
 import pprint
 
 from app.api.place.facade import PlaceFacade
-from app.models import Place, User, Bibl, RespStatement, PlaceCitableElement, CitableElement, ReferencedByBibl, \
-    PlaceOldLabel
+from app.models import Place, User, Bibl, RespStatement, \
+    PlaceOldLabel, PlaceDescription, PlaceComment
 from tests.base_server import TestBaseServer
 from tests.data.fixtures.place import load_fixtures
 
@@ -20,38 +20,37 @@ class TestMultisource(TestBaseServer):
         # sources
         dt = Bibl(abbr="DT01", bibl="DT de test")
         pouilles = Bibl(abbr="Pouillés", bibl="Exemplaire des Pouillés de test")
-
-        # referenced sources
-        dt_nopage = ReferencedByBibl(bibl=dt)
-        dt_p1 = ReferencedByBibl(bibl=dt, num_start_page=1)
-        pouilles_p10 = ReferencedByBibl(bibl=pouilles, num_start_page=10)
+        pages_jaunes = Bibl(abbr="PagesJaunes", bibl="Exemplaire des Pages Jaunes de test")
 
         # resp statements
-        r1 = RespStatement(user=u2, resp="Analyst")
-        r2 = RespStatement(user=u1, reference=dt_nopage, resp="Conservator")
-        r3 = RespStatement(user=u1, reference=dt_p1, resp="Conservator")
-        r4 = RespStatement(user=u2, reference=pouilles_p10, resp="Analyst")
+        r1 = RespStatement(user=u2)
+        r2 = RespStatement(user=u1, bibl=pages_jaunes, num_start_page=None)
+        r3 = RespStatement(user=u1, bibl=dt, num_start_page=1)
+        r4 = RespStatement(user=u2, bibl=pouilles, num_start_page=10)
 
         # place
         p = Place(id="DT01-00001", country="fr", dpt="99", label="Laon", resp_stmt=r3)
 
         # attach the citable elements to the palce
-        data = [("description", "Ferme"), ("comment", "Ferme détruite après incendie")]
-        for key, value in data:
-            PlaceCitableElement(p, CitableElement(key=key, value=value, resp_stmt=r1))
+        for desc, resp_stmt in [
+            ("Ferme", r1),
+            ("Ferme réduite à l'état de ruine", r2),
+            ("Ferme en partie détruite par le feu", r3),
+            ("Ancienne ferme transformée en moulin", r4)
+        ]:
+            p_desc = PlaceDescription()
+            p_desc.content = desc
+            p_desc.place = p
+            p_desc.resp_stmt = resp_stmt
 
-        data = [("description", "Ferme réduite à l'état de ruine"),
-                ("comment", "Ferme détruite après l'incendie qui ravagea toute la ville de Laon en 1857")]
-        for key, value in data:
-            PlaceCitableElement(p, CitableElement(key=key, value=value, resp_stmt=r2))
-
-        data = [("description", "Ferme en partie détruite par le feu")]
-        for key, value in data:
-            PlaceCitableElement(p, CitableElement(key=key, value=value, resp_stmt=r3))
-
-        data = [("description", "Ancienne ferme transformée en moulin")]
-        for key, value in data:
-            PlaceCitableElement(p, CitableElement(key=key, value=value, resp_stmt=r4))
+        for comment, resp_stmt in [
+            ("L'incendie de 1857 qui frappa Laon fit s'éffondrer le toit de la ferme", r2),
+            ("Aujourd'hui reconstruite et transformée en discothèque", r4)
+        ]:
+            p_comm = PlaceComment()
+            p_comm.content = comment
+            p_comm.place = p
+            p_comm.resp_stmt = resp_stmt
 
         oldlabel_dt = PlaceOldLabel(old_label_id='OLD-001', place=p, resp_stmt=r3, rich_label="Lodanium")
         old_label_pouilles = PlaceOldLabel(old_label_id='OLD-002', place=p, resp_stmt=r4, rich_label="Lodanivm")
@@ -65,23 +64,39 @@ class TestMultisource(TestBaseServer):
         #==========================
         # Pouillés
         #==========================
-        print("=" * 80, "\nCitable elements filtered by source 'Pouillés'")
+        print("=" * 80, "\nData filtered by source 'Pouillés'")
         print("=" * 80)
-        for citable in p.citable_elements_filtered_by_source('Pouillés'):
-            print("{0}: '{1}'\n\t{2}\n".format(citable.key, citable.value, citable.resp_stmt))
+        print("Responsabilité du lieu :", p.resp_stmt)
+        print("-" * 80)
 
-        print("----- old labels -------")
-        for old_label in p.old_labels_filtered_by_source('Pouillés'):
-            print('\t(old_label: {0}, {1}'.format(old_label.rich_label, old_label.resp_stmt))
+        for desc in [d for d in p.descriptions if d.filter_by_source("Pouillés")]:
+            print("Description :", desc.content)
+            print("\t Responsabilité :", desc.resp_stmt)
+
+        for comment in [d for d in p.comments if d.filter_by_source("Pouillés")]:
+            print("Commentaire :", comment.content)
+            print("\t Responsabilité :", desc.resp_stmt)
+
+        for old_label in [d for d in p.old_labels if d.filter_by_source("Pouillés")]:
+            print("OldLabel :", old_label.rich_label)
+            print("\t Responsabilité :", desc.resp_stmt)
 
         #==========================
         # DicoTopo
         #==========================
-        print("=" * 80, "\nCitable elements filtered by source 'DT01'")
+        print("=" * 80, "\nData filtered by source 'DT01'")
         print("=" * 80)
-        for citable in p.citable_elements_filtered_by_source('DT01'):
-            print("{0}: '{1}'\n\t{2}\n".format(citable.key, citable.value, citable.resp_stmt))
+        print("Responsabilité du lieu :", p.resp_stmt)
+        print("-" * 80)
 
-        print("----- old labels -------")
-        for old_label in p.old_labels_filtered_by_source('DT01'):
-            print('\t(old_label: {0}, {1}'.format(old_label.rich_label, old_label.resp_stmt))
+        for desc in [d for d in p.descriptions if d.filter_by_source("DT01")]:
+            print("Description :", desc.content)
+            print("\t Responsabilité :", desc.resp_stmt)
+
+        for comment in [d for d in p.comments if d.filter_by_source("DT01")]:
+            print("Commentaire :", comment.content)
+            print("\t Responsabilité :", desc.resp_stmt)
+
+        for old_label in [d for d in p.old_labels if d.filter_by_source("DT01")]:
+            print("OldLabel :", old_label.rich_label)
+            print("\t Responsabilité :", desc.resp_stmt)
