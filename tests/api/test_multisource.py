@@ -64,7 +64,7 @@ class TestMultisource(TestBaseServer):
         #==========================
         # Pouillés
         #==========================
-        print("=" * 80, "\nData filtered by source 'Pouillés'")
+        print("=" * 80, "\nFiltre sur les données issues de la source secondaire 'Pouillés'")
         print("=" * 80)
         print("Responsabilité du lieu :", p.resp_stmt)
         print("-" * 80)
@@ -84,7 +84,7 @@ class TestMultisource(TestBaseServer):
         #==========================
         # DicoTopo
         #==========================
-        print("=" * 80, "\nData filtered by source 'DT01'")
+        print("=" * 80, "\nFiltre sur les données issues de la source secondaire 'DT01'")
         print("=" * 80)
         print("Responsabilité du lieu :", p.resp_stmt)
         print("-" * 80)
