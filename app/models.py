@@ -1,13 +1,39 @@
-from sqlalchemy import CheckConstraint
 import datetime
-
-from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm.collections import attribute_mapped_collection
+from sqlalchemy import CheckConstraint
+from sqlalchemy.ext.declarative import declared_attr
 
 from app import db
 
 
-class Place(db.Model):
+class CitableElementMixin(object):
+
+    @declared_attr
+    def resp_stmt_id(cls):
+        return db.Column(db.Integer, db.ForeignKey('resp_statement.id'), nullable=False)
+
+    @declared_attr
+    def resp_stmt(cls):
+        return db.relationship("RespStatement")
+
+    def filter_by_source(self, abbr_src):
+        return self.resp_stmt.reference is None or (self.resp_stmt.reference and self.resp_stmt.reference.bibl.abbr == abbr_src)
+
+
+def related_to_place_mixin(backref_name=None):
+    class RelatedToPlaceMixin(object):
+        @declared_attr
+        def place_id(cls):
+            return db.Column(db.Integer, db.ForeignKey('place.place_id'), nullable=False)
+
+        @declared_attr
+        def place(cls):
+            if backref_name:
+                return db.relationship("Place", backref=db.backref(backref_name))
+            return db.relationship("Place")
+    return RelatedToPlaceMixin
+
+
+class Place(CitableElementMixin, db.Model):
     """Illustrate class-level docstring.
 
     Classes use a special whitespace convention: the opening and closing quotes
@@ -36,14 +62,9 @@ class Place(db.Model):
     localization_commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
     localization_place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), index=True)
     localization_certainty = db.Column(db.Enum('high', 'low'))
-    # description of the place
-    #desc = db.Column(db.Text)
+
     # first num of the page where the place appears (within its source)
     #num_start_page = db.Column(db.Integer, index=True)
-    # comment on the place
-    #comment = db.Column(db.Text)
-    # id of the responsibility statement
-    resp_stmt_id = db.Column(db.Integer,db.ForeignKey('resp_statement.id'), nullable=False)
 
     # relationships
     commune = db.relationship(
@@ -56,10 +77,6 @@ class Place(db.Model):
         primaryjoin="InseeCommune.id==Place.localization_commune_insee_code",
         uselist=False
     )
-    # responsibility statement of the place itself
-    resp_stmt = db.relationship('RespStatement')
-    # a list of citable elements
-    citable_elements = association_proxy('citables', 'citable')
 
     linked_places = db.relationship('Place')
 
@@ -73,20 +90,22 @@ class Place(db.Model):
             co = None
         return co.longlat if co else None
 
-    def citable_elements_filtered_by_source(self, abbr_src):
-        return [
-            el for el in self.citable_elements
-            if el.resp_stmt.reference is None or (el.resp_stmt.reference and el.resp_stmt.reference.bibl.abbr == abbr_src)
-        ]
 
-    def old_labels_filtered_by_source(self, abbr_src):
-        return [
-            el for el in self.old_labels
-            if
-            el.resp_stmt.reference is None or (el.resp_stmt.reference and el.resp_stmt.reference.bibl.abbr == abbr_src)
-        ]
+class PlaceDescription(CitableElementMixin, related_to_place_mixin("descriptions"), db.Model):
+    __tablename__ = "place_description"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
-class PlaceAltLabel(db.Model):
+    content = db.Column(db.Text, nullable=False)
+
+
+class PlaceComment(CitableElementMixin, related_to_place_mixin("comments"), db.Model):
+    __tablename__ = "place_comment"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    content = db.Column(db.Text, nullable=False)
+
+
+class PlaceAltLabel(related_to_place_mixin("alt_labels"), db.Model):
     """ """
     __tablename__ = 'place_alt_label'
     __table_args__ = (
@@ -94,21 +113,15 @@ class PlaceAltLabel(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    place_id = db.Column(db.String(10), db.ForeignKey(Place.id), index=True)
     label = db.Column(db.String(200))
 
-    # relationships
-    place = db.relationship(Place, backref=db.backref('alt_labels'))
 
-
-class PlaceOldLabel(db.Model):
+class PlaceOldLabel(related_to_place_mixin("old_labels"), db.Model):
     """ """
     __tablename__ = 'place_old_label'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     old_label_id = db.Column(db.String(13), nullable=False, unique=True)
-    place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False, index=True)
-    resp_stmt_id = db.Column(db.Integer, db.ForeignKey('resp_statement.id'), nullable=False)
 
     rich_label = db.Column(db.String(250), nullable=False)
     # date with tags
@@ -121,12 +134,6 @@ class PlaceOldLabel(db.Model):
     rich_label_node = db.Column(db.Text)
     # full old label wo tags
     text_label_node = db.Column(db.Text)
-
-    # responsibility statement of the place itself
-    resp_stmt = db.relationship('RespStatement')
-
-    # relationships
-    place = db.relationship(Place, backref=db.backref('old_labels'))
 
     @property
     def longlat(self):
@@ -185,7 +192,7 @@ class InseeRef(db.Model):
     children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
 
 
-class FeatureType(db.Model):
+class FeatureType(related_to_place_mixin("feature_types"), db.Model):
     """ """
     __tablename__ = 'feature_type'
     __table_args__ = (
@@ -193,11 +200,7 @@ class FeatureType(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), index=True)
     term = db.Column(db.String(400))
-
-    # relationships
-    place = db.relationship(Place, backref=db.backref('feature_types'))
 
 
 class User(db.Model):
@@ -205,6 +208,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(20), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
 
 class Bibl(db.Model):
@@ -223,15 +227,20 @@ class Bibl(db.Model):
         return '{0}'.format(self.abbr)
 
 
-class ReferencedByBibl(db.Model):
-    __tablename__ = "referenced_by_bibl"
+class RespStatement(db.Model):
+    __tablename__ = "resp_statement"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
-    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=True)
+
     # first num of the page where the element appears (within its source)
     num_start_page = db.Column(db.Integer, nullable=True)
 
+    created_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    user = db.relationship("User")
     bibl = db.relationship("Bibl")
 
     def __repr__(self):
@@ -239,60 +248,3 @@ class ReferencedByBibl(db.Model):
             self.num_start_page,
             self.bibl
         )
-
-
-class RespStatement(db.Model):
-    __tablename__ = "resp_statement"
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    ref_id = db.Column(db.Integer, db.ForeignKey('referenced_by_bibl.id'), nullable=True)
-
-    # see http://www.loc.gov/marc/relators/relacode.html and https://tei-c.org/release/doc/tei-p5-doc/fr/html/ref-resp.html
-    resp = db.Column(db.String, db.Enum("Abridger", "Art copyist", "Analyst", "Conservator"),
-                     nullable=False, index=True)
-    note = db.Column(db.Text)
-
-    user = db.relationship("User")
-    reference = db.relationship("ReferencedByBibl", backref=db.backref('referrer', uselist=False))
-
-    def __repr__(self):
-        return 'from:{0}, {1}, referenced-by:{2}'.format(
-            self.user.username if self.user else None,
-            self.resp,
-            self.reference
-        )
-
-
-class CitableElement(db.Model):
-    __tablename__ = "citable_element"
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    key = db.Column(db.String(20), nullable=False) # add constraint 'key in (...)' ?
-    value = db.Column(db.Text, nullable=True)
-
-    resp_stmt_id = db.Column(db.Integer, db.ForeignKey('resp_statement.id'), nullable=False)
-    resp_stmt = db.relationship("RespStatement")
-
-    def __repr__(self):
-        return 'CitableElement: (key: {0}, value: {1})'.format(self.key, self.value)
-
-
-class PlaceCitableElement(db.Model):
-    __tablename__ = "place_citable_element"
-    __table_args__ = (
-        db.UniqueConstraint('place_id', 'citable_id', name='_place_id_citable_id_uc'),
-    )
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    place_id = db.Column(db.Integer, db.ForeignKey('place.place_id'), nullable=False)
-    citable_id = db.Column(db.Integer, db.ForeignKey('citable_element.id'), nullable=False)
-
-    # bidirectional place/citables relationships, mapping
-    place = db.relationship("Place", backref=db.backref("citables", cascade="all, delete-orphan"))
-    citable = db.relationship("CitableElement")
-
-    def __init__(self, place, citable):
-        self.place = place
-        self.citable = citable
