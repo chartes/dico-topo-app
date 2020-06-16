@@ -1,12 +1,12 @@
 from app.api.abstract_facade import JSONAPIAbstractFacade
 
 
-class FeatureTypeFacade(JSONAPIAbstractFacade):
+class PlaceFeatureTypeFacade(JSONAPIAbstractFacade):
     """
 
     """
-    TYPE = "feature-type"
-    TYPE_PLURAL = "feature-types"
+    TYPE = "place-feature-type"
+    TYPE_PLURAL = "place-feature-types"
 
     @property
     def id(self):
@@ -14,14 +14,14 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
 
     @staticmethod
     def get_resource_facade(url_prefix, id, **kwargs):
-        from app.models import FeatureType
+        from app.models import PlaceFeatureType
 
-        e = FeatureType.query.filter(FeatureType.id == id).first()
+        e = PlaceFeatureType.query.filter(PlaceFeatureType.id == id).first()
         if e is None:
             kwargs = {"status": 404}
-            errors = [{"status": 404, "title": "FeatureType %s does not exist" % id}]
+            errors = [{"status": 404, "title": "PlaceFeatureType %s does not exist" % id}]
         else:
-            e = FeatureTypeFacade(url_prefix, e, **kwargs)
+            e = PlaceFeatureTypeFacade(url_prefix, e, **kwargs)
             kwargs = {}
             errors = []
         return e, kwargs, errors
@@ -47,7 +47,7 @@ class FeatureTypeFacade(JSONAPIAbstractFacade):
         return res
 
     def __init__(self, *args, **kwargs):
-        super(FeatureTypeFacade, self).__init__(*args, **kwargs)
+        super(PlaceFeatureTypeFacade, self).__init__(*args, **kwargs)
         """Make a JSONAPI resource object describing what is a Feature Type
         """
 

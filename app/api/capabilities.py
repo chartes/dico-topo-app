@@ -190,12 +190,12 @@ def api_get_capabilities(api_version):
 
             {
                 "type": "resource",
-                "id": "feature-type",
+                "id": "place-feature-type",
                 "attributes": {
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "%s/feature-type/<id>" % url_prefix,
+                            "url": "%s/place-feature-type/<id>" % url_prefix,
                             "parameters": {},
                             "attributes": [
                                 {"name": "term", "description": ""},
@@ -206,12 +206,12 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/feature-types?page[size]=10" % url_prefix,
+                            "url": "%s/place-feature-types?page[size]=10" % url_prefix,
 
                         }
                     },
                     "examples": {
-                        "url": "%s/feature-types/124" % url_prefix
+                        "url": "%s/place-feature-types/124" % url_prefix
                     }
                 },
 

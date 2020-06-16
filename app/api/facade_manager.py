@@ -1,4 +1,4 @@
-from app.api.feature_type.facade import FeatureTypeFacade
+from app.api.place_feature_type.facade import PlaceFeatureTypeFacade
 from app.api.insee_commune.facade import CommuneFacade
 from app.api.insee_ref.facade import InseeRefFacade, InseeRefSearchFacade
 from app.api.place.facade import PlaceFacade, PlaceSearchFacade, PlaceMapFacade
@@ -6,7 +6,7 @@ from app.api.place_alt_label.facade import PlaceAltLabelFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade, PlaceOldLabelSearchFacade, \
     PlaceOldLabelMapFacade
 from app.api.bibl.facade import BiblFacade
-from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, FeatureType, PlaceAltLabel, Bibl
+from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, PlaceFeatureType, PlaceAltLabel, Bibl
 
 
 class JSONAPIFacadeManager(object):
@@ -46,10 +46,10 @@ class JSONAPIFacadeManager(object):
             "search": InseeRefSearchFacade,
             "map": InseeRefFacade,
         },
-        FeatureType.__name__: {
-            "default": FeatureTypeFacade,
-            "search": FeatureTypeFacade,
-            "map": FeatureTypeFacade
+        PlaceFeatureType.__name__: {
+            "default": PlaceFeatureTypeFacade,
+            "search": PlaceFeatureTypeFacade,
+            "map": PlaceFeatureTypeFacade
         },
         Bibl.__name__:{
             "default": BiblFacade,

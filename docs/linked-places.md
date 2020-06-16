@@ -22,7 +22,7 @@ DT API (dev) : https://dev.chartes.psl.eu/dico-topo/api/1.0/places/DT02-01486?in
 |`$.features.names.lang`|not available|lang not Required. Not easy to define in our case.|
 |`$.features.names.citation.@id`|?|@id not required. We have the toponym reference (bibl) but no identifier (or URI) for this reference, [eg](https://dev.chartes.psl.eu/dico-topo/api/1.0/place-old-labels/2943).|
 |`$.features.types.identifier`|not available (yet)|Linking to a published vocabulary seems difficult. Can we link to our own vocabulary? We still have to standardize its items – we'll need to discuss that point with a proposal.<br/>TODO: processing to extract feature type + API refactoring.|
-|`$.features.types.label`|`$.data.desc` ?|TODO: add feature-types relationship to places endpoint.|
+|`$.features.types.label`|`$.data.desc` ?|TODO: add place-feature-types relationship to places endpoint.|
 |`$.features.types.sourceLabel`|?|?|
 |`$.features.types.when`|?|Is there a timestamp rather than a timespan ? open question|
 |`$.features.relations.relationType`|[`"gvp:broaderPartitive"`](http://vocab.getty.edu/ontology#broaderPartitive)<br/><br/>`"gvp:tgn3000_related_to"`?|`gvp:broaderPartitive`. Only give the next parent ?. Do not use related_to to modelize 'lieux liés' but use observedchange "near or insideOf" ontology ?|

@@ -33,7 +33,7 @@ def insert_place_values(db, cursor, dt_id):
     # store id of bibl
     bibl_id = cursor.lastrowid
 
-    print("** TABLE place, place_alt_label, feature_type – INSERT")
+    print("** TABLE place, place_alt_label, place_feature_type – INSERT")
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
     # on enregistre le code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
@@ -242,7 +242,7 @@ def insert_place_values(db, cursor, dt_id):
         if place['feature_types']:
             for feature_type in place['feature_types']:
                 try:
-                    cursor.execute("INSERT INTO feature_type (place_id, term) VALUES (?, ?);", (place['id'], feature_type))
+                    cursor.execute("INSERT INTO place_feature_type (place_id, term) VALUES (?, ?);", (place['id'], feature_type))
                 except sqlite3.IntegrityError as e:
                     print(e, (": place %s – FT '%s'" % (place['id'], feature_type)))
                 db.commit()

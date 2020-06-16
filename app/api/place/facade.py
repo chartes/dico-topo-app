@@ -3,7 +3,7 @@ from copy import copy
 from flask import current_app
 
 from app.api.abstract_facade import JSONAPIAbstractFacade
-from app.api.feature_type.facade import FeatureTypeFacade
+from app.api.place_feature_type.facade import PlaceFeatureTypeFacade
 import re
 
 
@@ -135,7 +135,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
             "localization-commune": (CommuneFacade, False),
             "alt-labels": (PlaceAltLabelFacade, True),
             "old-labels": (PlaceOldLabelFacade, True),
-            "feature-types": (FeatureTypeFacade, True),
+            "place-feature-types": (PlaceFeatureTypeFacade, True),
             "bibl": (BiblFacade, False)
         }.items():
             u_rel_name = rel_name.replace("-", "_")

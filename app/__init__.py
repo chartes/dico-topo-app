@@ -84,7 +84,7 @@ def create_app(config_name="dev"):
     from app.api.place.routes import register_place_api_urls
     from app.api.place_alt_label.routes import register_place_alt_label_api_urls
     from app.api.place_old_label.routes import register_place_old_label_api_urls
-    from app.api.feature_type.routes import register_feature_type_api_urls
+    from app.api.place_feature_type.routes import register_feature_type_api_urls
     from app.api.bibl.routes import register_bibl_api_urls
     from app.api.decorators import export_to
 

@@ -8,15 +8,15 @@ from app import db
 class CitableElementMixin(object):
 
     @declared_attr
-    def responsability_id(cls):
-        return db.Column(db.Integer, db.ForeignKey('responsability.id'), nullable=False)
+    def responsibility_id(cls):
+        return db.Column(db.Integer, db.ForeignKey('responsibility.id'), nullable=False)
 
     @declared_attr
-    def responsability(cls):
-        return db.relationship("Responsability")
+    def responsibility(cls):
+        return db.relationship("Responsibility")
 
     def filter_by_source(self, abbr_src):
-        return (self.responsability.bibl and self.responsability.bibl.abbr == abbr_src)
+        return (self.responsibility.bibl and self.responsibility.bibl.abbr == abbr_src)
 
 
 def related_to_place_mixin(backref_name=None):
@@ -93,15 +93,21 @@ class Place(CitableElementMixin, db.Model):
 
 class PlaceDescription(CitableElementMixin, related_to_place_mixin("descriptions"), db.Model):
     __tablename__ = "place_description"
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    __table_args__ = (
+        db.UniqueConstraint('place_id', 'responsibility_id', name='_place_desc_uc'),
+    )
 
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text, nullable=False)
 
 
 class PlaceComment(CitableElementMixin, related_to_place_mixin("comments"), db.Model):
     __tablename__ = "place_comment"
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    __table_args__ = (
+        db.UniqueConstraint('place_id', 'responsibility_id', name='_place_comment_uc'),
+    )
 
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     content = db.Column(db.Text, nullable=False)
 
 
@@ -192,9 +198,9 @@ class InseeRef(db.Model):
     children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
 
 
-class FeatureType(CitableElementMixin, related_to_place_mixin("feature_types"), db.Model):
+class PlaceFeatureType(CitableElementMixin, related_to_place_mixin("feature_types"), db.Model):
     """ """
-    __tablename__ = 'feature_type'
+    __tablename__ = 'place_feature_type'
     __table_args__ = (
         db.UniqueConstraint('place_id', 'term', name='_place_term_uc'),
     )
@@ -227,8 +233,8 @@ class Bibl(db.Model):
         return '{0}'.format(self.abbr)
 
 
-class Responsability(db.Model):
-    __tablename__ = "responsability"
+class Responsibility(db.Model):
+    __tablename__ = "responsibility"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
