@@ -244,7 +244,7 @@ class Responsibility(db.Model):
     # first num of the page where the element appears (within its source)
     num_start_page = db.Column(db.Integer, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    creation_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     user = db.relationship("User")
     bibl = db.relationship("Bibl")
@@ -253,6 +253,6 @@ class Responsibility(db.Model):
         return '{1}, page:{0}, created-at:{2}, created-by:{3}'.format(
             self.num_start_page,
             self.bibl,
-            self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            self.creation_date.strftime("%Y-%m-%d %H:%M:%S"),
             self.user.username
         )
