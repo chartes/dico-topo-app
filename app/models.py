@@ -16,7 +16,7 @@ class CitableElementMixin(object):
         return db.relationship("Responsibility")
 
     def filter_by_source(self, abbr_src):
-        return (self.responsibility.bibl and self.responsibility.bibl.abbr == abbr_src)
+        return (abbr_src is None and self.responsibility.bibl is None) or (self.responsibility.bibl and self.responsibility.bibl.abbr == abbr_src)
 
 
 def related_to_place_mixin(backref_name=None):
