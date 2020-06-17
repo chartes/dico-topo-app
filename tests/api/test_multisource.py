@@ -28,8 +28,9 @@ class TestMultisource(TestBaseServer):
         r3 = Responsibility(user=u1, bibl=dt, num_start_page=1)
         r4 = Responsibility(user=u2, bibl=pouilles, num_start_page=10)
 
-        # place
+        # places
         p = Place(id="DT01-00001", country="fr", dpt="99", label="Laon", responsibility=r3)
+        p2 = Place(id="DT01-00002", country="fr", dpt="99", label="Reims", responsibility=r1)
 
         # attach the citable elements to the palce
         for desc, responsibility in [
@@ -54,19 +55,63 @@ class TestMultisource(TestBaseServer):
 
         oldlabel_dt = PlaceOldLabel(old_label_id='OLD-001', place=p, responsibility=r3, rich_label="Lodanium")
         old_label_pouilles = PlaceOldLabel(old_label_id='OLD-002', place=p, responsibility=r4, rich_label="Lodanivm")
+        old_label_no_source = PlaceOldLabel(old_label_id='OLD-003', place=p, responsibility=r1, rich_label="Ludumunmnumd")
 
         self.db.session.add(p)
+        self.db.session.add(p2)
         self.db.session.commit()
 
     def test_source_differenciation(self):
-        p = Place.query.first()
+        p = Place.query.filter(Place.label=="Laon").first()
+        p2 = Place.query.filter(Place.label == "Reims").first()
+
+        # ==========================
+        # Sans source secondaire
+        # ==========================
+        print("=" * 80, "\nLieu sans source secondaire")
+        print("=" * 80)
+        print("Responsabilité du lieu :", p2.label, p2.responsibility)
+        print("-" * 80)
+
+        for desc in [d for d in p2.descriptions if d.filter_by_source(None)]:
+            print("Description :", desc.content)
+            print("\t Responsabilité :", desc.responsibility)
+
+        for comment in [d for d in p2.comments if d.filter_by_source(None)]:
+            print("Commentaire :", comment.content)
+            print("\t Responsabilité :", comment.responsibility)
+
+        for old_label in [d for d in p2.old_labels if d.filter_by_source(None)]:
+            print("OldLabel :", old_label.rich_label)
+            print("\t Responsabilité :", old_label.responsibility)
+
+        # ==========================
+        # Sans source secondaire
+        # ==========================
+        print("=" * 80, "\nFiltre sur les données sans source secondaire")
+        print("=" * 80)
+        print("Responsabilité du lieu :", p.label, p.responsibility)
+        print("-" * 80)
+
+        for desc in [d for d in p.descriptions if d.filter_by_source(None)]:
+            print("Description :", desc.content)
+            print("\t Responsabilité :", desc.responsibility)
+
+        for comment in [d for d in p.comments if d.filter_by_source(None)]:
+            print("Commentaire :", comment.content)
+            print("\t Responsabilité :", comment.responsibility)
+
+        for old_label in [d for d in p.old_labels if d.filter_by_source(None)]:
+            print("OldLabel :", old_label.rich_label)
+            print("\t Responsabilité :", old_label.responsibility)
 
         #==========================
         # Pouillés
         #==========================
+        print("")
         print("=" * 80, "\nFiltre sur les données issues de la source secondaire 'Pouillés'")
         print("=" * 80)
-        print("Responsabilité du lieu :", p.responsibility)
+        print("Responsabilité du lieu :", p.label, p.responsibility)
         print("-" * 80)
 
         for desc in [d for d in p.descriptions if d.filter_by_source("Pouillés")]:
@@ -87,7 +132,7 @@ class TestMultisource(TestBaseServer):
         print("")
         print("=" * 80, "\nFiltre sur les données issues de la source secondaire 'DT01'")
         print("=" * 80)
-        print("Responsabilité du lieu :", p.responsibility)
+        print("Responsabilité du lieu :", p.label, p.responsibility)
         print("-" * 80)
 
         for desc in [d for d in p.descriptions if d.filter_by_source("DT01")]:
