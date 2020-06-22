@@ -3,5 +3,5 @@
 __pycache__
 venv
 *.pyc
-tests/data/dicotopo-test.sqlite
+tests/data/*.sqlite
 db/*.sqlite

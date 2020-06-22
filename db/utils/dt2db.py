@@ -5,6 +5,7 @@ from lxml.etree import tostring
 import io
 import re
 import csv
+from datetime import datetime
 
 
 def insert_bibl(db, cursor, dt_id):
@@ -14,8 +15,14 @@ def insert_bibl(db, cursor, dt_id):
         for row in reader:
             if row['abbr'] == dt_id:
                 cursor.execute(
-                    "INSERT INTO bibl (abbr, bibl, bnf_catalogue_ark, gallica_ark, gallica_page_one, gallica_IIIF_availability)"
+                    "INSERT INTO bibl (abbr,"
+                        "bibl,"
+                        "bnf_catalogue_ark,"
+                        "gallica_ark,"
+                        "gallica_page_one,"
+                        "gallica_IIIF_availability)"
                     "VALUES(?, ?, ?, ?, ?, ?)",
+
                     (row['abbr'],
                      row['bibl'],
                      row['bnf_catalogue_ark'],
@@ -26,17 +33,19 @@ def insert_bibl(db, cursor, dt_id):
                 db.commit()
 
 
-def insert_place_values(db, cursor, dt_id):
+def insert_place_values(db, cursor, dt_id, user_id):
     """ """
-    print("INSERT bibl for {0}".format(dt_id))
-    insert_bibl(db, cursor, dt_id)
-    # store id of bibl
-    bibl_id = cursor.lastrowid
 
-    print("** TABLE place, place_alt_label, place_feature_type – INSERT")
-    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
+    print("** TABLE place, place_alt_label, place_comment, place_description, place_feature_type – INSERT")
+
+    #TODO: appeler le bon DT (et non _output5.xml, uniquement en dev)
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'_output5.xml')
     # on enregistre le code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
+
+    # print("INSERT bibl for {0}".format(dt_id))
+    insert_bibl(db, cursor, dt_id)
+    bibl_id = cursor.lastrowid
 
     for entry in tree.xpath('/DICTIONNAIRE/article'):
         # un dictionnaire pour stocker les données relative à chaque nom de lieu
@@ -52,6 +61,9 @@ def insert_place_values(db, cursor, dt_id):
             else None
         # sortir les codes erreur
         # TODO: revoir avec CB et JP ces valeurs, en particulier 'commune_is_empty' – documenter.
+        # TODO: @precision si le lieu n’est pas DANS la commune => ne surtout pas charger de
+        #  place.localization_commune_insee_code si le lieu est une commune (@type = 'commune')
+        #  – voir avec Corentin  ce qu’on fait pour les autres lieux (près d’une commune)
         control_vals = ['too_many_insee_codes', 'article_not_found', 'commune_is_empty']
         if place['localization_commune_insee_code'] in control_vals:
             place['localization_commune_insee_code'] = None
@@ -76,7 +88,7 @@ def insert_place_values(db, cursor, dt_id):
         if entry.xpath('definition'):
             place['desc'] = tostring(entry.xpath('definition')[0], encoding='unicode')
             place['desc'] = ' '.join(place['desc'].split())
-            # ATTENTION à la l’ordre des replace !!! (on réécrit commune avant de la supprimer…)
+            # ATTENTION à l’ordre des replace !!! (on réécrit commune avant de la supprimer…)
             if place['localization_commune_insee_code'] and insee_pattern.match(place['localization_commune_insee_code']):
                 place['desc'] = re.sub(rename_commune_optag, '<a href="\\1">', place['desc'])
                 place['desc'] = re.sub(rename_commune_cltag, '</a>', place['desc'])
@@ -105,6 +117,7 @@ def insert_place_values(db, cursor, dt_id):
         place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
 
         # les vedettes secondaires (optionnel, mais fréquent)
+        # TODO: compliqué du fait des choix de balisage, ie <sm>Balsac (Grand-</sm> et <sm>Petit-),</sm> – OC ?
         place['alt_labels'] = []
         for i in entry.xpath('vedette//sm[position()>1]'):
             place['alt_labels'].append(i.text.rstrip(','))
@@ -202,6 +215,29 @@ def insert_place_values(db, cursor, dt_id):
             place['comment'] = None
 
         # INSERTIONS
+
+        # bibl, voir plus haut, avant de boucler sur la source XML
+
+        # responsablilty
+        creation_date = datetime.now().isoformat(timespec='seconds')
+        try:
+            cursor.execute(
+                "INSERT INTO responsibility ("
+                    "user_id,"
+                    "bibl_id,"
+                    "num_start_page,"
+                    "creation_date)"
+                "VALUES (?, ?, ?, ?)",
+                    (user_id,
+                     bibl_id,
+                     place['num_start_page'],
+                     creation_date))
+        except sqlite3.IntegrityError as e:
+            print(e, "insert responsability, place %s" % (place['id']))
+        responsability_id = cursor.lastrowid
+        db.commit()
+
+        # place
         try:
             cursor.execute(
                 "INSERT INTO place ("
@@ -212,11 +248,8 @@ def insert_place_values(db, cursor, dt_id):
                     "commune_insee_code,"
                     "localization_commune_insee_code,"
                     "localization_certainty,"
-                    "desc,"
-                    "num_start_page,"
-                    "comment,"
-                    "bibl_id)"
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "responsibility_id)"
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (place['id'],
                      place['label'],
                      'FR',
@@ -224,27 +257,72 @@ def insert_place_values(db, cursor, dt_id):
                      place['commune_insee_code'],
                      place['localization_commune_insee_code'],
                      place['localization_certainty'],
-                     place['desc'],
-                     place['num_start_page'],
-                     place['comment'],
-                     bibl_id))
+                     responsability_id))
         except sqlite3.IntegrityError as e:
-            print(e, "place %s" % (place['id']))
+            print(e, "insert place, place %s" % (place['id']))
         db.commit()
 
-        # insert secondary labels
+        # place_alt_label
         if place['alt_labels']:
             for alt_label in place['alt_labels']:
-                cursor.execute("INSERT INTO place_alt_label (place_id, label) VALUES (?, ?)", (place['id'], alt_label))
+                cursor.execute(
+                    "INSERT INTO place_alt_label ("
+                        "label,"
+                        "responsibility_id,"
+                        "place_id)"
+                    "VALUES (?, ?, ?)",
+                        (alt_label,
+                         responsability_id,
+                         place['id']))
                 db.commit()
 
-        # insert feature types
+        # place_comment
+        if place['comment']:
+            try:
+                cursor.execute(
+                    "INSERT INTO place_comment ("
+                        "content,"
+                        "responsibility_id,"
+                        "place_id)"
+                    "VALUES (?, ?, ?);",
+                        (place['comment'],
+                         responsability_id,
+                         place['id']))
+            except sqlite3.IntegrityError as e:
+                print(e, "insert place_comment, place %s" % (place['id']))
+            db.commit()
+
+        # place_description
+        if place['desc']:
+            try:
+                cursor.execute(
+                    "INSERT INTO place_description ("
+                        "content,"
+                        "responsibility_id,"
+                        "place_id)"
+                    "VALUES (?, ?, ?);",
+                        (place['desc'],
+                         responsability_id,
+                         place['id']))
+            except sqlite3.IntegrityError as e:
+                print(e, "insert place_description, place %s" % (place['id']))
+            db.commit()
+
+        # place_feature_type
         if place['feature_types']:
             for feature_type in place['feature_types']:
                 try:
-                    cursor.execute("INSERT INTO place_feature_type (place_id, term) VALUES (?, ?);", (place['id'], feature_type))
+                    cursor.execute(
+                        "INSERT INTO place_feature_type ("
+                            "term,"
+                            "responsibility_id,"
+                            "place_id)"
+                        "VALUES (?, ?, ?);",
+                            (feature_type,
+                             responsability_id,
+                             place['id']))
                 except sqlite3.IntegrityError as e:
-                    print(e, (": place %s – FT '%s'" % (place['id'], feature_type)))
+                    print(e, ("insert place_feature_type: place %s – FT '%s'" % (place['id'], feature_type)))
                 db.commit()
 
 
@@ -434,6 +512,10 @@ def insert_place_old_label(db, cursor, dt_id):
         # id de l’article
         place['id'] = entry.get('id')
 
+        # récupérer la mention de responsabilité attachée à la création du lieu
+        cursor.execute("SELECT responsibility_id FROM place WHERE place_id = '%s'" % place['id'])
+        responsibility_id = cursor.fetchone()[0]
+
         # formes anciennes et attestations
         # jusqu’à 47 formes anciennes pour une vedette, dans l’Aisne: `distinct-values(//article/count(forme_ancienne)`
         # des formes anciennes sans forme !!!, ex: DT02-04777
@@ -532,22 +614,24 @@ def insert_place_old_label(db, cursor, dt_id):
                     cursor.execute(
                         "INSERT INTO place_old_label ("
                             "old_label_id,"
-                            "place_id,"
                             "rich_label,"
                             "rich_date,"
                             "text_date,"
                             "rich_reference,"
                             "rich_label_node,"
-                            "text_label_node)"
-                        "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                            "text_label_node,"
+                            "responsibility_id,"
+                            "place_id)"
+                        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
                             (old_label_id,
-                             place['id'],
                              dfn,
                              rich_date,
                              date,
                              rich_ref,
                              old_label_html_str,
-                             old_label_nude_str))
+                             old_label_nude_str,
+                             responsibility_id,
+                             place['id']))
                 except sqlite3.IntegrityError as e:
                     print(e, "place %s" % (place['id']))
                 db.commit()
