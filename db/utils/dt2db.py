@@ -40,7 +40,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
     #TODO: appeler le bon DT (et non _output5.xml, uniquement en dev)
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'_output5.xml')
-    # on enregistre le code du dpt
+    # code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
 
     # print("INSERT bibl for {0}".format(dt_id))
@@ -48,36 +48,39 @@ def insert_place_values(db, cursor, dt_id, user_id):
     bibl_id = cursor.lastrowid
 
     for entry in tree.xpath('/DICTIONNAIRE/article'):
-        # un dictionnaire pour stocker les données relative à chaque nom de lieu
+        # stocker les données relatives à chaque Place (article du DT)
         place = {}
 
         # id de l’article in XML (e.g. 'DT02-00001')
         place['id'] = entry.get('id')
 
-        # code insee de la commune identifiée dans le champ localisation
-        # (ie. code insee de la commune d’appartenance du lieu dit…)
+        # code insee (si commune, optionnel)
+        place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
+
+        # code insee de la commune d’appartenance du lieu (ie. code de la commune dans le champ localisation)
         place['localization_commune_insee_code'] = entry.xpath('definition/localisation/commune')[0].get('insee') \
-            if entry.xpath('definition/localisation/commune') \
+            if entry.xpath('definition/localisation/commune') and place['commune_insee_code'] is None \
             else None
-        # sortir les codes erreur
-        # TODO: revoir avec CB et JP ces valeurs, en particulier 'commune_is_empty' – documenter.
-        # TODO: @precision si le lieu n’est pas DANS la commune => ne surtout pas charger de
-        #  place.localization_commune_insee_code si le lieu est une commune (@type = 'commune')
-        #  – voir avec Corentin  ce qu’on fait pour les autres lieux (près d’une commune)
+        # TODO: déprécié? supprimer? voir avec CF
         control_vals = ['too_many_insee_codes', 'article_not_found', 'commune_is_empty']
         if place['localization_commune_insee_code'] in control_vals:
             place['localization_commune_insee_code'] = None
 
-        # degré de certitude de la localisation (commune attribuée au lieu)
-        localization_certainty = entry.xpath('definition/localisation/commune')[0].get('precision') \
-            if entry.xpath('definition/localisation/commune') \
+        # @precision: relation entre le lieu (place_id) et la commune de localisation (localization_commune_insee_code)
+        #   'certain: lieu situé dans la commune, http://vocab.getty.edu/ontology#anchor-28390563
+        #   'approximatif': lieu situé près de la commune, http://vocab.getty.edu/ontology#anchor1075244680
+        # TODO: des cas où @precision n’est pas renseigné : comment définir le type de relation? voir avec CF
+        localization_commune_relation_type = entry.xpath('definition/localisation/commune')[0].get('precision') \
+            if entry.xpath('definition/localisation/commune') and place['localization_commune_insee_code'] is not None \
             else None
-        if localization_certainty == 'approximatif':
-            place['localization_certainty'] = 'low'
-        elif localization_certainty == 'certain':
-            place['localization_certainty'] = 'high'
+        # le lieu est dans les environs de la commune
+        if localization_commune_relation_type == 'approximatif':
+            place['localization_commune_relation_type'] = 'tgn3000_related_to'
+        # le lieu est localisé dans la commune
+        elif localization_commune_relation_type == 'certain':
+            place['localization_commune_relation_type'] = 'broaderPartitive'
         else:
-            place['localization_certainty'] = None
+            place['localization_commune_relation_type'] = None
 
         # definition (tei:def)
         insee_pattern = re.compile('[0-9]{5}')
@@ -112,9 +115,6 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # place['label'] = format(place['label'][1:] if place['label'].startswith('*') else place['label'])
         # Parfois à la fin de la vedette (cf DT72), plus radical :
         place['label'] = place['label'].replace('*', '')
-
-        # code insee (si commune, optionnel)
-        place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
 
         # les vedettes secondaires (optionnel, mais fréquent)
         # TODO: compliqué du fait des choix de balisage, ie <sm>Balsac (Grand-</sm> et <sm>Petit-),</sm> – OC ?
@@ -247,7 +247,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     "dpt,"
                     "commune_insee_code,"
                     "localization_commune_insee_code,"
-                    "localization_certainty,"
+                    "localization_commune_relation_type,"
                     "responsibility_id)"
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (place['id'],
@@ -256,7 +256,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                      place['dpt'],
                      place['commune_insee_code'],
                      place['localization_commune_insee_code'],
-                     place['localization_certainty'],
+                     place['localization_commune_relation_type'],
                      responsability_id))
         except sqlite3.IntegrityError as e:
             print(e, "insert place, place %s" % (place['id']))
@@ -326,7 +326,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
                 db.commit()
 
 
-# Ramasser le entry.localization_place_id (référence interne de la commune de rattachement)
+# Enregistrer le place_id de la commune de localisation dans place.localization_place_id
+# Déprécié, depuis la suppression de place.localization_place_id du modèle
 def update_localization_place_id(db, cursor, dpt_code):
     """ """
     print("** TABLE place – SET localization_place_id, dpt "+dpt_code)
@@ -372,8 +373,6 @@ def insert_place_old_label(db, cursor, dt_id):
     print("** TABLE place_old_label – INSERT")
     tags = re.compile('<[^>]+>')
     tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
-    # on enregistre le code du dpt
-    # dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
 
     # conversion HTML5 de toute l’entrée forme_ancienne
     old_label2html = io.StringIO('''\
@@ -537,9 +536,6 @@ def insert_place_old_label(db, cursor, dt_id):
         #   * old_label_html_str
         #       élément <forme_ancienne> converti en HTML
         #       <p>Inter <dfn>Estran</dfn> et <dfn>Abugniez</dfn> et <dfn>Gerigniez</dfn>, <time>1168</time> (cart. de l’abb. de Thenailles, f<sup>os</sup> 15, 20, 36)</p>
-        #   * old_label_nude_str
-        #       élément <forme_ancienne> sans balise
-        #       Inter Estran et Abugniez et Gerigniez, 1168 (cart. de l’abb. de Thenailles, fos 15, 20, 36)
         #   * dfn
         #       la/les forme(s) d’une entrée forme ancienne, en HTML
         #       Inter <dfn>Estran</dfn> et <dfn>Abugniez</dfn> et <dfn>Gerigniez</dfn>
@@ -568,8 +564,6 @@ def insert_place_old_label(db, cursor, dt_id):
                 # sortir les préfixes "*" des formes anciennes et les conserver dans les références (moche)
                 old_label_html_str = old_label_html_str.replace('<dfn>*', '<dfn>')
 
-                # tout le contenu de l’élément forme_ancienne, dépouillé des balises
-                old_label_nude_str = re.sub(tags, '', old_label_html_str)
                 # DFN
                 # TODO: extraire tous les dfn du champ dans une table dédiée pour indexation
                 dfn = str(transform_old_label2dfn(tree))
@@ -619,17 +613,15 @@ def insert_place_old_label(db, cursor, dt_id):
                             "text_date,"
                             "rich_reference,"
                             "rich_label_node,"
-                            "text_label_node,"
                             "responsibility_id,"
                             "place_id)"
-                        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
                             (old_label_id,
                              dfn,
                              rich_date,
                              date,
                              rich_ref,
                              old_label_html_str,
-                             old_label_nude_str,
                              responsibility_id,
                              place['id']))
                 except sqlite3.IntegrityError as e:

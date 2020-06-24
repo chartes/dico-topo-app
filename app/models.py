@@ -60,8 +60,8 @@ class Place(CitableElementMixin, db.Model):
     commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
     # not null if the place is localized somewhere
     localization_commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
-    localization_place_id = db.Column(db.String(10), db.ForeignKey('place.place_id'), index=True)
-    localization_certainty = db.Column(db.Enum('high', 'low'))
+    # type of relation (Getty Vocabulary) between the place and the commune of location
+    localization_commune_relation_type = db.Column(db.Enum('tgn3000_related_to', 'broaderPartitive'))
 
     # first num of the page where the place appears (within its source)
     #num_start_page = db.Column(db.Integer, index=True)
@@ -134,12 +134,10 @@ class PlaceOldLabel(CitableElementMixin, related_to_place_mixin("old_labels"), d
     rich_date = db.Column(db.String(100))
     # date wo tags
     text_date = db.Column(db.String(100))
-    # bibl reference with tags
+    # primary source reference with tags
     rich_reference = db.Column(db.Text)
     # full old label with tags
     rich_label_node = db.Column(db.Text)
-    # full old label wo tags
-    text_label_node = db.Column(db.Text)
 
     @property
     def longlat(self):

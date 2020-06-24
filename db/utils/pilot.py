@@ -10,7 +10,7 @@ cursor = db.cursor()
 cursor.execute('PRAGMA foreign_keys=ON')
 
 # création du user
-u1 = {"id": 1, "username": "admin", "is_admin": 1}
+u1 = {"id": 1, "username": "delisle", "is_admin": 1}
 cursor.execute("INSERT OR REPLACE INTO user (id, username, is_admin) VALUES (?, ?, ?);",
                (u1["id"], u1["username"], u1["is_admin"]))
 db.commit()
@@ -20,8 +20,8 @@ db.commit()
 # Paramétrage de l’année du COG à charger en base
 # 2011: https://www.insee.fr/fr/information/2560625, `./insee/2011/`
 # 2018: https://www.insee.fr/fr/information/3363419, `./insee/2018/`
-COG_year = "2011"
 """
+COG_year = "2011"
 insee.insert_insee_ref(db, COG_year, cursor)
 insee.insert_insee_commune(db, COG_year, cursor)
 insee.insert_longlat(db, cursor, 'tsv')
@@ -39,11 +39,11 @@ DT_with_insee = ["DT02"]
 
 for dt_id in DT_with_insee:
     dpt_code = dt_id[-2:]
-    # print("%s processing\n===============" % dt_id)
-    # 2. bibl, place, place_alt_label, place_comment, place_description, place_feature_type
+    print("%s processing\n===============" % dt_id)
+    # bibl, place, place_alt_label, place_comment, place_description, place_feature_type
     dt2db.insert_place_values(db, cursor, dt_id, u1["id"])
-    dt2db.update_localization_place_id(db, cursor, dpt_code)
-    # 3. place_old_labels
+    # place_old_labels
     dt2db.insert_place_old_label(db, cursor, dt_id)
+
 db.close()
 
