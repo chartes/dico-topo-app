@@ -5,3 +5,4 @@ venv
 *.pyc
 tests/data/*.sqlite
 db/*.sqlite
+db/utils/debug.py

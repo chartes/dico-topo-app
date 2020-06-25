@@ -6,6 +6,8 @@ import io
 import re
 import csv
 from datetime import datetime
+from bs4 import BeautifulSoup
+
 
 
 def insert_bibl(db, cursor, dt_id):
@@ -69,6 +71,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # @precision: relation entre le lieu (place_id) et la commune de localisation (localization_commune_insee_code)
         #   'certain: lieu situé dans la commune, http://vocab.getty.edu/ontology#anchor-28390563
         #   'approximatif': lieu situé près de la commune, http://vocab.getty.edu/ontology#anchor1075244680
+        #   absence de @precision: cas impossible à trancher -> tgn3000_related_to ?
         # TODO: des cas où @precision n’est pas renseigné : comment définir le type de relation? voir avec CF
         localization_commune_relation_type = entry.xpath('definition/localisation/commune')[0].get('precision') \
             if entry.xpath('definition/localisation/commune') and place['localization_commune_insee_code'] is not None \
@@ -82,23 +85,46 @@ def insert_place_values(db, cursor, dt_id, user_id):
         else:
             place['localization_commune_relation_type'] = None
 
-        # definition (tei:def)
-        insee_pattern = re.compile('[0-9]{5}')
+        # formatage de place_description.content (xml_dt:definition)
+        # TODO: typer les html5:a ? – pour distinguer les liens à venir vers les FT et les codes insee des communes
+        # TODO: inscrire la majuscule initiale en base ? (la majuscule sempble inscrite par l’app)
+        # TODO: pour les communes, inscrire le code insee ou le place_id ?
         remove_tags = re.compile('</?(definition|localisation|date|commune)[^>]*>')
-        rename_commune_optag = re.compile('<commune [^ ]+ insee="([^"]+)"[^>]*>')
+        # on ne matche que les codes insee conformes au motif \[0-9]{5}\
+        rename_commune_optag = re.compile('<commune insee="([0-9]{5})"[^>]*>')
         rename_commune_cltag = re.compile('</commune>')
         rename_typo_tag = re.compile('<(/?)typologie[^>]*>')
         if entry.xpath('definition'):
-            place['desc'] = tostring(entry.xpath('definition')[0], encoding='unicode')
-            place['desc'] = ' '.join(place['desc'].split())
+            description = tostring(entry.xpath('definition')[0], encoding='unicode')
+            description = ' '.join(description.split())
             # ATTENTION à l’ordre des replace !!! (on réécrit commune avant de la supprimer…)
-            if place['localization_commune_insee_code'] and insee_pattern.match(place['localization_commune_insee_code']):
-                place['desc'] = re.sub(rename_commune_optag, '<a href="\\1">', place['desc'])
-                place['desc'] = re.sub(rename_commune_cltag, '</a>', place['desc'])
-            place['desc'] = re.sub(rename_typo_tag, '<\\1a>', place['desc'])
-            place['desc'] = re.sub(remove_tags, '', place['desc'])
+            description = re.sub(rename_commune_optag, '<a href="\\1">', description)
+            description = re.sub(rename_commune_cltag, '</a>', description)
+            description = re.sub(rename_typo_tag, '<\\1a>', description)
+            description = re.sub(remove_tags, '', description)
+            # Tristesse de découvrir que le schéma n’est respecté… et hacks honteux
+            # des small-caps dans les descriptions
+            description = re.sub(re.compile('<sm>([^<]+)</sm>'), '<span class="sc">\\1</span>', description)
+            # erreurs de segmentation dans la source XML
+            description = description.replace('</span> <sup>', '</span><sup>')
+            # sortir les sauts de page
+            description = re.sub(re.compile('<pg>[0-9]+</pg>'), '', description)
+            # des références…
+            description = re.sub(re.compile('<(/?)reference>'), '<\\1cite>', description)
+            # uppercase first letter of description (bien compliqué…)
+            re_first_letter = re.compile('(<a>)?([^ ])')
+            first_letter_pos = re.match(re_first_letter, description).start(2)
+            description = ''.join([description[:first_letter_pos],
+                            description[first_letter_pos].upper(),
+                            description[first_letter_pos + 1:]])
         else:
-            place['desc'] = None
+            description = None
+
+        # Validation HTM5, sortie d’une erreur sinon
+        if description is not None and bool(BeautifulSoup(description, "html.parser").find()) is False:
+            print(place['id'], 'HTMLValidation error:', description)
+        else:
+            place['description'] = description
 
         # id du département
         place['dpt'] = dpt
@@ -293,7 +319,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
             db.commit()
 
         # place_description
-        if place['desc']:
+        if place['description']:
             try:
                 cursor.execute(
                     "INSERT INTO place_description ("
@@ -301,7 +327,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                         "responsibility_id,"
                         "place_id)"
                     "VALUES (?, ?, ?);",
-                        (place['desc'],
+                        (place['description'],
                          responsability_id,
                          place['id']))
             except sqlite3.IntegrityError as e:

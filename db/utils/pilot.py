@@ -1,6 +1,7 @@
 import sqlite3
 import insee
 import dt2db
+import teste
 import sys
 
 
@@ -43,7 +44,7 @@ for dt_id in DT_with_insee:
     # bibl, place, place_alt_label, place_comment, place_description, place_feature_type
     dt2db.insert_place_values(db, cursor, dt_id, u1["id"])
     # place_old_labels
-    dt2db.insert_place_old_label(db, cursor, dt_id)
+    # dt2db.insert_place_old_label(db, cursor, dt_id)
 
 db.close()
 
