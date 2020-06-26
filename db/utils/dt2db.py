@@ -6,8 +6,28 @@ import io
 import re
 import csv
 from datetime import datetime
-from bs4 import BeautifulSoup
 
+
+def html_snippet_validator(html_snippet, place_id, authorized_tags_set):
+    """ """
+    html_snippet_p = '<p>' + html_snippet + '</p>'
+
+    # Vérification de la conformité
+    parser = etree.XMLParser()
+    try:
+        tree = etree.XML(html_snippet_p, parser)
+    except:
+        pass
+    for error in parser.error_log:
+        print('place', place_id, 'xml error:', error.message, '==>', html_snippet)
+
+    # Vérification des balises
+    tag = re.compile('<([^ >/]+)[^>]*>')
+    html_snippet_tags_name = set(re.findall(tag, html_snippet_p))
+    unauthorized_tags_set = html_snippet_tags_name.difference(authorized_tags_set)
+    if len(unauthorized_tags_set):
+        for unauthorized_tag in unauthorized_tags_set:
+            print('place', place_id, 'html error:', unauthorized_tag, 'tag not authorized', '==>', html_snippet)
 
 
 def insert_bibl(db, cursor, dt_id):
@@ -87,9 +107,9 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
         # formatage de place_description.content (xml_dt:definition)
         # TODO: typer les html5:a ? – pour distinguer les liens à venir vers les FT et les codes insee des communes
-        # TODO: inscrire la majuscule initiale en base ? (la majuscule sempble inscrite par l’app)
         # TODO: pour les communes, inscrire le code insee ou le place_id ?
-        remove_tags = re.compile('</?(definition|localisation|date|commune)[^>]*>')
+        # TODO: quid des renvois ? pour l’instant on supprime (cf ci-dessous)
+        remove_tags = re.compile('</?(definition|localisation|date|renvoi|commune)[^>]*>')
         # on ne matche que les codes insee conformes au motif \[0-9]{5}\
         rename_commune_optag = re.compile('<commune insee="([0-9]{5})"[^>]*>')
         rename_commune_cltag = re.compile('</commune>')
@@ -121,10 +141,12 @@ def insert_place_values(db, cursor, dt_id, user_id):
             description = None
 
         # Validation HTM5, sortie d’une erreur sinon
-        if description is not None and bool(BeautifulSoup(description, "html.parser").find()) is False:
-            print(place['id'], 'HTMLValidation error:', description)
-        else:
-            place['description'] = description
+        description_authorized_tags_set = {'p', 'a', 'i', 'sup', 'span', 'cite'}
+        if description is not None:
+            html_snippet_validator(description, place['id'], description_authorized_tags_set)
+
+        # TODO: on charge la description même si elle n’est pas valide ?
+        place['description'] = description
 
         # id du département
         place['dpt'] = dpt
@@ -135,6 +157,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # la vedette principale (la première)
         # TODO: voir avec OC les différentes possibilités de ponctuation à la fin de la vedette ([,.…;:]) -> on supprime tout ?
         # TODO: voir les cas compliqués avec OC, par ex. DT10-02266 (pas de normalisation de la forme alternative)
+        # TODO: attention des labels qui se terminent par de la ponctuation, par ex. DT01-04054
         place['label'] = entry.xpath('vedette/sm[1]')[0].text.rstrip(',')
         place['label'] = place['label'].strip()
         # DT01 : des labels préfixés avec "*" (les formes reconstituées/hypothétiques pour les lieux disparus, selon SN)
@@ -162,6 +185,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # contient els: p, pg, date, forme_ancienne2, i, sm, sup, note, reference, renvoi
         # TODO: REPRENDRE LA TRANSFORMATION DES RENVOIS POUR LANCER LA RECHERCHE SUR LE BON DPT
         # TODO: certains renvois dans //renvoi/i (et non //renvoi/sm) : normaliser XML ?
+        # TODO: voir avec JP si on inscrit le commentaire dans <article>
+        # TODO: quid des <dfn> pour les formes anciennes2 ?
         commentaire2html = io.StringIO('''\
             <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <xsl:output method="text"/>
@@ -237,8 +262,14 @@ def insert_place_values(db, cursor, dt_id, user_id):
                 comment = comment.replace(' <sup>', '<sup>')
                 # optimiser append
                 place['comment'] += comment
+
+                # Validation HTML5 (on se contente de tester, on insère tout de même en base)
+                comment_authorized_tags_set = {'p', 'a', 'i', 'sup', 'span', 'cite', 'article', 'time'}
+                if description is not None:
+                    html_snippet_validator(place['comment'], place['id'], comment_authorized_tags_set)
         else:
             place['comment'] = None
+
 
         # INSERTIONS
 

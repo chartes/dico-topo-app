@@ -1,7 +1,7 @@
 import sqlite3
 import insee
 import dt2db
-import teste
+import debug
 import sys
 
 
@@ -36,15 +36,16 @@ insee.insert_longlat(db, cursor, 'tsv')
 # DT_without_insee = ["DT28", "DT34", "DT62", "DT64"]
 
 #DT_with_insee = ["DT01", "DT02", "DT05", "DT10", "DT14", "DT15", "DT18", "DT21", "DT24", "DT26", "DT27", "DT30", "DT42", "DT43", "DT51", "DT52", "DT54", "DT55", "DT56", "DT57", "DT58", "DT65", "DT71", "DT72", "DT76", "DT77", "DT79", "DT80", "DT88"]
-DT_with_insee = ["DT02"]
+DT_with_insee = ["DT01", "DT02"]
 
 for dt_id in DT_with_insee:
     dpt_code = dt_id[-2:]
     print("%s processing\n===============" % dt_id)
+    # debug.get_description(db, cursor, dt_id)
     # bibl, place, place_alt_label, place_comment, place_description, place_feature_type
     dt2db.insert_place_values(db, cursor, dt_id, u1["id"])
     # place_old_labels
-    # dt2db.insert_place_old_label(db, cursor, dt_id)
+    dt2db.insert_place_old_label(db, cursor, dt_id)
 
 db.close()
 
