@@ -17,62 +17,63 @@ from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, PlaceFeatur
 
 
 _FACADES = {
-    Place.__name__: {
+    Place.__tablename__: {
         "default": PlaceFacade,
         "search": PlaceSearchFacade,
         "map": PlaceMapFacade
     },
-    InseeCommune.__name__: {
+    InseeCommune.__tablename__: {
         "default": CommuneFacade,
         "search": CommuneFacade,
         "map": CommuneFacade
     },
-    PlaceAltLabel.__name__: {
+    PlaceAltLabel.__tablename__: {
         "default": PlaceAltLabelFacade,
         "search": PlaceAltLabelFacade,
         "map": PlaceAltLabelFacade
     },
-    PlaceOldLabel.__name__: {
+    PlaceOldLabel.__tablename__: {
         "default": PlaceOldLabelFacade,
         "search": PlaceOldLabelSearchFacade,
         "map": PlaceOldLabelMapFacade
     },
-    InseeRef.__name__: {
+    InseeRef.__tablename__: {
         "default": InseeRefFacade,
         "search": InseeRefSearchFacade,
         "map": InseeRefFacade,
     },
-    PlaceFeatureType.__name__: {
+    PlaceFeatureType.__tablename__: {
         "default": PlaceFeatureTypeFacade,
         "search": PlaceFeatureTypeFacade,
         "map": PlaceFeatureTypeFacade
     },
-    Bibl.__name__: {
+    Bibl.__tablename__: {
         "default": BiblFacade,
         "search": BiblFacade,
         "map": BiblFacade
     },
-    Responsibility.__name__: {
+    Responsibility.__tablename__: {
         "default": ResponsibilityFacade,
         "search": ResponsibilityFacade,
         "map": ResponsibilityFacade
     },
-    User.__name__: {
+    User.__tablename__: {
         "default": UserFacade,
         "search": UserFacade,
         "map": UserFacade
     },
-    PlaceDescription.__name__: {
+    PlaceDescription.__tablename__: {
         "default": PlaceDescriptionFacade,
         "search": PlaceDescriptionFacade,
         "map": PlaceDescriptionFacade
     },
-    PlaceComment.__name__: {
+    PlaceComment.__tablename__: {
         "default": PlaceCommentFacade,
         "search": PlaceCommentFacade,
         "map": PlaceCommentFacade
     }
 }
+
 
 class JSONAPIFacadeManager(object):
 
@@ -87,21 +88,12 @@ class JSONAPIFacadeManager(object):
 
     FACADES = _FACADES
 
-    IMMEDIATE_FACADES = {
-        # transform AbcdDefg to abc_defg : {...}
-        "_".join(re.findall('[A-Z][^A-Z]*', f)).lower() : _FACADES[f]
-        for f in _FACADES
-    }
-
     @staticmethod
     def get_facade_class(obj, facade_type="default"):
         try:
-            return JSONAPIFacadeManager.FACADES[obj.__class__.__tablename__][facade_type]
+            return JSONAPIFacadeManager.FACADES[obj.__tablename__][facade_type]
         except Exception as e:
-            try:
-                return JSONAPIFacadeManager.IMMEDIATE_FACADES[facade_type]
-            except KeyError as e:
-                print(e)
+            print(e)
             print("Facade %s %s unknown" % (obj, facade_type))
             return None
 
@@ -111,9 +103,5 @@ class JSONAPIFacadeManager(object):
         try:
             return JSONAPIFacadeManager.FACADES[t][facade_type]
         except Exception as e:
-            try:
-                return JSONAPIFacadeManager.IMMEDIATE_FACADES[t][facade_type]
-            except KeyError as e:
-                print(e)
-            print("Facade %s unknown" % t)
+            print("Facade %s %s unknown" % (t, facade_type))
             return None
