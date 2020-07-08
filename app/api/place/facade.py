@@ -1,4 +1,3 @@
-from copy import copy
 
 from flask import current_app
 
@@ -64,24 +63,11 @@ class PlaceFacade(JSONAPIAbstractFacade):
         """Make a JSONAPI resource object describing what is a dictionnary place
         A dictionnary place is made of:
         attributes:
-            label:
-            country:
-            dpt:
-            desc:
-            num-start-page:
-            localization-certainty:
-            comment:
         relationships:
         Returns
         -------
             A dict describing the corresponding JSONAPI resource object
         """
-        if self.obj.commune:
-            co = self.obj.commune
-        elif self.obj.localization_commune:
-            co = self.obj.localization_commune
-        else:
-            co = None
 
         res = {
             **self.resource_identifier,
@@ -89,12 +75,12 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "label": self.obj.label,
                 "country": self.obj.country,
                 "dpt": self.obj.dpt,
-                "desc": self.obj.desc,
-                "comment": self.obj.comment,
+                #"desc": self.obj.desc,
+                #"comment": self.obj.comment,
 
-                "num-start-page": self.obj.num_start_page,
-                "localization-certainty": self.obj.localization_certainty,
-                "localization-insee-code": co.id if co else None,
+                #"num-start-page": self.obj.responsibility.num_start_page,
+                "localization-commune-relation-type": self.obj.localization_commune_relation_type,
+                "localization-insee-code": self.obj.related_commune.id if self.obj.related_commune else None,
 
                 'geoname-id': self.obj.commune.geoname_id if self.obj.commune else None,
                 'wikidata-item-id': self.obj.commune.wikidata_item_id if self.obj.commune else None,
@@ -118,9 +104,11 @@ class PlaceFacade(JSONAPIAbstractFacade):
         super(PlaceFacade, self).__init__(*args, **kwargs)
 
         from app.api.insee_commune.facade import CommuneFacade
-        from app.api.place_alt_label.facade import PlaceAltLabelFacade
+        #from app.api.place_alt_label.facade import PlaceAltLabelFacade
         from app.api.place_old_label.facade import PlaceOldLabelFacade
-        from app.api.bibl.facade import BiblFacade
+        from app.api.responsibility.facade import ResponsibilityFacade
+        from app.api.place_description.facade import PlaceDescriptionFacade
+        from app.api.place_comment.facade import PlaceCommentFacade
 
         self.relationships = {
             "linked-places": {
@@ -130,13 +118,17 @@ class PlaceFacade(JSONAPIAbstractFacade):
             },
         }
 
+
         for rel_name, (rel_facade, to_many) in {
+            "responsibility": (ResponsibilityFacade, False),
             "commune": (CommuneFacade, False),
             "localization-commune": (CommuneFacade, False),
-            "alt-labels": (PlaceAltLabelFacade, True),
+            "descriptions": (PlaceDescriptionFacade, True),
+            "comments": (PlaceCommentFacade, True),
+            #"alt-labels": (PlaceAltLabelFacade, True),
             "old-labels": (PlaceOldLabelFacade, True),
-            "place-feature-types": (PlaceFeatureTypeFacade, True),
-            "bibl": (BiblFacade, False)
+            "place-feature-types": (PlaceFeatureTypeFacade, True)
+
         }.items():
             u_rel_name = rel_name.replace("-", "_")
 
@@ -146,24 +138,20 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
             }
 
+        # TODO : move that code in comment and desc facades
         # rewrite links in desc so they target to a better url
-        if self.obj.desc:
-            if self.obj.localization_commune_insee_code and self.obj.localization_place_id:
-                self.obj.desc = re.sub(r'<a href="{0}">'.format(self.obj.localization_commune_insee_code),
-                                       '<a href="{0}/places/{1}">'.format(current_app.config['APP_URL_PREFIX'],
-                                                                          self.obj.localization_place_id),
-                                       self.obj.desc)
+        #if self.obj.desc:
+        #    if self.obj.localization_commune:
+        #        self.obj.desc = re.sub(r'<a href="{0}">'.format(self.obj.localization_commune.insee_code),
+        #                               '<a href="{0}/places/{1}">'.format(current_app.config['APP_URL_PREFIX'],
+        #                                                                  self.obj.localization_commune.place.id),
+        #                               self.obj.desc)
 
-            # remove unused links to feature types
-            self.obj.desc = re.sub(r'<a>(.*?)</a>', r'\1', self.obj.desc)
+        #    # remove unused links to feature types
+        #    self.obj.desc = re.sub(r'<a>(.*?)</a>', r'\1', self.obj.desc)
 
     def get_data_to_index_when_added(self, propagate):
-        if self.obj.commune:
-            co = self.obj.commune
-        elif self.obj.localization_commune:
-            co = self.obj.localization_commune
-        else:
-            co = None
+        co = self.obj.related_commune
 
         payload = {
             "id": self.obj.id,
@@ -198,12 +186,7 @@ class PlaceSearchFacade(PlaceFacade):
     @property
     def resource(self):
         """ """
-        if self.obj.commune:
-            co = self.obj.commune
-        elif self.obj.localization_commune:
-            co = self.obj.localization_commune
-        else:
-            co = None
+        co = self.obj.related_commune
 
         old_labels = []
         for o in self.obj.old_labels:
@@ -226,9 +209,9 @@ class PlaceSearchFacade(PlaceFacade):
                 "canton": co.canton.label if co and co.canton else None,
                 "region": co.region.label if co and co.region else None,
                 "longlat": co.longlat if co else None,
-                "desc": self.obj.desc,
-                "comment": self.obj.comment,
-                "num-start-page": self.obj.num_start_page,
+                #"desc": self.obj.desc,
+                #"comment": self.obj.comment,
+                #"num-start-page": self.obj.responsibility.num_start_page,
             },
             "links": {
                 "self": self.self_link
@@ -236,22 +219,13 @@ class PlaceSearchFacade(PlaceFacade):
         }
         return res
 
-    def __init__(self, *args, **kwargs):
-        super(PlaceSearchFacade, self).__init__(*args, **kwargs)
-        # self.relationships = {}
-
 
 class PlaceMapFacade(PlaceSearchFacade):
 
     @property
     def resource(self):
         """ """
-        if self.obj.commune:
-            co = self.obj.commune
-        elif self.obj.localization_commune:
-            co = self.obj.localization_commune
-        else:
-            co = None
+        co = self.obj.related_commune
         res = {
             **self.resource_identifier,
             "attributes": {

@@ -1,12 +1,11 @@
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-from flask import Flask, Blueprint, url_for
+from flask import Flask, Blueprint
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.api.response_factory import JSONAPIResponseFactory
 
@@ -82,21 +81,31 @@ def create_app(config_name="dev"):
     from app.api.insee_commune.routes import register_insee_commune_api_urls
     from app.api.insee_ref.routes import register_insee_ref_api_urls
     from app.api.place.routes import register_place_api_urls
-    from app.api.place_alt_label.routes import register_place_alt_label_api_urls
+    from app.api.place_description.routes import register_place_description_api_urls
+    from app.api.place_comment.routes import register_place_comment_api_urls
+    #from app.api.place_alt_label.routes import register_place_alt_label_api_urls
     from app.api.place_old_label.routes import register_place_old_label_api_urls
     from app.api.place_feature_type.routes import register_feature_type_api_urls
     from app.api.bibl.routes import register_bibl_api_urls
+    from app.api.responsibility.routes import register_responsibility_api_urls
+    from app.api.user.routes import register_user_api_urls
+
     from app.api.decorators import export_to
 
     with app.app_context():
         # generate resources endpoints
         register_place_api_urls(app)
-        register_place_alt_label_api_urls(app)
+        register_place_description_api_urls(app)
+        register_place_comment_api_urls(app)
+        #register_place_alt_label_api_urls(app)
         register_place_old_label_api_urls(app)
         register_insee_commune_api_urls(app)
         register_insee_ref_api_urls(app)
         register_feature_type_api_urls(app)
         register_bibl_api_urls(app)
+        register_responsibility_api_urls(app)
+        register_user_api_urls(app)
+
         # generate search endpoint
         app.api_url_registrar.register_search_route(decorators=[export_to('linkedplaces')])
 

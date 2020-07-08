@@ -1,5 +1,6 @@
 import datetime
 from sqlalchemy import CheckConstraint
+from sqlalchemy.dialects.sqlite import DATETIME
 from sqlalchemy.ext.declarative import declared_attr
 
 from app import db
@@ -56,7 +57,7 @@ class Place(CitableElementMixin, db.Model):
     label = db.Column(db.String(200), nullable=False)
     country = db.Column(db.String(2), nullable=False)
     dpt = db.Column(db.String(2), nullable=False)
-    # not null if the place is known as being commune
+    # not null if the place is known as being a commune
     commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
     # not null if the place is localized somewhere
     localization_commune_insee_code = db.Column(db.String(5), db.ForeignKey('insee_commune.insee_code'), index=True)
@@ -78,17 +79,29 @@ class Place(CitableElementMixin, db.Model):
         uselist=False
     )
 
-    linked_places = db.relationship('Place')
+    #linked_places = db.relationship('Place')
 
     @property
-    def longlat(self):
-        if self.commune:
-            co = self.commune
-        elif self.localization_commune:
-            co = self.localization_commune
+    def linked_places(self):
+        co = self.related_commune
+        if co:
+            return Place.query.filter(Place.id == co.place.id).all()
         else:
-            co = None
-        return co.longlat if co else None
+            return []
+
+    @property
+    def related_commune(self):
+        if self.commune:
+            return self.commune
+        elif self.localization_commune:
+            return self.localization_commune
+        else:
+            return None
+
+    #@property
+    #def longlat(self):
+    #    co = self.related_commune
+    #    return co.longlat if co else None
 
 
 class PlaceDescription(CitableElementMixin, related_to_place_mixin("descriptions"), db.Model):
@@ -196,7 +209,7 @@ class InseeRef(db.Model):
     children = db.relationship("InseeRef", backref=db.backref('parent', remote_side=[id]))
 
 
-class PlaceFeatureType(CitableElementMixin, related_to_place_mixin("feature_types"), db.Model):
+class PlaceFeatureType(CitableElementMixin, related_to_place_mixin("place_feature_types"), db.Model):
     """ """
     __tablename__ = 'place_feature_type'
     __table_args__ = (
@@ -242,9 +255,10 @@ class Responsibility(db.Model):
     # first num of the page where the element appears (within its source)
     num_start_page = db.Column(db.Integer, nullable=True)
 
-    creation_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    creation_date = db.Column(DATETIME(storage_format="%(year)04d-%(month)02d-%(day)02dT%(hour)02d:%(minute)02d:%(second)02d",
+                                          regexp=r"(\d+)-(\d+)-(\d+)T(\d+):(\d+):(\d+)"), default=datetime.datetime.utcnow)
 
-    user = db.relationship("User")
+    user = db.relationship("User", backref=db.backref('responsibilities'))
     bibl = db.relationship("Bibl")
 
     def __repr__(self):

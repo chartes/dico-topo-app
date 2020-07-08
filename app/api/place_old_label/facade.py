@@ -93,7 +93,6 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
                 "text-date": self.obj.text_date,
                 "rich-reference": self.obj.rich_reference,
                 "rich-label-node": self.obj.rich_label_node,
-                "text-label-node": self.obj.text_label_node
             },
             "meta": self.meta,
             "links": {
@@ -109,6 +108,7 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
         super(PlaceOldLabelFacade, self).__init__(*args, **kwargs)
         """Make a JSONAPI resource object describing what is a PlaceOldLabel
         """
+        from app.api.responsibility.facade import ResponsibilityFacade
         self.relationships = {
             "place": {
                 "links": self._get_links(rel_name="place"),
@@ -124,6 +124,11 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
                 "links": self._get_links(rel_name="localization-commune"),
                 "resource_identifier_getter": self.get_localization_commune_resource_identifier,
                 "resource_getter": self.get_localization_commune_resource
+            },
+            "responsibility": {
+                "links": self._get_links(rel_name="responsibility"),
+                "resource_identifier_getter": self.get_related_resource_identifiers(ResponsibilityFacade,  "responsibility", False),
+                "resource_getter": self.get_related_resources(ResponsibilityFacade, "responsibility", False),
             }
         }
 
@@ -143,12 +148,7 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
 
 
     def get_data_to_index_when_added(self, propagate):
-        if self.obj.place.commune:
-            co = self.obj.place.commune
-        elif self.obj.place.localization_commune:
-            co = self.obj.place.localization_commune
-        else:
-            co = None
+        co = self.obj.place.related_commune
 
         label = re.sub(r'<dfn>(.*?)</dfn>', r'\1', self.obj.rich_label)
         payload = {
@@ -190,12 +190,7 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
     @property
     def resource(self):
         """ """
-        if self.obj.place.commune:
-            co = self.obj.place.commune
-        elif self.obj.place.localization_commune:
-            co = self.obj.place.localization_commune
-        else:
-            co = None
+        co = self.obj.place.related_commune
 
         res = {
             **self.resource_identifier,
@@ -210,7 +205,6 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
                 "region": co.region.label if co and co.region else None,
                 "longlat": co.longlat if co else None,
                 "rich-label": self.obj.rich_label,
-                "text-label-node": self.obj.text_label_node,
                 "text-date": self.parse_date(self.obj.text_date),
                 "rich-date": self.obj.rich_date,
                 "rich-reference": self.obj.rich_reference,
@@ -231,13 +225,7 @@ class PlaceOldLabelMapFacade(PlaceOldLabelSearchFacade):
     @property
     def resource(self):
         """ """
-
-        if self.obj.place.commune:
-            co = self.obj.place.commune
-        elif self.obj.place.localization_commune:
-            co = self.obj.place.localization_commune
-        else:
-            co = None
+        co = self.obj.place.related_commune
 
         res = {
             **self.resource_identifier,

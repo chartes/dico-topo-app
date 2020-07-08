@@ -24,4 +24,7 @@ def register_place_api_urls(app):
     registrar.register_relationship_get_route(PlaceFacade, 'linked-places')
     registrar.register_relationship_get_route(PlaceFacade, 'old-labels')
     registrar.register_relationship_get_route(PlaceFacade, 'alt-labels')
-    registrar.register_relationship_get_route(PlaceFacade, 'bibl')
+    registrar.register_relationship_get_route(PlaceFacade, 'responsibility')
+    registrar.register_relationship_get_route(PlaceFacade, 'descriptions')
+    registrar.register_relationship_get_route(PlaceFacade, 'comments')
+    registrar.register_relationship_get_route(PlaceFacade, 'place-feature-types')

@@ -52,10 +52,16 @@ class PlaceFeatureTypeFacade(JSONAPIAbstractFacade):
         """
 
         from app.api.place.facade import PlaceFacade
+        from app.api.responsibility.facade import ResponsibilityFacade
         self.relationships = {
             "place": {
                 "links": self._get_links(rel_name="place"),
                 "resource_identifier_getter": self.get_related_resource_identifiers(PlaceFacade, "place"),
                 "resource_getter": self.get_related_resources(PlaceFacade, "place"),
+            },
+            "responsibility": {
+                "links": self._get_links(rel_name="responsibility"),
+                "resource_identifier_getter": self.get_related_resource_identifiers(ResponsibilityFacade, "responsibility"),
+                "resource_getter": self.get_related_resources(ResponsibilityFacade, "responsibility"),
             }
         }
