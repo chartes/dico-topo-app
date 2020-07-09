@@ -138,18 +138,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
             }
 
-        # TODO : move that code in comment and desc facades
-        # rewrite links in desc so they target to a better url
-        #if self.obj.desc:
-        #    if self.obj.localization_commune:
-        #        self.obj.desc = re.sub(r'<a href="{0}">'.format(self.obj.localization_commune.insee_code),
-        #                               '<a href="{0}/places/{1}">'.format(current_app.config['APP_URL_PREFIX'],
-        #                                                                  self.obj.localization_commune.place.id),
-        #                               self.obj.desc)
-
-        #    # remove unused links to feature types
-        #    self.obj.desc = re.sub(r'<a>(.*?)</a>', r'\1', self.obj.desc)
-
     def get_data_to_index_when_added(self, propagate):
         co = self.obj.related_commune
 
