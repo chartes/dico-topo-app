@@ -98,10 +98,10 @@ class Place(CitableElementMixin, db.Model):
         else:
             return None
 
-    #@property
-    #def longlat(self):
-    #    co = self.related_commune
-    #    return co.longlat if co else None
+    @property
+    def longlat(self):
+        co = self.related_commune
+        return co.longlat if co else None
 
 
 class PlaceDescription(CitableElementMixin, related_to_place_mixin("descriptions"), db.Model):
