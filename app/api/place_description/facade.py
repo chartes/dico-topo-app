@@ -40,3 +40,22 @@ class PlaceDescriptionFacade(CitableContentFacade):
             # remove unused links to feature types if any
             res['attributes']['content'] = re.sub(r'<a>(.*?)</a>', r'\1', res['attributes']['content'])
         return res
+
+
+class FlatPlaceDescriptionFacade(PlaceDescriptionFacade):
+
+    @property
+    def resource(self):
+        res = super(PlaceDescriptionFacade, self).resource
+
+        # add a flattened resp statement to the description facade
+
+        from app.api.responsibility.facade import FlatResponsibilityFacade
+        responsibility = FlatResponsibilityFacade("", self.obj.responsibility)
+
+        res["attributes"]["responsibility"] = {
+            "id": responsibility.id,
+            **responsibility.resource["attributes"]
+        }
+
+        return res

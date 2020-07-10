@@ -85,7 +85,7 @@ class Place(CitableElementMixin, db.Model):
     def linked_places(self):
         co = self.related_commune
         if co:
-            return Place.query.filter(Place.id == co.place.id).all()
+            return Place.query.filter(Place.localization_commune_insee_code == co.id, Place.id != self.id).all()
         else:
             return []
 

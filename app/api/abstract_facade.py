@@ -254,27 +254,30 @@ class JSONAPIAbstractFacade(object):
         return errors
 
     def get_related_resource_identifiers(self, facade_class, rel_field, to_many=False):
-        def func():
+        def func(f_class=None):
+            f_class = f_class if f_class else facade_class
+
             field = getattr(self.obj, rel_field)
             if to_many:
                 return [] if field is None else [
-                    facade_class.make_resource_identifier(f.id, facade_class.TYPE)
+                    f_class.make_resource_identifier(f.id, f_class.TYPE)
                     for f in field
                 ]
             else:
-                return None if field is None else facade_class.make_resource_identifier(field.id, facade_class.TYPE)
+                return None if field is None else f_class.make_resource_identifier(field.id, f_class.TYPE)
 
         return func
 
     def get_related_resources(self, facade_class, rel_field, to_many=False):
-        def func():
+        def func(f_class=None):
+            f_class = f_class if f_class else facade_class
             field = getattr(self.obj, rel_field)
             if to_many:
                 if field is None:
                     return []
                 else:
                     return [
-                        facade_class(self.url_prefix, rel_obj,
+                        f_class(self.url_prefix, rel_obj,
                                      self.with_relationships_links, self.with_relationships_data).resource
                         for rel_obj in field
                     ]
@@ -282,7 +285,7 @@ class JSONAPIAbstractFacade(object):
                 if field is None:
                     return None
                 else:
-                    return facade_class(self.url_prefix, field,
+                    return f_class(self.url_prefix, field,
                                         self.with_relationships_links, self.with_relationships_data).resource
 
         return func

@@ -59,14 +59,14 @@ class BiblFacade(JSONAPIAbstractFacade):
         self.relationships = {
         }
 
-        from app.api.place.facade import PlaceFacade
-        for rel_name, (rel_facade, to_many) in {
-            "places": (PlaceFacade, True)
-        }.items():
-            u_rel_name = rel_name.replace("-", "_")
+        #from app.api.place.facade import PlaceFacade
+        #for rel_name, (rel_facade, to_many) in {
+        #    "places": (PlaceFacade, True)
+        #}.items():
+        #    u_rel_name = rel_name.replace("-", "_")
 
-            self.relationships[rel_name] = {
-                "links": self._get_links(rel_name=rel_name),
-                "resource_identifier_getter": self.get_related_resource_identifiers(rel_facade, u_rel_name, to_many),
-                "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
-            }
+        #    self.relationships[rel_name] = {
+        #        "links": self._get_links(rel_name=rel_name),
+        #        "resource_identifier_getter": self.get_related_resource_identifiers(rel_facade, u_rel_name, to_many),
+        #        "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
+        #s    }

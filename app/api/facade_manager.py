@@ -1,22 +1,28 @@
 import re
 
-from app.api.place_comment.facade import PlaceCommentFacade
-from app.api.place_description.facade import PlaceDescriptionFacade
+from app.api.place_comment.facade import PlaceCommentFacade, FlatPlaceCommentFacade
+from app.api.place_description.facade import PlaceDescriptionFacade, FlatPlaceDescriptionFacade
 from app.api.place_feature_type.facade import PlaceFeatureTypeFacade
 from app.api.insee_commune.facade import CommuneFacade
 from app.api.insee_ref.facade import InseeRefFacade, InseeRefSearchFacade
-from app.api.place.facade import PlaceFacade, PlaceSearchFacade, PlaceMapFacade
+from app.api.place.facade import PlaceFacade, PlaceSearchFacade, PlaceMapFacade, LinkedPlaceFacade
 from app.api.place_alt_label.facade import PlaceAltLabelFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade, PlaceOldLabelSearchFacade, \
-    PlaceOldLabelMapFacade
+    PlaceOldLabelMapFacade, FlatPlaceOldLabelFacade
 from app.api.bibl.facade import BiblFacade
-from app.api.responsibility.facade import ResponsibilityFacade
+from app.api.responsibility.facade import ResponsibilityFacade, FlatResponsibilityFacade
 from app.api.user.facade import UserFacade
 from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, PlaceFeatureType, PlaceAltLabel, Bibl, \
     Responsibility, User, PlaceDescription, PlaceComment
 
 
 _FACADES = {
+    "lp": LinkedPlaceFacade,
+    "flat-resp": FlatResponsibilityFacade,
+    "flat-place-desc": FlatPlaceDescriptionFacade,
+    "flat-place-comment": FlatPlaceCommentFacade,
+    "flat-old-label": FlatPlaceOldLabelFacade,
+
     Place.__tablename__: {
         "default": PlaceFacade,
         "search": PlaceSearchFacade,
@@ -87,6 +93,15 @@ class JSONAPIFacadeManager(object):
     }
 
     FACADES = _FACADES
+
+    @staticmethod
+    def get_facade_class_from_name(name):
+        try:
+            return JSONAPIFacadeManager.FACADES[name]
+        except Exception as e:
+            print(e)
+            print("Facade %s %s unknown" % (name))
+            return None
 
     @staticmethod
     def get_facade_class(obj, facade_type="default"):

@@ -30,21 +30,25 @@ class PlaceFacade(JSONAPIAbstractFacade):
             errors = []
         return e, kwargs, errors
 
-    def get_linked_places_resource_identifier(self):
+    def get_linked_places_resource_identifier(self, rel_facade=None):
+        rel_facade = PlaceFacade if not rel_facade else rel_facade
+
         if self.obj.commune_insee_code is None:
             return [] if self.obj.localization_commune is None else [
-                PlaceFacade.make_resource_identifier(lp.id, PlaceFacade.TYPE)
+                rel_facade.make_resource_identifier(lp.id, rel_facade.TYPE)
                 for lp in self.obj.localization_commune.place.linked_places if
                 lp.commune_insee_code is None and lp.id != self.obj.id]
         else:
             return [] if len(self.obj.linked_places) == 0 else [
-                PlaceFacade.make_resource_identifier(lp.id, PlaceFacade.TYPE)
+                rel_facade.make_resource_identifier(lp.id, rel_facade.TYPE)
                 for lp in self.obj.linked_places if
                 lp.commune_insee_code is None]
 
-    def get_linked_places_resource(self):
+    def get_linked_places_resource(self, rel_facade=None):
+        rel_facade = PlaceFacade if not rel_facade else rel_facade
+
         if self.obj.commune_insee_code is None:
-            return [] if self.obj.localization_commune is None else [PlaceFacade(self.url_prefix, lp,
+            return [] if self.obj.localization_commune is None else [rel_facade(self.url_prefix, lp,
                                                                                  self.with_relationships_links,
                                                                                  self.with_relationships_data).resource
                                                                      for lp in
@@ -52,7 +56,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
                                                                      if
                                                                      lp.commune_insee_code is None and lp.id != self.obj.id]
         else:
-            return [] if len(self.obj.linked_places) == 0 else [PlaceFacade(self.url_prefix, lp,
+            return [] if len(self.obj.linked_places) == 0 else [rel_facade(self.url_prefix, lp,
                                                                             self.with_relationships_links,
                                                                             self.with_relationships_data).resource
                                                                 for lp in self.obj.linked_places if
@@ -104,7 +108,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
         super(PlaceFacade, self).__init__(*args, **kwargs)
 
         from app.api.insee_commune.facade import CommuneFacade
-        #from app.api.place_alt_label.facade import PlaceAltLabelFacade
         from app.api.place_old_label.facade import PlaceOldLabelFacade
         from app.api.responsibility.facade import ResponsibilityFacade
         from app.api.place_description.facade import PlaceDescriptionFacade
@@ -223,6 +226,25 @@ class PlaceMapFacade(PlaceSearchFacade):
 
                 "dpt": "{0} - {1}".format(co.departement.insee_code, co.departement.label) if co and co.departement else None,
                 "region": "{0} - {1}".format(co.region.insee_code, co.region.label) if co and co.region else None,
+            },
+            "links": {
+                "self": self.self_link
+            }
+        }
+        return res
+
+
+class LinkedPlaceFacade(PlaceSearchFacade):
+
+    @property
+    def resource(self):
+        """ """
+        res = {
+            **self.resource_identifier,
+            "attributes": {
+                "place-label": self.obj.label,
+                #"responsibility": self.obj.responsibility,
+                "descriptions": [d.content for d in self.obj.descriptions]
             },
             "links": {
                 "self": self.self_link

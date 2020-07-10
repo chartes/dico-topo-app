@@ -70,9 +70,19 @@ class JSONAPIRouteRegistrar(object):
         relationships = facade_obj.relationships
         # iter over the relationships to be included
         for inclusion in asked_relationships:
+
+            # parse for facade name
+            # eg.  ?include=place@map  to get the map facade of the place resource
+            rel = inclusion.split('@')
+            if len(rel) > 1:
+                rel_name, asked_facade_name = rel
+                asked_facade = JSONAPIFacadeManager.get_facade_class_from_name(asked_facade_name)
+            else:
+                rel_name, asked_facade = rel[0], None
+
             try:
                 # try bring the related resources and add them to the list
-                related_resources = relationships[inclusion]["resource_getter"]()
+                related_resources = relationships[rel_name]["resource_getter"](asked_facade)
                 # make unique keys to avoid duplicates
                 if isinstance(related_resources, list):
                     for related_resource in related_resources:

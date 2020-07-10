@@ -28,45 +28,53 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
             errors = []
         return e, kwargs, errors
 
-    def get_place_resource_identifier(self):
+    def get_place_resource_identifier(self, rel_facade=None):
         from app.api.place.facade import PlaceFacade
-        return None if self.obj.place is None else PlaceFacade.make_resource_identifier(self.obj.place.id,
-                                                                                                PlaceFacade.TYPE)
+        rel_facade = PlaceFacade if not rel_facade else rel_facade
 
-    def get_commune_resource_identifier(self):
+        return None if self.obj.place is None else rel_facade.make_resource_identifier(self.obj.place.id,
+                                                                                       rel_facade.TYPE)
+
+    def get_commune_resource_identifier(self, rel_facade=None):
         from app.api.insee_commune.facade import CommuneFacade
+        rel_facade = CommuneFacade if not rel_facade else rel_facade
 
         return None if (
-                    self.obj.place or self.obj.place.commune is None) else CommuneFacade.make_resource_identifier(
-            self.obj.place.commune.id, CommuneFacade.TYPE)
+                    self.obj.place or self.obj.place.commune is None) else rel_facade.make_resource_identifier(
+            self.obj.place.commune.id, rel_facade.TYPE)
 
-    def get_localization_commune_resource_identifier(self):
+    def get_localization_commune_resource_identifier(self, rel_facade=None):
         from app.api.insee_commune.facade import CommuneFacade
+        rel_facade = CommuneFacade if not rel_facade else rel_facade
 
         return None if (
                 self.obj.place is None or self.obj.place.localization_commune is None
-        ) else CommuneFacade.make_resource_identifier(self.obj.place.localization_commune.id, CommuneFacade.TYPE)
+        ) else rel_facade.make_resource_identifier(self.obj.place.localization_commune.id, rel_facade.TYPE)
 
-    def get_place_resource(self):
+    def get_place_resource(self, rel_facade=None):
         from app.api.place.facade import PlaceFacade
-        return None if self.obj.place is None else PlaceFacade(self.url_prefix, self.obj.place,
+        rel_facade = PlaceFacade if not rel_facade else rel_facade
+
+        return None if self.obj.place is None else rel_facade(self.url_prefix, self.obj.place,
                                                                        self.with_relationships_links,
                                                                        self.with_relationships_data).resource
 
-    def get_commune_resource(self):
+    def get_commune_resource(self, rel_facade=None):
         from app.api.insee_commune.facade import CommuneFacade
+        rel_facade = CommuneFacade if not rel_facade else rel_facade
 
-        return None if (self.obj.place is None or self.obj.place.commune is None) else CommuneFacade(
+        return None if (self.obj.place is None or self.obj.place.commune is None) else rel_facade(
             self.url_prefix, self.obj.place.commune,
             self.with_relationships_links,
             self.with_relationships_data
         ).resource
 
-    def get_localization_commune_resource(self):
+    def get_localization_commune_resource(self, rel_facade=None):
         from app.api.insee_commune.facade import CommuneFacade
+        rel_facade = CommuneFacade if not rel_facade else rel_facade
 
         return None if (
-                self.obj.place is None or self.obj.place.localization_commune is None) else CommuneFacade(
+                self.obj.place is None or self.obj.place.localization_commune is None) else rel_facade(
             self.url_prefix, self.obj.place.localization_commune,
             self.with_relationships_links,
             self.with_relationships_data
@@ -144,8 +152,6 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
             env=current_app.config.get("ENV"),
             index_name=PlaceFacade.TYPE_PLURAL
         )
-
-
 
     def get_data_to_index_when_added(self, propagate):
         co = self.obj.place.related_commune
@@ -241,4 +247,22 @@ class PlaceOldLabelMapFacade(PlaceOldLabelSearchFacade):
                 "self": self.self_link
             }
         }
+        return res
+
+
+class FlatPlaceOldLabelFacade(PlaceOldLabelFacade):
+
+    @property
+    def resource(self):
+        res = super(FlatPlaceOldLabelFacade, self).resource
+
+        # add a flattened resp statement to the old label facade
+        from app.api.responsibility.facade import FlatResponsibilityFacade
+        responsibility = FlatResponsibilityFacade("", self.obj.responsibility)
+
+        res["attributes"]["responsibility"] = {
+            "id": responsibility.id,
+            **responsibility.resource["attributes"]
+        }
+
         return res

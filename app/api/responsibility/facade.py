@@ -68,3 +68,34 @@ class ResponsibilityFacade(JSONAPIAbstractFacade):
                 "resource_identifier_getter": self.get_related_resource_identifiers(rel_facade, u_rel_name, to_many),
                 "resource_getter": self.get_related_resources(rel_facade, u_rel_name, to_many),
             }
+
+
+class FlatResponsibilityFacade(ResponsibilityFacade):
+
+    @property
+    def resource(self):
+        """ """
+        from app.api.bibl.facade import BiblFacade
+        bibl = BiblFacade("", self.obj.bibl)
+
+        res = {
+            **self.resource_identifier,
+            "attributes": {
+                "num-start-page": self.obj.num_start_page,
+                "creation-date": self.obj.creation_date.strftime("%Y-%m-%d %H:%M:%S"),
+                "user": {
+                    "id": self.obj.user.id,
+                    "username": self.obj.user.username
+                },
+                "bibl": {
+                    "id": bibl.id,
+                    **bibl.resource["attributes"]
+                }
+            },
+            "meta": self.meta,
+            "links": {
+                "self": self.self_link
+            }
+        }
+
+        return res

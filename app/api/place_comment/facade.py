@@ -41,3 +41,21 @@ class PlaceCommentFacade(CitableContentFacade):
             # remove unused links to feature types if any
             res['attributes']['content'] = re.sub(r'<a>(.*?)</a>', r'\1', res['attributes']['content'])
         return res
+
+
+class FlatPlaceCommentFacade(PlaceCommentFacade):
+
+    @property
+    def resource(self):
+        res = super(PlaceCommentFacade, self).resource
+
+        # add a flattened resp statement to the comment facade
+        from app.api.responsibility.facade import FlatResponsibilityFacade
+        responsibility = FlatResponsibilityFacade("", self.obj.responsibility)
+
+        res["attributes"]["responsibility"] = {
+            "id": responsibility.id,
+            **responsibility.resource["attributes"]
+        }
+
+        return res
