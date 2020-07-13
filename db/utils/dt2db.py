@@ -58,10 +58,10 @@ def insert_bibl(db, cursor, dt_id):
 def insert_place_values(db, cursor, dt_id, user_id):
     """ """
 
-    print("** TABLE place, place_alt_label, place_comment, place_description, place_feature_type – INSERT")
+    print("** TABLE place, place_comment, place_description, place_feature_type – INSERT")
 
-    #TODO: appeler le bon DT (et non _output5.xml, uniquement en dev)
-    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'_output5.xml')
+    #TODO: appeler le bon DT (et non _output6.xml, uniquement en dev)
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
     # code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
 
@@ -154,22 +154,23 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # page de début
         place['num_start_page'] = entry.get('pg')
 
-        # la vedette principale (la première)
-        # TODO: voir avec OC les différentes possibilités de ponctuation à la fin de la vedette ([,.…;:]) -> on supprime tout ?
-        # TODO: voir les cas compliqués avec OC, par ex. DT10-02266 (pas de normalisation de la forme alternative)
-        # TODO: attention des labels qui se terminent par de la ponctuation, par ex. DT01-04054
+        # VEDETTE (place.label)
+        """
+        2020-07: choix d’abandonner la distinction entre vedette pricipale et vedettes secondaires (alt_label)
         place['label'] = entry.xpath('vedette/sm[1]')[0].text.rstrip(',')
         place['label'] = place['label'].strip()
-        # DT01 : des labels préfixés avec "*" (les formes reconstituées/hypothétiques pour les lieux disparus, selon SN)
-        # place['label'] = format(place['label'][1:] if place['label'].startswith('*') else place['label'])
-        # Parfois à la fin de la vedette (cf DT72), plus radical :
         place['label'] = place['label'].replace('*', '')
-
         # les vedettes secondaires (optionnel, mais fréquent)
-        # TODO: compliqué du fait des choix de balisage, ie <sm>Balsac (Grand-</sm> et <sm>Petit-),</sm> – OC ?
         place['alt_labels'] = []
         for i in entry.xpath('vedette//sm[position()>1]'):
             place['alt_labels'].append(i.text.rstrip(','))
+        """
+        place['label'] = tostring(entry.xpath('vedette')[0], method='text', encoding='unicode')
+        # TODO: vérifier toutes les ponctuations en fin de vedette/label (pour tout supprimer)
+        place['label'] = place['label'].strip().rstrip('.,;')
+        # SN: le prefixe "*" marque les formes reconstituées/hypothétiques pour les lieux disparus. On supprime ?
+        # parfois à la fin de la vedette (cf DT72)
+        place['label'] = place['label'].replace('*', '')
 
         # feature types
         place['feature_types'] = []
@@ -319,6 +320,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
             print(e, "insert place, place %s" % (place['id']))
         db.commit()
 
+        """ 2020-07: abandon de l’insertion des alt_label
         # place_alt_label
         if place['alt_labels']:
             for alt_label in place['alt_labels']:
@@ -332,6 +334,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                          responsability_id,
                          place['id']))
                 db.commit()
+        """
 
         # place_comment
         if place['comment']:
