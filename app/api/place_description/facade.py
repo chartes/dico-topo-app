@@ -46,7 +46,7 @@ class FlatPlaceDescriptionFacade(PlaceDescriptionFacade):
 
     @property
     def resource(self):
-        res = super(PlaceDescriptionFacade, self).resource
+        res = super(FlatPlaceDescriptionFacade, self).resource
 
         # add a flattened resp statement to the description facade
 

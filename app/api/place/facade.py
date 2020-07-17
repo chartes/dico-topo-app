@@ -239,12 +239,16 @@ class LinkedPlaceFacade(PlaceSearchFacade):
     @property
     def resource(self):
         """ """
+        from app.api.place_description.facade import PlaceDescriptionFacade
+
         res = {
             **self.resource_identifier,
             "attributes": {
                 "place-label": self.obj.label,
                 #"responsibility": self.obj.responsibility,
-                "descriptions": [d.content for d in self.obj.descriptions]
+                "descriptions": [d.resource["attributes"]["content"]
+                                 for d in [PlaceDescriptionFacade("", e)
+                                 for e in self.obj.descriptions]]
             },
             "links": {
                 "self": self.self_link

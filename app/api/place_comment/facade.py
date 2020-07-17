@@ -47,7 +47,7 @@ class FlatPlaceCommentFacade(PlaceCommentFacade):
 
     @property
     def resource(self):
-        res = super(PlaceCommentFacade, self).resource
+        res = super(FlatPlaceCommentFacade, self).resource
 
         # add a flattened resp statement to the comment facade
         from app.api.responsibility.facade import FlatResponsibilityFacade
