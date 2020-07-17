@@ -41,7 +41,6 @@ DT_with_insee = ["DT01", "DT02"]
 for dt_id in DT_with_insee:
     dpt_code = dt_id[-2:]
     print("%s processing\n===============" % dt_id)
-    # debug.get_description(db, cursor, dt_id)
     # bibl, place, place_alt_label, place_comment, place_description, place_feature_type
     dt2db.insert_place_values(db, cursor, dt_id, u1["id"])
     # place_old_labels
