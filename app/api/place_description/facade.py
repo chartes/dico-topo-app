@@ -8,7 +8,7 @@ from app.models import PlaceDescription, InseeCommune
 
 def rewrite_link_target(insee_code):
     co = InseeCommune.query.filter(InseeCommune.id == insee_code).first()
-    if co:
+    if co and co.place:
         return '<a href="{0}/places/{1}">'.format(current_app.config['APP_URL_PREFIX'], co.place.id)
     else:
         return '<a>'

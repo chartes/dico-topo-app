@@ -196,6 +196,8 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
     @property
     def resource(self):
         """ """
+        from app.api.place_description.facade import PlaceDescriptionFacade
+
         co = self.obj.place.related_commune
 
         res = {
@@ -203,7 +205,8 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
             "attributes": {
                 "place-id": self.obj.place.id,
                 "place-label": self.obj.place.label,
-                "place-desc": self.obj.place.desc,
+                "place-desc": [d.resource["attributes"]["content"]  for d in [PlaceDescriptionFacade("", e)
+                                                                              for e in self.obj.place.descriptions]],
                 "localization-insee-code": co.id if co else None,
                 "commune-label": co.NCCENR if co else None,
                 "dpt": self.obj.place.dpt,

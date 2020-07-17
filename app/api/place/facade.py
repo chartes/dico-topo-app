@@ -1,9 +1,6 @@
 
-from flask import current_app
-
 from app.api.abstract_facade import JSONAPIAbstractFacade
 from app.api.place_feature_type.facade import PlaceFeatureTypeFacade
-import re
 
 
 class PlaceFacade(JSONAPIAbstractFacade):
@@ -177,6 +174,8 @@ class PlaceSearchFacade(PlaceFacade):
     @property
     def resource(self):
         """ """
+        from app.api.place_description.facade import PlaceDescriptionFacade
+
         co = self.obj.related_commune
 
         old_labels = []
@@ -200,6 +199,9 @@ class PlaceSearchFacade(PlaceFacade):
                 "canton": co.canton.label if co and co.canton else None,
                 "region": co.region.label if co and co.region else None,
                 "longlat": co.longlat if co else None,
+                "descriptions": [d.resource["attributes"]["content"]
+                                 for d in [PlaceDescriptionFacade("", e)
+                                           for e in self.obj.descriptions]]
                 #"desc": self.obj.desc,
                 #"comment": self.obj.comment,
                 #"num-start-page": self.obj.responsibility.num_start_page,
