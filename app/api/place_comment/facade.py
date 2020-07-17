@@ -3,6 +3,7 @@ import re
 from flask import current_app
 
 from app.api.citable_content.facade import CitableContentFacade
+from app.api.place_description.facade import rewrite_link_target
 from app.models import PlaceComment
 
 
@@ -30,13 +31,12 @@ class PlaceCommentFacade(CitableContentFacade):
     @property
     def resource(self):
         res = super(PlaceCommentFacade, self).resource
-        co = self.obj.place.localization_commune
 
         # rewrite links in desc so they target to a better url
         if res['attributes']['content']:
-            if co:
-                rewritten = '<a href="{0}/places/{1}">'.format(current_app.config['APP_URL_PREFIX'], co.place.id)
-                res['attributes']['content'] = re.sub(r'<a href="{0}">'.format(co.id), rewritten, res['attributes']['content'])
+            for (match, insee_code) in re.findall(r'(<a href="(\d+)">)', res['attributes']['content']):
+                res['attributes']['content'] = re.sub(match, rewrite_link_target(insee_code),
+                                                      res['attributes']['content'])
 
             # remove unused links to feature types if any
             res['attributes']['content'] = re.sub(r'<a>(.*?)</a>', r'\1', res['attributes']['content'])
