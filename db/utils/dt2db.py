@@ -40,9 +40,11 @@ def date_4digits(date):
 def date2iso(date):
     """ """
     year_pattern = re.compile('^[0-9]{3,4}$')
-    approximate_date_pattern = re.compile('([0-9]{3,4}) environ')
+    approximate_date_pattern1 = re.compile('([0-9]{3,4}) environ')
+    approximate_date_pattern2 = re.compile('vers ([0-9]{3,4})')
     interval_date_pattern = re.compile('([0-9]{3,4})-([0-9]{3,4})')
-    century_date_pattern = re.compile('([ivxlcm]+)e siècle')
+    century_date_pattern1 = re.compile('([ivxlcm]+)e siècle')
+    century_date_pattern2 = re.compile('([0-9]{1,2})e')
     republican_calendar_pattern = re.compile('an ([ivx]+)')
 
     century_dict = {
@@ -60,9 +62,12 @@ def date2iso(date):
     if year_pattern.match(date):
         date_iso = date_4digits(re.search(year_pattern, date)[0])
 
-    elif approximate_date_pattern.match(date):
-        # date_iso = re.sub(approximate_date_pattern, '\\1~', date)
-        date_iso = date_4digits(re.search(approximate_date_pattern, date).group(1))+'~'
+    elif approximate_date_pattern1.match(date):
+        # date_iso = re.sub(approximate_date_pattern1, '\\1~', date)
+        date_iso = date_4digits(re.search(approximate_date_pattern1, date).group(1))+'~'
+
+    elif approximate_date_pattern2.match(date):
+        date_iso = date_4digits(re.search(approximate_date_pattern2, date).group(1)) + '~'
 
     elif interval_date_pattern.match(date):
         # date_iso = re.sub(interval_date_pattern, '\\1/\\2', date)
@@ -70,9 +75,12 @@ def date2iso(date):
         end = date_4digits(re.search(interval_date_pattern, date).group(2))
         date_iso = start + '/' + end
 
-    elif century_date_pattern.match(date):
-        century = century_date_pattern.search(date).group(1)
+    elif century_date_pattern1.match(date):
+        century = century_date_pattern1.search(date).group(1)
         date_iso = century_dict[century] if century in century_dict else None
+
+    elif century_date_pattern2.match(date):
+        date_iso = century_date_pattern2.search(date).group(1)
 
     elif republican_calendar_pattern.match(date):
         year = republican_calendar_pattern.search(date).group(1)
