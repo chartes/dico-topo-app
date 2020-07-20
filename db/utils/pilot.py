@@ -10,6 +10,11 @@ db = sqlite3.connect(db_path)
 cursor = db.cursor()
 cursor.execute('PRAGMA foreign_keys=ON')
 
+"""
+debug.get_old_label_date(db, cursor, 'DT11')
+exit()
+"""
+
 # création du user
 u1 = {"id": 1, "username": "delisle", "is_admin": 1}
 cursor.execute("INSERT OR REPLACE INTO user (id, username, is_admin) VALUES (?, ?, ?);",
@@ -32,7 +37,8 @@ insee.insert_longlat(db, cursor, 'tsv')
 # insee.update_insee_ref(db, cursor)
 
 
-DT_with_insee = ["DT01", "DT02", "DT05", "DT07"]
+# DT_with_insee = ["DT01", "DT02", "DT05", "DT07", "DT11"]
+DT_with_insee = ["DT11"]
 
 for dt_id in DT_with_insee:
     dpt_code = dt_id[-2:]

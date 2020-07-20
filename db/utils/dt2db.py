@@ -98,7 +98,7 @@ def insert_bibl(db, cursor, dt_id):
     with open('bibl_gallica.tsv') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
-            if row['abbr'] == dt_id:
+            if row['dt_id'] == dt_id:
                 cursor.execute(
                     "INSERT INTO bibl (abbr,"
                         "bibl,"
@@ -264,9 +264,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     <xsl:text>&lt;/p></xsl:text>
                 </xsl:template>
                 <xsl:template match="forme_ancienne2">
-                    <xsl:text>&lt;dfn></xsl:text>
                     <xsl:apply-templates/>
-                    <xsl:text>&lt;/dfn></xsl:text>
                 </xsl:template>
                 <xsl:template match="reference">
                     <xsl:text>&lt;cite></xsl:text>
