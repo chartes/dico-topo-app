@@ -59,6 +59,7 @@ class SearchIndexManager(object):
                 }
                 body["size"] = 0
 
+                sort_criteriae.reverse()
                 for crit in sort_criteriae:
                     for crit_name, crit_order in crit.items():
                         body["aggregations"]["items"]["composite"]["sources"].insert(0,
