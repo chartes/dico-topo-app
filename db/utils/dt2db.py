@@ -30,12 +30,75 @@ def html_snippet_validator(html_snippet, place_id, authorized_tags_set):
             print('place', place_id, 'html error:', unauthorized_tag, 'tag not authorized', '==>', html_snippet)
 
 
+def date_4digits(date):
+    """ """
+    missing_zero_digit_number = 4 - len(date)
+    date = missing_zero_digit_number*'0' + date
+    return date
+
+
+def date2iso(date):
+    """ """
+    year_pattern = re.compile('^[0-9]{3,4}$')
+    approximate_date_pattern1 = re.compile('([0-9]{3,4}) environ')
+    approximate_date_pattern2 = re.compile('vers ([0-9]{3,4})')
+    interval_date_pattern = re.compile('([0-9]{3,4})-([0-9]{3,4})')
+    century_date_pattern1 = re.compile('([ivxlcm]+)e siècle')
+    century_date_pattern2 = re.compile('([0-9]{1,2})e')
+    republican_calendar_pattern = re.compile('an ([ivx]+)')
+
+    century_dict = {
+        'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5',
+        'vi': '6', 'vii': '7', 'viii': '8', 'ix': '9', 'x': '10',
+        'xi': '11', 'xii': '12', 'xiii': '13', 'xiv': '14', 'xv': '15',
+        'xvi': '16', 'xvii': '17', 'xviii': '18', 'xix': '19', 'xx': '20'}
+
+    republican_calendar_dict = {
+        'i': '1792/1793', 'ii': '1793/1794', 'iii': '1794/1795', 'iv': '1795/1796', 'v': '1796/1797',
+        'vi': '1797/1798','vii': '1798/1799', 'viii': '1799/1800', 'ix': '1800/1801', 'x': '1801/1802',
+        'xi': '1802/1803', 'xii': '1803/1804', 'xiii': '1804/1805', 'xiv': '1805/1806'}
+
+    date = date.lower()
+    if year_pattern.match(date):
+        date_iso = date_4digits(re.search(year_pattern, date)[0])
+
+    elif approximate_date_pattern1.match(date):
+        # date_iso = re.sub(approximate_date_pattern1, '\\1~', date)
+        date_iso = date_4digits(re.search(approximate_date_pattern1, date).group(1))+'~'
+
+    elif approximate_date_pattern2.match(date):
+        date_iso = date_4digits(re.search(approximate_date_pattern2, date).group(1)) + '~'
+
+    elif interval_date_pattern.match(date):
+        # date_iso = re.sub(interval_date_pattern, '\\1/\\2', date)
+        start = date_4digits(re.search(interval_date_pattern, date).group(1))
+        end = date_4digits(re.search(interval_date_pattern, date).group(2))
+        date_iso = start + '/' + end
+
+    elif century_date_pattern1.match(date):
+        century = century_date_pattern1.search(date).group(1)
+        date_iso = century_dict[century] if century in century_dict else None
+
+    elif century_date_pattern2.match(date):
+        date_iso = century_date_pattern2.search(date).group(1)
+
+    elif republican_calendar_pattern.match(date):
+        year = republican_calendar_pattern.search(date).group(1)
+        date_iso = republican_calendar_dict[year] if year in republican_calendar_dict else None
+
+    else:
+        date_iso = None
+
+    # return date, date_iso
+    return date_iso
+
+
 def insert_bibl(db, cursor, dt_id):
     """ """
     with open('bibl_gallica.tsv') as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
-            if row['abbr'] == dt_id:
+            if row['dt_id'] == dt_id:
                 cursor.execute(
                     "INSERT INTO bibl (abbr,"
                         "bibl,"
@@ -192,9 +255,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
             <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <xsl:output method="text"/>
                 <xsl:template match="/">
-                    <xsl:text>&lt;article></xsl:text>
                     <xsl:apply-templates/>
-                    <xsl:text>&lt;/article></xsl:text>
                 </xsl:template>
                 <xsl:template match="pg"/>
                 <xsl:template match="p">
@@ -203,9 +264,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     <xsl:text>&lt;/p></xsl:text>
                 </xsl:template>
                 <xsl:template match="forme_ancienne2">
-                    <xsl:text>&lt;dfn></xsl:text>
                     <xsl:apply-templates/>
-                    <xsl:text>&lt;/dfn></xsl:text>
                 </xsl:template>
                 <xsl:template match="reference">
                     <xsl:text>&lt;cite></xsl:text>
@@ -265,7 +324,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                 place['comment'] += comment
 
                 # Validation HTML5 (on se contente de tester, on insère tout de même en base)
-                comment_authorized_tags_set = {'p', 'a', 'i', 'sup', 'span', 'cite', 'article', 'time'}
+                comment_authorized_tags_set = {'p', 'a', 'i', 'sup', 'span', 'cite', 'time'}
                 if description is not None:
                     html_snippet_validator(place['comment'], place['id'], comment_authorized_tags_set)
         else:
@@ -432,7 +491,9 @@ def insert_place_old_label(db, cursor, dt_id):
     """ """
     print("** TABLE place_old_label – INSERT")
     tags = re.compile('<[^>]+>')
-    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
+    # TODO: appeler le bon DT (et non _output6.xml, uniquement en dev)
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
+    # tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
 
     # conversion HTML5 de toute l’entrée forme_ancienne
     old_label2html = io.StringIO('''\
@@ -526,6 +587,7 @@ def insert_place_old_label(db, cursor, dt_id):
                 <xsl:apply-templates/>
                 <xsl:text>&lt;/span></xsl:text>
             </xsl:template>
+            <xsl:template match="pg"/>
         </xsl:stylesheet>''')
     xslt_get_old_label_rich_date = etree.parse(get_old_label_rich_date)
     transform_old_label2rich_date = etree.XSLT(xslt_get_old_label_rich_date)
@@ -603,7 +665,7 @@ def insert_place_old_label(db, cursor, dt_id):
         #       la référence d’une entrée forme ancienne avec enrichissement typo, en HTML
         #       cart. de l’abb. de Thenailles, f<sup>os</sup> 15, 20, 36
         #   * rich_date
-        #       la date avec enrichissement typo, en HTML)
+        #       la date avec enrichissement typo, en HTML
         #       <span class='sc">xiii</span><sup>e</sup> siècle (cf DT02-00048-03)
         #   * date
         #       la date sans enrichissement typo
@@ -649,12 +711,15 @@ def insert_place_old_label(db, cursor, dt_id):
                     dfn = dfn.strip()
                     # print(placename['id']+' forme_ancienne sans label => '+dfn)
 
-                # DATE – Attention au mauvais formatage des dates dans les XML (des sauts de lignes intempestifs…)
-                # TODO: du code pour normaliser les dates "textuelles"
+                # Date des formes anciennes
+                # Parfois plusieurs dates pour une forme ancienne ; on n’inscrit en base que la première (cf XLST).
+                # Attention au mauvais formatage des dates dans les XML (des sauts de lignes intempestifs…)
                 rich_date = str(transform_old_label2rich_date(tree)).lstrip()
                 date = re.sub(tags, '', rich_date)
                 # remove multiple spaces
                 date = " ".join(date.split())
+                date = date2iso(date)
+
                 # print(rich_date + ' = ' + date)
                 # Ref (référence de la forme ancienne) ; 1 forme_ancienne avec plus d’une réf ! (pour l’instant, on les vire = choix du prestataire d’ailleurs…)
                 # contenu riche : i, sup, pg (on les sort en XSLT), date, sm
