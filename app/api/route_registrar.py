@@ -474,6 +474,7 @@ class JSONAPIRouteRegistrar(object):
                     sorted_facade_objs = [f for f in sorted_facade_objs if f is not None]
                 else:
                     # TODO gerer le groupby quand pas sur le doctype ? à revérifier
+                    # l'agg côté ES gère déjà le tri multicritères
                     sorted_facade_objs = facade_objs
 
                 # find out if related resources must be included too
