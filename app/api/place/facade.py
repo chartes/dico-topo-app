@@ -76,10 +76,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "label": self.obj.label,
                 "country": self.obj.country,
                 "dpt": self.obj.dpt,
-                #"desc": self.obj.desc,
-                #"comment": self.obj.comment,
-
-                #"num-start-page": self.obj.responsibility.num_start_page,
                 "localization-commune-relation-type": self.obj.localization_commune_relation_type,
                 "localization-insee-code": self.obj.related_commune.id if self.obj.related_commune else None,
 
@@ -117,7 +113,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "resource_getter": self.get_linked_places_resource
             },
         }
-
 
         for rel_name, (rel_facade, to_many) in {
             "responsibility": (ResponsibilityFacade, False),
@@ -175,7 +170,6 @@ class PlaceSearchFacade(PlaceFacade):
     def resource(self):
         """ """
         from app.api.place_description.facade import PlaceDescriptionFacade
-
         co = self.obj.related_commune
 
         old_labels = []
@@ -202,9 +196,6 @@ class PlaceSearchFacade(PlaceFacade):
                 "descriptions": [d.resource["attributes"]["content"]
                                  for d in [PlaceDescriptionFacade("", e)
                                            for e in self.obj.descriptions]]
-                #"desc": self.obj.desc,
-                #"comment": self.obj.comment,
-                #"num-start-page": self.obj.responsibility.num_start_page,
             },
             "links": {
                 "self": self.self_link

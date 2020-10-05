@@ -495,6 +495,7 @@ class JSONAPIRouteRegistrar(object):
                                 included_resources.append(_res)
                         # included_resources.extend(included_res)
 
+            resources = [f.resource for f in sorted_facade_objs]
             res_meta = {
                 "total-count": meta["total"],
                 "duration": float('%.4f' % (time.time() - start_time))
@@ -502,12 +503,13 @@ class JSONAPIRouteRegistrar(object):
             if "after" in meta:
                 res_meta["after"] = meta["after"]
 
-            return JSONAPIResponseFactory.make_data_response(
-                [f.resource for f in sorted_facade_objs],
+            response = JSONAPIResponseFactory.make_data_response(
+                resources,
                 links=links,
                 included_resources=included_resources,
                 meta=res_meta
             )
+            return response
 
         # APPLY decorators if any
         for dec in decorators:

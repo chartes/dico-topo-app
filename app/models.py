@@ -24,7 +24,7 @@ def related_to_place_mixin(backref_name=None):
     class RelatedToPlaceMixin(object):
         @declared_attr
         def place_id(cls):
-            return db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False)
+            return db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False, index=True)
 
         @declared_attr
         def place(cls):
@@ -71,7 +71,7 @@ class Place(CitableElementMixin, db.Model):
     commune = db.relationship(
         'InseeCommune', backref=db.backref('place', uselist=False),
         primaryjoin="InseeCommune.id==Place.commune_insee_code",
-        uselist=False
+        uselist=False,
     )
     localization_commune = db.relationship(
         'InseeCommune', backref=db.backref('localized_places'),
@@ -249,8 +249,8 @@ class Responsibility(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=True, index=True)
 
     # first num of the page where the element appears (within its source)
     num_start_page = db.Column(db.Integer, nullable=True)
