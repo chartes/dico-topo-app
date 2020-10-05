@@ -39,6 +39,7 @@ def date_4digits(date):
 
 def date2iso(date):
     """ """
+    # TODO: implémenter les cas de DT10 et DT21
     year_pattern = re.compile('^[0-9]{3,4}$')
     approximate_date_pattern1 = re.compile('([0-9]{3,4}) environ')
     approximate_date_pattern2 = re.compile('vers ([0-9]{3,4})')
@@ -194,6 +195,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
             description = re.sub(re.compile('<pg>[0-9]+</pg>'), '', description)
             # des références…
             description = re.sub(re.compile('<(/?)reference>'), '<\\1cite>', description)
+            # ceinture bretelle, on trim()
+            description = description.strip()
             # uppercase first letter of description (bien compliqué…)
             re_first_letter = re.compile('(<a>)?([^ ])')
             first_letter_pos = re.match(re_first_letter, description).start(2)
