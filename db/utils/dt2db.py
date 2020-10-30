@@ -94,6 +94,16 @@ def date2iso(date):
     return date_iso
 
 
+def punctuation_clean(string):
+    """ Ponctuation très fautive avant les balises fermantes. Tentative de correction """
+    string = re.sub(
+        '([^\S]*[,.:;!?][^\S]*)(</[^>]+>)',
+        '\\2\\1',
+        string
+    )
+    return string
+
+
 def insert_bibl(db, cursor, dt_id):
     """ """
     with open('bibl_gallica.tsv') as csvfile:
@@ -170,9 +180,11 @@ def insert_place_values(db, cursor, dt_id, user_id):
             place['localization_commune_relation_type'] = None
 
         # formatage de place_description.content (xml_dt:definition)
-        # TODO: typer les html5:a ? – pour distinguer les liens à venir vers les FT et les codes insee des communes
-        # TODO: pour les communes, inscrire le code insee ou le place_id ?
-        # TODO: quid des renvois ? pour l’instant on supprime (cf ci-dessous)
+        # LIENS
+        #   - feature types (FT): html:a, sans @href à ce stade du projet
+        #   - commune d’appartenance: html:a, avec code INSEE en @href
+        #   - renvois: html:a, avec @rel='search' et @data-dpt='{dpt-id}' pour construire les liens de recherche.
+        # TODO: standardiser les liens au FT
         remove_tags = re.compile('</?(definition|localisation|date|renvoi|commune)[^>]*>')
         # on ne matche que les codes insee conformes au motif \[0-9]{5}\
         rename_commune_optag = re.compile('<commune insee="([0-9]{5})"[^>]*>')
@@ -185,9 +197,14 @@ def insert_place_values(db, cursor, dt_id, user_id):
             description = re.sub(rename_commune_optag, '<a href="\\1">', description)
             description = re.sub(rename_commune_cltag, '</a>', description)
             description = re.sub(rename_typo_tag, '<\\1a>', description)
+            # liens sur les renvois (tordu, car pas en XSLT initialement)
+            description = re.sub(
+                '(<renvoi>.*)<sm>([^<]+)</sm>(.*</renvoi>)',
+                '\\1<a rel="search" data-dpt="'+dpt+'"><span class="sc">\\2</span></a>\\3',
+                description)
             description = re.sub(remove_tags, '', description)
             # Tristesse de découvrir que le schéma n’est respecté… et hacks honteux
-            # des small-caps dans les descriptions
+            # des small-caps dans les descriptions (principalement les siècles)
             description = re.sub(re.compile('<sm>([^<]+)</sm>'), '<span class="sc">\\1</span>', description)
             # erreurs de segmentation dans la source XML
             description = description.replace('</span> <sup>', '</span><sup>')
@@ -195,6 +212,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
             description = re.sub(re.compile('<pg>[0-9]+</pg>'), '', description)
             # des références…
             description = re.sub(re.compile('<(/?)reference>'), '<\\1cite>', description)
+            # ponctuation très fautive autour des balise TODO: évaluer
+            description = punctuation_clean(description)
             # ceinture bretelle, on trim()
             description = description.strip()
             # uppercase first letter of description (bien compliqué…)
