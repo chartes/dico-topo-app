@@ -44,6 +44,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'databnf-ark': self.obj.databnf_ark,
                 'viaf-id': self.obj.viaf_id,
                 'siaf-id': self.obj.siaf_id,
+                'osm-id': self.obj.osm_id,
             },
             "meta": self.meta,
             "links": {
