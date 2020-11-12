@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 def html_snippet_validator(html_snippet, place_id, authorized_tags_set):
-    """ """
+    """ contrôle des balises autorisées """
     html_snippet_p = '<p>' + html_snippet + '</p>'
 
     # Vérification de la conformité
@@ -31,7 +31,7 @@ def html_snippet_validator(html_snippet, place_id, authorized_tags_set):
 
 
 def date_4digits(date):
-    """ """
+    """ formatage des millésimes en AAAA """
     missing_zero_digit_number = 4 - len(date)
     date = missing_zero_digit_number*'0' + date
     return date
@@ -252,7 +252,9 @@ def insert_place_values(db, cursor, dt_id, user_id):
         """
         place['label'] = tostring(entry.xpath('vedette')[0], method='text', encoding='unicode')
         # TODO: vérifier toutes les ponctuations en fin de vedette/label (pour tout supprimer)
-        place['label'] = place['label'].strip().rstrip('.,;')
+        # place['label'] = place['label'].strip().rstrip('.,;')
+        # place['label'] = place['label'].strip().strip('.,;  »«*,')
+        place['label'] = place['label'].strip().strip('.,;» «*,')
         # SN: le prefixe "*" marque les formes reconstituées/hypothétiques pour les lieux disparus. On supprime ?
         # parfois à la fin de la vedette (cf DT72)
         place['label'] = place['label'].replace('*', '')
@@ -297,13 +299,13 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     <xsl:apply-templates/>
                 </xsl:template>
                 <xsl:template match="sm[parent::renvoi]">
-                    <xsl:text>&lt;a href="</xsl:text>
-                    <xsl:apply-templates/>
+                    <xsl:text>&lt;a rel="search" data-dpt="</xsl:text>
+                    <xsl:value-of select="/DICTIONNAIRE/@dep"/>
                     <xsl:text>"></xsl:text>
                     <xsl:apply-templates/>
                     <xsl:text>&lt;/a></xsl:text>
                 </xsl:template>
-                    <xsl:template match="note">
+                <xsl:template match="note">
                     <xsl:text>&lt;span class="note"></xsl:text>
                     <xsl:apply-templates/>
                     <xsl:text>&lt;/span></xsl:text>
@@ -563,8 +565,8 @@ def insert_place_old_label(db, cursor, dt_id):
     xslt_old_label2html = etree.parse(old_label2html)
     transform_old_label2html = etree.XSLT(xslt_old_label2html)
     # nettoyage typo, réutilisable
-    clean_start = re.compile('^[—\- ]+')
-    clean_end = re.compile('[— .,;]+$')
+    clean_start = re.compile('^[«—\-  ]+')
+    clean_end = re.compile('[»—  .,;]+$')
     clean_markup = re.compile(',(</[^>]+>)') # sortir la virgule du markup (span, cite, dfn, ?)
 
     # utilitaires pour extraire et nettoyer les formes anciennes
@@ -695,6 +697,11 @@ def insert_place_old_label(db, cursor, dt_id):
         if entry.xpath('forme_ancienne'):
             n = 1
             for old_label in entry.xpath('forme_ancienne'):
+                # ATTENTION: on ne conserve pas les formes anciennes sans label (not(i)),
+                # sauf si la forme ancienne est la première de la liste des formes anciennes (ou unique).
+                # Dans ce cas on reprend le label de l’article.
+                if old_label.xpath('not(i)') and n > 1:
+                    continue
                 old_label_id = place['id']+'-0'+str(n) if n < 10 else place['id']+'-'+str(n)
                 old_label_xml_str = tostring(old_label, encoding='unicode')
                 old_label_xml_str = ' '.join(old_label_xml_str.split())
@@ -719,6 +726,7 @@ def insert_place_old_label(db, cursor, dt_id):
                 # On vire le texte qui suit le dernier élément <dfn> (support xpath insuffisant avec lxml)
                 pos = dfn.rfind('</dfn>')
                 dfn = dfn[:pos+6]
+                # ICIIIIIIIIIII TODO: sortir la ponctuation de <dfn>
                 # 7201 formes anciennes font plus de 100 chars : on coupe !
                 # TODO: corriger XML ou le code de chargement pour repositionner les balises dans la chaîne conservée
                 # use iterator: re.finditer('</dfn>', dfn)
