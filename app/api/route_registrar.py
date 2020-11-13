@@ -154,7 +154,7 @@ class JSONAPIRouteRegistrar(object):
                             field=filter_fieldname,
                             criteria=True if criteria_upper == 'TRUE' else False
                         )
-                        print(str(new_criteria))
+                        #print(str(new_criteria))
                     elif not not_null_operator:
                         if criteria:
                             # filter[field]=value
@@ -234,7 +234,7 @@ class JSONAPIRouteRegistrar(object):
                 for op, value in ops:
                     range[key][op] = value
                 return range
-        print(range)
+        #print(range)
         return range
 
     def search(self, index, query, range, groupby, sort_criteriae, page_id, page_size, page_after):
