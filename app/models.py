@@ -293,7 +293,7 @@ class IdRegister(db.Model):
             num_try += 1
 
         if num_try >= self._ID_MAX:
-            raise Exception("There is no room anymore!")
+            raise Exception("There is (probably) no room anymore!")
 
         primary_value = f"{self._PREFIX}{str(new_id).zfill(self._PADDING)}{self._CONTROL}"
         super(IdRegister, self).__init__(primary_value=primary_value, secondary_value=secondary_value)
