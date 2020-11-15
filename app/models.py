@@ -269,3 +269,31 @@ class Responsibility(db.Model):
             self.creation_date.strftime("%Y-%m-%d %H:%M:%S"),
             self.user.username
         )
+
+
+import random
+class IdRegister(db.Model):
+    __tablename__ = "id_register"
+
+    _ID_MAX = 99999999
+    _PREFIX = 'p'
+    _CONTROL = 'z'
+    _PADDING = len(str(_ID_MAX))
+
+    primary_value = db.Column(db.String,  nullable=False, index=True, primary_key=True)
+    secondary_value = db.Column(db.String, nullable=True, index=True)
+
+    def __init__(self, secondary_value):
+        new_id = random.randint(0, self._ID_MAX)
+        num_try = 0
+        while num_try <= self._ID_MAX and db.session.query(
+                IdRegister.query.filter(IdRegister.primary_value == new_id).exists()
+        ).scalar():
+            new_id = random.randint(0, self._ID_MAX)
+            num_try += 1
+
+        if num_try >= self._ID_MAX:
+            raise Exception("There is no room anymore!")
+
+        primary_value = f"{self._PREFIX}{str(new_id).zfill(self._PADDING)}{self._CONTROL}"
+        super(IdRegister, self).__init__(primary_value=primary_value, secondary_value=secondary_value)

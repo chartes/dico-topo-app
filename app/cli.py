@@ -6,12 +6,14 @@ import requests
 import sqlalchemy
 from elasticsearch import AuthorizationException
 from jsonschema import validate
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
 from app import create_app
 
 from app.api.place.facade import PlaceFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade
-from app.models import Place, PlaceOldLabel
+from app.models import Place, PlaceOldLabel, IdRegister, PlaceAltLabel, PlaceComment, PlaceDescription, PlaceFeatureType
 
 app = None
 
@@ -216,6 +218,91 @@ def make_cli():
             else:
                 print("Warning: index %s does not exist or is not declared in the cli" % name)
 
+    @click.command("id-register")
+    @click.option('--clear/--no-clear', required=False, default=False)
+    @click.option('--replace/--append', required=False, default=False)
+    @click.option('--update-app/--no-update-app', required=False, default=False)
+    @click.option('--update-only', required=False, default=False, is_flag=True)
+    def id_register(clear, replace, update_app, update_only):
+        """
+        :param update_only:
+        :param update_app:
+        :param clear:
+        :param replace:
+        :return:
+        """
+        with app.app_context():
+
+            @event.listens_for(Engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=OFF")
+                cursor.close()
+
+            from app import db
+            db.create_all()
+            try:
+                if not update_only:
+                    if clear:
+                        IdRegister.query.delete()
+                        db.session.commit()
+                        print('register cleared!')
+
+                    # replace existing ids in the register with new ones
+                    if replace:
+                        print('replacing places found in the register and adding the new ones...')
+                        for place in Place.query.all():
+                            elt = IdRegister.query.filter(IdRegister.secondary_value == place.id).first()
+                            if elt:
+                                elt.secondary_value = place.id
+                                db.session.flush()
+                    else:
+                        print('registering places not found in the register...')
+                        for place in Place.query.all():
+                            # append only new ids to the register
+                            if not db.session.query(
+                                    IdRegister.query.filter(IdRegister.secondary_value == place.id).exists()
+                            ).scalar():
+                                elt = IdRegister(place.id)
+                                db.session.add(elt)
+                                db.session.flush()
+
+                if update_app or update_only:
+                    # update the whole application using the ids stored in the register
+                    for elt in IdRegister.query.filter(IdRegister.secondary_value is not None).all():
+                        new_id, old_id = elt.primary_value, elt.secondary_value
+
+                        with db.session.no_autoflush:
+
+                            p = Place.query.filter(Place.id == old_id).first()
+                            if p:
+                                p.id = new_id
+
+                                for p_alt in PlaceAltLabel.query.filter(PlaceAltLabel.place_id == old_id).all():
+                                    p_alt.place_id = new_id
+
+                                for p_old in PlaceOldLabel.query.filter(PlaceOldLabel.place_id == old_id).all():
+                                    p_old.place_id = new_id
+
+                                for p_feat in PlaceFeatureType.query.filter(PlaceFeatureType.place_id == old_id).all():
+                                    p_feat.place_id = new_id
+
+                                for p_co in PlaceComment.query.filter(PlaceComment.place_id == old_id).all():
+                                    p_co.place_id = new_id
+
+                                for p_desc in PlaceDescription.query.filter(PlaceDescription.place_id == old_id).all():
+                                    p_desc.place_id = new_id
+
+                            db.session.flush()
+
+                    print('application IDS have been updated!')
+
+                db.session.commit()
+            except Exception as e:
+                print(str(e))
+                db.session.rollback()
+
+
     @click.command("run")
     def run():
         """ Run the application in Debug Mode [Not Recommended on production]
@@ -227,5 +314,6 @@ def make_cli():
     cli.add_command(db_reindex)
     cli.add_command(db_validate)
     cli.add_command(run)
+    cli.add_command(id_register)
 
     return cli
