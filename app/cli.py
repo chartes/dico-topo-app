@@ -281,7 +281,9 @@ def make_cli():
                                 for p_alt in PlaceAltLabel.query.filter(PlaceAltLabel.place_id == old_id).all():
                                     p_alt.place_id = new_id
 
-                                for p_old in PlaceOldLabel.query.filter(PlaceOldLabel.place_id == old_id).all():
+                                for i, p_old in enumerate(PlaceOldLabel.query.filter(PlaceOldLabel.place_id == old_id).order_by(
+                                        PlaceOldLabel.id).all()):
+                                    p_old.old_label_id = f'{new_id}-{i+1}'
                                     p_old.place_id = new_id
 
                                 for p_feat in PlaceFeatureType.query.filter(PlaceFeatureType.place_id == old_id).all():
