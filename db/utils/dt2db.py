@@ -572,6 +572,7 @@ def insert_place_old_label(db, cursor, dt_id):
     # utilitaires pour extraire et nettoyer les formes anciennes
     # relou, support xpath incomplet, on ne peut pas sortir le texte qui suit le dernier élément <i>
     # <xsl:template match="i[position()=last()]/following-sibling::text()"/>
+    # On sort les notes, notamment pour DT60
     # On corrige plus loin en traitement de chaîne de chars.
     get_old_label = io.StringIO('''\
         <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -588,6 +589,7 @@ def insert_place_old_label(db, cursor, dt_id):
             <xsl:template match="date"/>
             <xsl:template match="comment"/>
             <xsl:template match="pg"/>
+            <xsl:template match="note"/>
         </xsl:stylesheet>''')
     xslt_get_old_label = etree.parse(get_old_label)
     transform_old_label2dfn = etree.XSLT(xslt_get_old_label)
@@ -720,13 +722,14 @@ def insert_place_old_label(db, cursor, dt_id):
                 dfn = str(transform_old_label2dfn(tree))
                 dfn = re.sub(clean_start, '', dfn)
                 dfn = dfn.replace('<dfn>*', '<dfn>') # déprime de la gestion de l’"*" initiale (cf plus haut aussi)
-                dfn = dfn.replace(',</dfn>', '</dfn>,') # sortir la ponctuation avant normalisation de la fin de la chaîne
+                # sortir la ponctuation des élements <dfn> avant normalisation de la fin de la chaîne complète (dfn)
+                # dfn = dfn.replace(',</dfn>', '</dfn>,')
+                dfn = re.sub('([, .; :]+)</dfn>', '</dfn>\\1', dfn)
                 dfn = re.sub(clean_end, '', dfn)
                 dfn = dfn.rstrip()  # ceintures bretelles
                 # On vire le texte qui suit le dernier élément <dfn> (support xpath insuffisant avec lxml)
                 pos = dfn.rfind('</dfn>')
                 dfn = dfn[:pos+6]
-                # ICIIIIIIIIIII TODO: sortir la ponctuation de <dfn>
                 # 7201 formes anciennes font plus de 100 chars : on coupe !
                 # TODO: corriger XML ou le code de chargement pour repositionner les balises dans la chaîne conservée
                 # use iterator: re.finditer('</dfn>', dfn)
