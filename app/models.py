@@ -275,9 +275,9 @@ import random
 class IdRegister(db.Model):
     __tablename__ = "id_register"
 
-    _ID_MAX = 99999999
-    _PREFIX = 'p'
-    _CONTROL = 'z'
+    _ID_MAX = 9999999
+    _PREFIX = 'P'
+    # _CONTROL = 'z'
     _PADDING = len(str(_ID_MAX))
 
     primary_value = db.Column(db.String,  nullable=False, index=True, primary_key=True)
@@ -295,5 +295,15 @@ class IdRegister(db.Model):
         if num_try >= self._ID_MAX:
             raise Exception("There is (probably) no room anymore!")
 
-        primary_value = f"{self._PREFIX}{str(new_id).zfill(self._PADDING)}{self._CONTROL}"
+        # check digit ; https://en.wikisource.org/wiki/User:Inductiveload/BnF_ARK_format
+        xdigits = "0123456789"
+        index_sum = 0
+        i = 1
+        for digit in str(new_id):
+            index_sum += xdigits.index(digit) * i
+            i += 1
+        check_digit = xdigits[index_sum % 10]
+
+        primary_value = f"{self._PREFIX}{str(new_id).zfill(self._PADDING)}{str(check_digit)}"
         super(IdRegister, self).__init__(primary_value=primary_value, secondary_value=secondary_value)
+
