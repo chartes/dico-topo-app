@@ -279,22 +279,27 @@ class IdRegister(db.Model):
     _PREFIX = 'P'
     # _CONTROL = 'z'
     _PADDING = len(str(_ID_MAX))
+    _NB_TRY_MAX = _ID_MAX*10
 
     primary_value = db.Column(db.String,  nullable=False, index=True, primary_key=True)
     secondary_value = db.Column(db.String, nullable=True, index=True)
 
     def __init__(self, secondary_value):
-        new_id = random.randint(0, self._ID_MAX)
+        primary_value = self.make_primary_value(random.randint(0, self._ID_MAX))
         num_try = 0
-        while num_try <= self._ID_MAX and db.session.query(
-                IdRegister.query.filter(IdRegister.primary_value == new_id).exists()
+        while num_try <= self._NB_TRY_MAX and db.session.query(
+                IdRegister.query.filter(IdRegister.primary_value == primary_value).exists()
         ).scalar():
-            new_id = random.randint(0, self._ID_MAX)
+            primary_value = self.make_primary_value(random.randint(0, self._ID_MAX))
             num_try += 1
 
-        if num_try >= self._ID_MAX:
+        if num_try >= self._NB_TRY_MAX:
             raise Exception("There is (probably) no room anymore!")
 
+        super(IdRegister, self).__init__(primary_value=primary_value, secondary_value=secondary_value)
+
+
+    def make_primary_value(self, new_id):
         # check digit ; https://en.wikisource.org/wiki/User:Inductiveload/BnF_ARK_format
         xdigits = "0123456789"
         index_sum = 0
@@ -303,7 +308,4 @@ class IdRegister(db.Model):
             index_sum += xdigits.index(digit) * i
             i += 1
         check_digit = xdigits[index_sum % 10]
-
-        primary_value = f"{self._PREFIX}{str(new_id).zfill(self._PADDING)}{str(check_digit)}"
-        super(IdRegister, self).__init__(primary_value=primary_value, secondary_value=secondary_value)
-
+        return f"{self._PREFIX}{str(new_id).zfill(self._PADDING)}{str(check_digit)}"
