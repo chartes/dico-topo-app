@@ -255,7 +255,10 @@ def make_cli():
                             elt = IdRegister.query.filter(IdRegister.secondary_value == place.id).first()
                             if elt:
                                 elt.secondary_value = place.id
-                                db.session.flush()
+                            else:
+                                elt = IdRegister(place.id)
+                                db.session.add(elt)
+                            db.session.flush()
                     else:
                         print('registering places not found in the register...')
                         for place in Place.query.all():
