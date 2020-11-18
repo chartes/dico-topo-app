@@ -251,7 +251,9 @@ def make_cli():
                     # replace existing ids in the register with new ones
                     if replace:
                         print('replacing places found in the register and adding the new ones...')
-                        for place in Place.query.all():
+                        for i, place in enumerate(Place.query.all()):
+                            print('adding %i place(s)...' % i, end='\r')
+
                             elt = IdRegister.query.filter(IdRegister.secondary_value == place.id).first()
                             if elt:
                                 elt.secondary_value = place.id
@@ -261,18 +263,19 @@ def make_cli():
                             db.session.flush()
                     else:
                         print('registering places not found in the register...')
-                        for place in Place.query.all():
+                        for i, place in enumerate(Place.query.all()):
                             # append only new ids to the register
                             if not db.session.query(
-                                    IdRegister.query.filter(IdRegister.secondary_value == place.id).exists()
+                                    IdRegister.query.filter(IdRegister.primary_value == place.id).exists()
                             ).scalar():
+                                print('adding %i place(s)...' % i, end='\r')
                                 elt = IdRegister(place.id)
                                 db.session.add(elt)
                                 db.session.flush()
 
                 if update_app or update_only:
                     # update the whole application using the ids stored in the register
-                    for elt in IdRegister.query.filter(IdRegister.secondary_value is not None).all():
+                    for i, elt in enumerate(IdRegister.query.filter(IdRegister.secondary_value is not None).all()):
                         new_id, old_id = elt.primary_value, elt.secondary_value
 
                         with db.session.no_autoflush:
@@ -299,6 +302,7 @@ def make_cli():
                                     p_desc.place_id = new_id
 
                             db.session.flush()
+                            print('Updating the app with %i place(s)...' % i, end='\r')
 
                     print('application IDS have been updated!')
 
