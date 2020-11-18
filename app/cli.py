@@ -275,7 +275,7 @@ def make_cli():
 
                 if update_app or update_only:
                     # update the whole application using the ids stored in the register
-                    for i, elt in enumerate(IdRegister.query.filter(IdRegister.secondary_value is not None).all()):
+                    for j, elt in enumerate(IdRegister.query.filter(IdRegister.secondary_value is not None).all()):
                         new_id, old_id = elt.primary_value, elt.secondary_value
 
                         with db.session.no_autoflush:
@@ -302,7 +302,7 @@ def make_cli():
                                     p_desc.place_id = new_id
 
                             db.session.flush()
-                            print('Updating the app with %i place(s)...' % i, end='\r')
+                            print('Updating the app with %i place(s)...' % j, end='\r')
 
                     print('application IDS have been updated!')
 
