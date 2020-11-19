@@ -284,17 +284,18 @@ class IdRegister(db.Model):
     primary_value = db.Column(db.String,  nullable=False, index=True, primary_key=True)
     secondary_value = db.Column(db.String, nullable=True, index=True)
 
-    def __init__(self, secondary_value):
-        primary_value = self.make_primary_value(random.randint(0, self._ID_MAX))
-        num_try = 0
-        while num_try <= self._NB_TRY_MAX and db.session.query(
-                IdRegister.query.filter(IdRegister.primary_value == primary_value).exists()
-        ).scalar():
+    def __init__(self, secondary_value, primary_value=None):
+        if primary_value is None:
             primary_value = self.make_primary_value(random.randint(0, self._ID_MAX))
-            num_try += 1
+            num_try = 0
+            while num_try <= self._NB_TRY_MAX and db.session.query(
+                    IdRegister.query.filter(IdRegister.primary_value == primary_value).exists()
+            ).scalar():
+                primary_value = self.make_primary_value(random.randint(0, self._ID_MAX))
+                num_try += 1
 
-        if num_try >= self._NB_TRY_MAX:
-            raise Exception("There is (probably) no room anymore!")
+            if num_try >= self._NB_TRY_MAX:
+                raise Exception("There is (probably) no room anymore!")
 
         super(IdRegister, self).__init__(primary_value=primary_value, secondary_value=secondary_value)
 
