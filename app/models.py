@@ -276,7 +276,7 @@ class IdRegister(db.Model):
     __tablename__ = "id_register"
 
     _ID_MAX = 9999999
-    _PREFIX = 'P'
+    PREFIX = 'P'
     # _CONTROL = 'z'
     _PADDING = len(str(_ID_MAX))
     _NB_TRY_MAX = _ID_MAX*10
@@ -308,4 +308,4 @@ class IdRegister(db.Model):
             index_sum += xdigits.index(digit) * i
             i += 1
         check_digit = xdigits[index_sum % 10]
-        return f"{self._PREFIX}{str(new_id).zfill(self._PADDING)}{str(check_digit)}"
+        return f"{self.PREFIX}{str(new_id).zfill(self._PADDING)}{str(check_digit)}"
