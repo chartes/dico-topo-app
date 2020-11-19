@@ -141,7 +141,21 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
     # print("INSERT bibl for {0}".format(dt_id))
     insert_bibl(db, cursor, dt_id)
-    bibl_id = cursor.lastrowid
+    bibl_id = cursor.lastrowid # on sélectionne le tome plus bas pour DT72 et DT80. Très pénible!
+    if dt_id == 'DT72':
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb37374247g' and bibl like '%tome 1%'")
+        tome1_id = cursor.fetchone()[0]
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb37374247g' and bibl like '%tome 2%'")
+        tome2_id = cursor.fetchone()[0]
+    if dt_id == 'DT80':
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb30482383j' and bibl like '%tome 1%'")
+        tome1_id = cursor.fetchone()[0]
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb30482383j' and bibl like '%tome 2%'")
+        tome2_id = cursor.fetchone()[0]
 
     for entry in tree.xpath('/DICTIONNAIRE/article'):
         # stocker les données relatives à chaque Place (article du DT)
@@ -149,6 +163,20 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
         # id de l’article in XML (e.g. 'DT02-00001')
         place['id'] = entry.get('id')
+
+        # page de début
+        place['num_start_page'] = entry.get('pg')
+
+        # on redéfinit bibl_id pour DT72 et DT80 #HONTE
+        if dt_id == 'DT72' and place['num_start_page'] <= '400':
+            bibl_id = tome1_id
+        elif dt_id == 'DT72' and place['num_start_page'] > '400':
+            bibl_id = tome2_id
+        elif dt_id == 'DT80' and entry.get('tm') == '1':
+            bibl_id = tome1_id
+        elif dt_id == 'DT80' and entry.get('tm') == '2':
+            bibl_id = tome2_id
+        #print(place['id'], '=>', bibl_id)
 
         # code insee (si commune, optionnel)
         place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
@@ -235,9 +263,6 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
         # id du département
         place['dpt'] = dpt
-
-        # page de début
-        place['num_start_page'] = entry.get('pg')
 
         # VEDETTE (place.label)
         """
@@ -330,6 +355,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     <xsl:apply-templates/>
                     <xsl:text>&lt;/time></xsl:text>
                 </xsl:template>
+                <xsl:template match="ads"/>
+
             </xsl:stylesheet>''')
         xslt_commentaire2html = etree.parse(commentaire2html)
         transform_commentaire2html = etree.XSLT(xslt_commentaire2html)
