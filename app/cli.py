@@ -6,7 +6,7 @@ import requests
 import sqlalchemy
 from elasticsearch import AuthorizationException
 from jsonschema import validate
-from sqlalchemy import event
+from sqlalchemy import event, or_
 from sqlalchemy.engine import Engine
 
 from app import create_app
@@ -219,19 +219,13 @@ def make_cli():
                 print("Warning: index %s does not exist or is not declared in the cli" % name)
 
     @click.command("id-register")
-    @click.option('--clear', required=False, default=False, is_flag=True)
-    @click.option('--replace', required=False, default=False, is_flag=True)
-    @click.option('--append', required=False, default=False, is_flag=True)
-    @click.option('--auto-commit', required=False, default=False, is_flag=True)
-    @click.option('--update-app', required=False, default=False, is_flag=True)
-    def id_register(clear, replace, append, auto_commit, update_app):
-        """
-        :param update_only:
-        :param update_app:
-        :param clear:
-        :param replace:
-        :return:
-        """
+    @click.option('--clear', required=False, default=False, is_flag=True, help="empty the id register")
+    @click.option('--replace', required=False, default=False, is_flag=True, help="replace all Place ids that exist in the register but only if they don't match the new id format (see --force)")
+    @click.option('--append', required=False, default=False, is_flag=True, help="append all Place ids that does not exist in the register but only if they don't match the new id format (see --force)")
+    @click.option('--force', required=False, default=False, is_flag=True, help="allow append/replace operations on ids that are already in the new format (starting with IdRegister.PREFIX)")
+    @click.option('--auto-commit', required=False, default=False, is_flag=True, help="allow auto committing after clear/append/replace operations")
+    @click.option('--update-app', required=False, default=False, is_flag=True, help="update the application tables (Place, PlaceComment, PlaceDescription, PlaceAltLabel, PlaceFeatureType, PlaceOldLabel)")
+    def id_register(clear, replace, append, force, auto_commit, update_app):
         with app.app_context():
 
             @event.listens_for(Engine, "connect")
@@ -239,6 +233,9 @@ def make_cli():
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA foreign_keys=OFF")
                 cursor.close()
+
+            def is_new_format(id):
+                return id[0] == IdRegister.PREFIX
 
             from app import db
             db.create_all()
@@ -258,43 +255,57 @@ def make_cli():
                 # but only if they are not yet in the new id format
                 if replace:
                     nb_replace = 0
-                    nb_add = 0
                     for place in Place.query.all():
                         elt = IdRegister.query.filter(IdRegister.secondary_value == place.id).first()
                         if elt:
                             elt.secondary_value = place.id
                             nb_replace += 1
+                            db.session.add(elt)
+
                         else:
                             # check if the place id is already in the new id format
-                            if not place.id[0] == IdRegister.PREFIX:
-                                elt = IdRegister(place.id)
-                                db.session.add(elt)
-                                nb_add += 1
+                            if is_new_format(place.id) and force:
+                                elt = IdRegister.query.filter(IdRegister.primary_value == place.id).first()
+                                if elt:
+                                    db.session.delete(elt)
+                                    db.session.flush()
+                                    elt = IdRegister(place.id)
+                                    nb_replace += 1
+                                    db.session.add(elt)
 
-                        print(f' --> register.replace: {nb_replace} replacements and {nb_add} creations', end='\r')
+                        print(f' --> register.replace: {nb_replace} replacements', end='\r')
                         db.session.flush()
                     print('')
-                elif append:
+                if append:
                     nb_add = 0
                     for i, place in enumerate(Place.query.all()):
                         # append only new ids to the register
-                        if not db.session.query(
-                                IdRegister.query.filter(IdRegister.primary_value == place.id).exists()
+                        if (not is_new_format(place.id) or force) and not db.session.query(
+                                IdRegister.query.filter(or_(IdRegister.primary_value == place.id,
+                                                            IdRegister.secondary_value.place_id)).exists()
                         ).scalar():
                             nb_add += 1
                             print(f' --> register.append: {nb_add} new ids', end='\r')
                             elt = IdRegister(place.id)
                             db.session.add(elt)
                             db.session.flush()
-                    print('')
+
+                    if nb_add == 0:
+                        print(f' --> register.append: no ids from Place to append (maybe they are already in the new format ?)')
+                    else:
+                        print('')
+
                 print('[register.end]')
 
-                if not auto_commit and (clear or append or replace):
-                    co = input('commit changes to the register Y/n ?  ')
-                    if co.lower() == 'y':
+                if clear or append or replace:
+                    if auto_commit:
                         db.session.commit()
+                        print('[register.commit]')
                     else:
-                        return
+                        co = input('commit changes to the register Y/n ?  ')
+                        if co.lower() == 'y' or co == '':
+                            db.session.commit()
+                            print('[register.commit]')
 
                 if update_app:
                     print('[app.start]')
@@ -331,8 +342,8 @@ def make_cli():
                                     p_desc.place_id = new_id
 
                             db.session.flush()
-                        print('')
-                    print(f'[app.end]')
+
+                    print(f'\n[app.end]')
 
                 else:
                     print('[app] no application update')
