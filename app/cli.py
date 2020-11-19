@@ -222,9 +222,9 @@ def make_cli():
     @click.option('--clear', required=False, default=False, is_flag=True)
     @click.option('--replace', required=False, default=False, is_flag=True)
     @click.option('--append', required=False, default=False, is_flag=True)
+    @click.option('--auto-commit', required=False, default=False, is_flag=True)
     @click.option('--update-app', required=False, default=False, is_flag=True)
-    @click.option('--update-only', required=False, default=False, is_flag=True)
-    def id_register(clear, replace, append, update_app, update_only):
+    def id_register(clear, replace, append, auto_commit, update_app):
         """
         :param update_only:
         :param update_app:
@@ -248,61 +248,60 @@ def make_cli():
                 print('-' * 50)
 
                 print('[register.start]')
-                if not update_only:
+                if clear:
+                    IdRegister.query.delete()
+                    #db.session.commit()
+                    print(' --> register.clear')
 
-                    if clear:
-                        IdRegister.query.delete()
-                        #db.session.commit()
-                        print(' --> register.clear')
-
-                    print(f' --> register: {IdRegister.query.count()} ids | place: {Place.query.count()} ids')
-                    # replace ids that exist in the register with new ones
-                    # but only if they are not yet in the new id format
-                    if replace:
-                        nb_replace = 0
-                        nb_add = 0
-                        for place in Place.query.all():
-                            elt = IdRegister.query.filter(IdRegister.secondary_value == place.id).first()
-                            if elt:
-                                elt.secondary_value = place.id
-                                nb_replace += 1
-                            else:
-                                # check if the place id is already in the new id format
-                                if not place.id[0] == IdRegister.PREFIX:
-                                    elt = IdRegister(place.id)
-                                    db.session.add(elt)
-                                    nb_add += 1
-
-                            print(f' --> register.replace: {nb_replace} replacements and {nb_add} creations', end='\r')
-                            db.session.flush()
-                        print('')
-                    elif append:
-                        nb_add = 0
-                        for i, place in enumerate(Place.query.all()):
-                            # append only new ids to the register
-                            if not db.session.query(
-                                    IdRegister.query.filter(IdRegister.primary_value == place.id).exists()
-                            ).scalar():
-                                nb_add += 1
-                                print(f' --> register.append: {nb_add} new ids', end='\r')
+                print(f' --> register: {IdRegister.query.count()} ids | place: {Place.query.count()} ids')
+                # replace ids that exist in the register with new ones
+                # but only if they are not yet in the new id format
+                if replace:
+                    nb_replace = 0
+                    nb_add = 0
+                    for place in Place.query.all():
+                        elt = IdRegister.query.filter(IdRegister.secondary_value == place.id).first()
+                        if elt:
+                            elt.secondary_value = place.id
+                            nb_replace += 1
+                        else:
+                            # check if the place id is already in the new id format
+                            if not place.id[0] == IdRegister.PREFIX:
                                 elt = IdRegister(place.id)
                                 db.session.add(elt)
-                                db.session.flush()
-                        print('')
+                                nb_add += 1
+
+                        print(f' --> register.replace: {nb_replace} replacements and {nb_add} creations', end='\r')
+                        db.session.flush()
+                    print('')
+                elif append:
+                    nb_add = 0
+                    for i, place in enumerate(Place.query.all()):
+                        # append only new ids to the register
+                        if not db.session.query(
+                                IdRegister.query.filter(IdRegister.primary_value == place.id).exists()
+                        ).scalar():
+                            nb_add += 1
+                            print(f' --> register.append: {nb_add} new ids', end='\r')
+                            elt = IdRegister(place.id)
+                            db.session.add(elt)
+                            db.session.flush()
+                    print('')
                 print('[register.end]')
 
-                co = input('commit changes to the register Y/n ?  ')
-                if co.lower() == 'y':
-                    db.session.commit()
-                else:
-                    return
+                if not auto_commit and (clear or append or replace):
+                    co = input('commit changes to the register Y/n ?  ')
+                    if co.lower() == 'y':
+                        db.session.commit()
+                    else:
+                        return
 
-                if update_app or update_only:
+                if update_app:
                     print('[app.start]')
 
                     # update the whole application using the ids stored in the register
                     q = IdRegister.query.filter(IdRegister.secondary_value is not None)
-                    print(f' --> app.update: {q.count()} ids from the register have a secondary value and can be updated')
+                    print(f' --> app.update: {q.count()} ids from the register have a secondary value matching a place id')
 
                     for j, elt in enumerate(IdRegister.query.filter(IdRegister.secondary_value is not None).all()):
                         new_id, old_id = elt.primary_value, elt.secondary_value
@@ -332,8 +331,8 @@ def make_cli():
                                     p_desc.place_id = new_id
 
                             db.session.flush()
-
-                    print(f'\n[app.end]')
+                        print('')
+                    print(f'[app.end]')
 
                 else:
                     print('[app] no application update')
