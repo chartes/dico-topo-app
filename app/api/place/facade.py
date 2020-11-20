@@ -121,7 +121,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
             "localization-commune": (CommuneFacade, False),
             "descriptions": (PlaceDescriptionFacade, True),
             "comments": (PlaceCommentFacade, True),
-            #"alt-labels": (PlaceAltLabelFacade, True),
             "old-labels": (PlaceOldLabelFacade, True),
             "place-feature-types": (PlaceFeatureTypeFacade, True)
 

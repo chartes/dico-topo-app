@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import CheckConstraint
 from sqlalchemy.dialects.sqlite import DATETIME
 from sqlalchemy.ext.declarative import declared_attr
+import random
 
 from app import db
 
@@ -124,17 +125,6 @@ class PlaceComment(CitableElementMixin, related_to_place_mixin("comments"), db.M
     content = db.Column(db.Text, nullable=False)
 
 
-class PlaceAltLabel(CitableElementMixin, related_to_place_mixin("alt_labels"), db.Model):
-    """ """
-    __tablename__ = 'place_alt_label'
-    __table_args__ = (
-        db.UniqueConstraint('place_id', 'label', name='_place_label_uc'),
-    )
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    label = db.Column(db.String(200))
-
-
 class PlaceOldLabel(CitableElementMixin, related_to_place_mixin("old_labels"), db.Model):
     """ """
     __tablename__ = 'place_old_label'
@@ -149,8 +139,6 @@ class PlaceOldLabel(CitableElementMixin, related_to_place_mixin("old_labels"), d
     text_date = db.Column(db.String(100))
     # primary source reference with tags
     rich_reference = db.Column(db.Text)
-    # full old label with tags
-    rich_label_node = db.Column(db.Text)
 
     @property
     def longlat(self):
@@ -271,7 +259,6 @@ class Responsibility(db.Model):
         )
 
 
-import random
 class IdRegister(db.Model):
     __tablename__ = "id_register"
 
@@ -279,7 +266,7 @@ class IdRegister(db.Model):
     PREFIX = 'P'
     # _CONTROL = 'z'
     _PADDING = len(str(_ID_MAX))
-    _NB_TRY_MAX = _ID_MAX*10
+    _NB_TRY_MAX = _ID_MAX*5
 
     primary_value = db.Column(db.String,  nullable=False, index=True, primary_key=True)
     secondary_value = db.Column(db.String, nullable=True, index=True)

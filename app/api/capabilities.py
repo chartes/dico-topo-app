@@ -265,7 +265,6 @@ def api_get_capabilities(api_version):
                                 {"name": "rich-date", "description": ""},
                                 {"name": "text-date", "description": ""},
                                 {"name": "rich-reference", "description": ""},
-                                {"name": "rich-label-node", "description": ""},
                                 {"name": "text-label-node", "description": ""},
                             ],
                             "relationships": [

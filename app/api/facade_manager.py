@@ -6,13 +6,12 @@ from app.api.place_feature_type.facade import PlaceFeatureTypeFacade
 from app.api.insee_commune.facade import CommuneFacade
 from app.api.insee_ref.facade import InseeRefFacade, InseeRefSearchFacade
 from app.api.place.facade import PlaceFacade, PlaceSearchFacade, PlaceMapFacade, LinkedPlaceFacade
-from app.api.place_alt_label.facade import PlaceAltLabelFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade, PlaceOldLabelSearchFacade, \
     PlaceOldLabelMapFacade, FlatPlaceOldLabelFacade
 from app.api.bibl.facade import BiblFacade
 from app.api.responsibility.facade import ResponsibilityFacade, FlatResponsibilityFacade
 from app.api.user.facade import UserFacade
-from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, PlaceFeatureType, PlaceAltLabel, Bibl, \
+from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, PlaceFeatureType, Bibl, \
     Responsibility, User, PlaceDescription, PlaceComment
 
 
@@ -32,11 +31,6 @@ _FACADES = {
         "default": CommuneFacade,
         "search": CommuneFacade,
         "map": CommuneFacade
-    },
-    PlaceAltLabel.__tablename__: {
-        "default": PlaceAltLabelFacade,
-        "search": PlaceAltLabelFacade,
-        "map": PlaceAltLabelFacade
     },
     PlaceOldLabel.__tablename__: {
         "default": PlaceOldLabelFacade,

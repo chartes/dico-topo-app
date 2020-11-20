@@ -13,7 +13,7 @@ from app import create_app
 
 from app.api.place.facade import PlaceFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade
-from app.models import Place, PlaceOldLabel, IdRegister, PlaceAltLabel, PlaceComment, PlaceDescription, PlaceFeatureType
+from app.models import Place, PlaceOldLabel, IdRegister,  PlaceComment, PlaceDescription, PlaceFeatureType
 
 app = None
 
@@ -239,7 +239,7 @@ def make_cli():
                                                                                      "clear/register/append/replace operations")
     @click.option('--update-app', required=False, default=False, is_flag=True, help="update the application tables ("
                                                                                     "Place, PlaceComment, "
-                                                                                    "PlaceDescription, PlaceAltLabel, "
+                                                                                    "PlaceDescription, "
                                                                                     "PlaceFeatureType, PlaceOldLabel)")
     def id_register(clear, register, replace, append, force, auto_commit, update_app):
         with app.app_context():
@@ -365,9 +365,6 @@ def make_cli():
                             p = Place.query.filter(Place.id == old_id).first()
                             if p:
                                 p.id = new_id
-
-                                for p_alt in PlaceAltLabel.query.filter(PlaceAltLabel.place_id == old_id).all():
-                                    p_alt.place_id = new_id
 
                                 for i, p_old in enumerate(
                                         PlaceOldLabel.query.filter(PlaceOldLabel.place_id == old_id).order_by(
