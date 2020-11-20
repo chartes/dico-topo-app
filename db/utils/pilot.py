@@ -3,7 +3,9 @@ import insee
 import dt2db
 import debug
 import sys
+import time
 
+start_time = time.time()
 
 db_path = '../dicotopo.dev.sqlite'
 db = sqlite3.connect(db_path)
@@ -29,11 +31,13 @@ db.commit()
 # 2011: https://www.insee.fr/fr/information/2560625, `./insee/2011/`
 # 2018: https://www.insee.fr/fr/information/3363419, `./insee/2018/`
 
-#COG_year = "2011"
-#insee.insert_insee_ref(db, COG_year, cursor)
-#insee.insert_insee_commune(db, COG_year, cursor)
-#insee.insert_longlat(db, cursor, 'tsv')
-
+# Tables de référence
+"""
+COG_year = "2011"
+insee.insert_insee_ref(db, COG_year, cursor)
+insee.insert_insee_commune(db, COG_year, cursor)
+insee.insert_longlat(db, cursor, 'tsv')
+"""
 
 # penser ensuite aux liages: `utils % python communes-linking.py dev
 # si on charge la liste de toutes les communes depuis 1943 (`france{AAAA}.txt`), appeler insee.update_insee_ref()
@@ -44,11 +48,12 @@ DT_with_insee = ["DT01", "DT02", "DT05", "DT07", "DT10", "DT11", "DT14", "DT15",
   "DT26", "DT27", "DT28", "DT30", "DT34", "DT41", "DT42", "DT43", "DT51", "DT52", "DT54", "DT55", "DT56", "DT58",
   "DT60", "DT62", "DT64", "DT71", "DT72", "DT76", "DT77", "DT79", "DT80", "DT86", "DT88", "DT89"]
 """
-DT_with_insee = ["DT10"]
+DT_with_insee = ["DT01", "DT02", "DT05", "DT07", "DT10"]
 
 for dt_id in DT_with_insee:
     dpt_code = dt_id[-2:]
-    print("%s processing\n===============" % dt_id)
+    print("===%s processing===" % dt_id)
+    # debug.new_ids_generator(db, cursor)
     # bibl, place, place_alt_label, place_comment, place_description, place_feature_type
     dt2db.insert_place_values(db, cursor, dt_id, u1["id"])
     # place_old_labels
@@ -56,3 +61,4 @@ for dt_id in DT_with_insee:
     # debug.get_old_label(db, cursor, dt_id)
 
 db.close()
+print("--- %s seconds ---" % (time.time() - start_time))

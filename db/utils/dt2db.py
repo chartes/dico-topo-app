@@ -134,8 +134,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
     print("** TABLE place, place_comment, place_description, place_feature_type – INSERT")
 
-    #TODO: appeler le bon DT (et non _output6.xml, uniquement en dev)
-    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
+    #TODO: appeler le bon DT (et non _output7.xml, uniquement en dev)
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output7.xml')
     # code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
 
@@ -147,8 +147,9 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # stocker les données relatives à chaque Place (article du DT)
         place = {}
 
-        # id de l’article in XML (e.g. 'DT02-00001')
+        # id/old-id de l’article (e.g. 'P49443358/DT86-11608')
         place['id'] = entry.get('id')
+        place['old-id'] = entry.get('old-id')
 
         # code insee (si commune, optionnel)
         place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
@@ -376,7 +377,17 @@ def insert_place_values(db, cursor, dt_id, user_id):
         except sqlite3.IntegrityError as e:
             print(e, "insert responsability, place %s" % (place['id']))
         responsability_id = cursor.lastrowid
-        db.commit()
+        #db.commit()
+
+        # registre
+        try:
+            cursor.execute(
+                "INSERT INTO id_register ("
+                    "primary_value, secondary_value)"
+                "VALUES (?, ?)",
+                    (place['id'], place['old-id']))
+        except sqlite3.IntegrityError as e:
+            print(e,  "insert id_register, place %s" % (place['id']))
 
         # place
         try:
@@ -401,7 +412,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                      responsability_id))
         except sqlite3.IntegrityError as e:
             print(e, "insert place, place %s" % (place['id']))
-        db.commit()
+        #db.commit()
 
         """ 2020-07: abandon de l’insertion des alt_label
         # place_alt_label
@@ -433,7 +444,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                          place['id']))
             except sqlite3.IntegrityError as e:
                 print(e, "insert place_comment, place %s" % (place['id']))
-            db.commit()
+            #db.commit()
 
         # place_description
         if place['description']:
@@ -449,7 +460,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                          place['id']))
             except sqlite3.IntegrityError as e:
                 print(e, "insert place_description, place %s" % (place['id']))
-            db.commit()
+            #db.commit()
 
         # place_feature_type
         if place['feature_types']:
@@ -466,7 +477,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                              place['id']))
                 except sqlite3.IntegrityError as e:
                     print(e, ("insert place_feature_type: place %s – FT '%s'" % (place['id'], feature_type)))
-                db.commit()
+    db.commit()
 
 
 # Enregistrer le place_id de la commune de localisation dans place.localization_place_id
@@ -515,8 +526,8 @@ def insert_place_old_label(db, cursor, dt_id):
     """ """
     print("** TABLE place_old_label – INSERT")
     tags = re.compile('<[^>]+>')
-    # TODO: appeler le bon DT (et non _output6.xml, uniquement en dev)
-    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
+    # TODO: appeler le bon DT (et non _output7.xml, uniquement en dev)
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output7.xml')
     # tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
 
     # conversion HTML5 de toute l’entrée forme_ancienne
@@ -767,24 +778,23 @@ def insert_place_old_label(db, cursor, dt_id):
                             "rich_date,"
                             "text_date,"
                             "rich_reference,"
-                            "rich_label_node,"
                             "responsibility_id,"
                             "place_id)"
-                        "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                        "VALUES(?, ?, ?, ?, ?, ?, ?)",
                             (old_label_id,
                              dfn,
                              rich_date,
                              date,
                              rich_ref,
-                             old_label_html_str,
                              responsibility_id,
                              place['id']))
                 except sqlite3.IntegrityError as e:
                     print(e, "place %s" % (place['id']))
-                db.commit()
+                # db.commit()
 
         else:
             continue
+    db.commit()
 
     # Remettre les valeurs vides à NULL… honteux et efficace:
     cursor.execute("""
