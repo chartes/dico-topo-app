@@ -727,7 +727,6 @@ def insert_place_old_label(db, cursor, dt_id):
                 old_label_html_str = old_label_html_str.replace('<dfn>*', '<dfn>')
 
                 # DFN
-                # TODO: extraire tous les dfn du champ dans une table dédiée pour indexation
                 dfn = str(transform_old_label2dfn(tree))
                 dfn = re.sub(clean_start, '', dfn)
                 dfn = dfn.replace('<dfn>*', '<dfn>') # déprime de la gestion de l’"*" initiale (cf plus haut aussi)
@@ -736,8 +735,11 @@ def insert_place_old_label(db, cursor, dt_id):
                 dfn = dfn.rstrip()  # ceintures bretelles
                 # On vire le texte qui suit le dernier élément <dfn> (support xpath insuffisant avec lxml)
                 pos = dfn.rfind('</dfn>')
-                dfn = dfn[:pos+6]
-                # ICIIIIIIIIIII TODO: sortir la ponctuation de <dfn>
+                # rfind retourne -1 si la chaîne n’est pas trouvée…
+                if pos != -1:
+                    dfn = dfn[:pos+6]
+                # des ponctuations illogiques du fait des traitement précédents, on standardise à la hache
+                dfn = re.sub('[, ;][, ;.:]{3,}', '. ', dfn)
                 # 7201 formes anciennes font plus de 100 chars : on coupe !
                 # TODO: corriger XML ou le code de chargement pour repositionner les balises dans la chaîne conservée
                 # use iterator: re.finditer('</dfn>', dfn)
