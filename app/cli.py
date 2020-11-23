@@ -6,7 +6,7 @@ import requests
 import sqlalchemy
 from elasticsearch import AuthorizationException
 from jsonschema import validate
-from sqlalchemy import event, or_
+from sqlalchemy import event, or_, not_
 from sqlalchemy.engine import Engine
 
 from app import create_app
@@ -45,7 +45,7 @@ def validateJSONSchema(schema, data):
     validate(instance=data, schema=schema)
 
 
-def make_cli():
+def make_cli(given_app=None):
     """ Creates a Command Line Interface for everydays tasks
 
     :return: Click groum
@@ -57,7 +57,10 @@ def make_cli():
         """ Generates the client"""
         click.echo("Loading the application")
         global app
-        app = create_app(config)
+        if given_app:
+            app = given_app
+        else:
+            app = create_app(config)
         print(app.config['SQLALCHEMY_DATABASE_URI'])
 
     @click.command("db-create")
@@ -270,6 +273,7 @@ def make_cli():
 
                 if register:
                     nb_register = 0
+                    elts_to_save = []
                     for place in Place.query.all():
                         elts = IdRegister.query.filter(or_(IdRegister.primary_value == place.id,
                                                            IdRegister.secondary_value == place.id)).all()
@@ -278,14 +282,13 @@ def make_cli():
                             for elt in elts:
                                 elt.primary_value = place.id
                                 elt.secondary_value = place.id
-                                db.session.add(elt)
                         else:
                             elt = IdRegister(place.id, place.id)
-                            db.session.add(elt)
+                            elts_to_save.append(elt)
 
                         nb_register += 1
                         print(f' --> register.replace: {nb_register} registrations', end='\r')
-
+                    db.session.bulk_save_objects(elts_to_save)
                     db.session.flush()
                     print('')
                 else:
@@ -312,23 +315,27 @@ def make_cli():
 
                             print(f' --> register.replace: {nb_replace} replacements', end='\r')
                             db.session.flush()
-                            if nb_replace != Place.query.count():
-                                print(f'\n --> register.replace: you may have some Place ids that are not registered. '
-                                      f'Consider using --append to add them to the register', end='\r')
+                        if nb_replace != Place.query.count():
+                            print(f'\n --> register.replace: you may have some Place ids that are not registered. '
+                                  f'Consider using --append to add them to the register', end='\r')
                         print('')
                     if append:
                         nb_add = 0
-                        for i, place in enumerate(Place.query.all()):
+                        new_ids = []
+                        places = Place.query.with_entities(Place.id).filter(
+                            Place.id.notin_([r.primary_value for r in
+                                             IdRegister.query.with_entities(IdRegister.primary_value).all()])
+                        ).all()
+                        for i, place in enumerate(places):
                             # append only new ids to the register
-                            if (not is_new_format(place.id) or force) and not db.session.query(
-                                    IdRegister.query.filter(or_(IdRegister.primary_value == place.id,
-                                                                IdRegister.secondary_value == place.id)).exists()
-                            ).scalar():
+                            if (not is_new_format(place.id) or force) and place.id not in new_ids:
                                 nb_add += 1
                                 print(f' --> register.append: {nb_add} new ids', end='\r')
                                 elt = IdRegister(place.id)
+                                new_ids.append(elt.primary_value)
                                 db.session.add(elt)
-                                db.session.flush()
+                            else:
+                                print(place.id, place.id in new_ids, is_new_format(place.id))
 
                         if nb_add == 0:
                             print(
@@ -344,15 +351,19 @@ def make_cli():
                         print('[register.commit]')
                     else:
                         co = input('commit changes to the register Y/n ?  ')
+                        print('')
                         if co.lower() == 'y' or co == '':
                             db.session.commit()
                             print('[register.commit]')
+                        else:
+                            print('[register.rollback]')
+                            db.session.rollback()
 
                 if update_app:
                     print('[app.start]')
 
                     # update the whole application using the ids stored in the register
-                    q = IdRegister.query.filter(IdRegister.secondary_value is not None)
+                    q = IdRegister.query.with_entities(IdRegister.primary_value).filter(IdRegister.secondary_value is not None)
                     print(
                         f' --> app.update: {q.count()} ids from the register have a secondary value matching a place id')
 
@@ -380,8 +391,6 @@ def make_cli():
 
                                 for p_desc in PlaceDescription.query.filter(PlaceDescription.place_id == old_id).all():
                                     p_desc.place_id = new_id
-
-                            db.session.flush()
 
                     print(f'\n[app.end]')
 
