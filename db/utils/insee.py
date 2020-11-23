@@ -53,7 +53,7 @@ def insert_insee_ref(db, COG_year, cursor):
                 "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('REG_'+row['REGION'], 'REG', row['REGION'], 'FR', '2', row['NCCENR']))
-            db.commit()
+        db.commit()
     with open('insee/{0}/depts{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
@@ -61,7 +61,7 @@ def insert_insee_ref(db, COG_year, cursor):
                 "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('DEP_'+row['DEP'], 'DEP', row['DEP'], 'REG_'+row['REGION'], '3', row['NCCENR']))
-            db.commit()
+        db.commit()
     with open('insee/{0}/arrond{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
@@ -69,7 +69,7 @@ def insert_insee_ref(db, COG_year, cursor):
                 "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                 "VALUES(?, ?, ?, ?, ?, ?)",
                 ('AR_' + row['DEP'] + '-' + row['AR'], 'AR', row['AR'], 'DEP_' + row['DEP'], '4', row['NCCENR']))
-            db.commit()
+        db.commit()
     with open('insee/{0}/canton{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         # canton2018.txt, ne renseigne pas l’arrondissement d’appartenance -> procédure plus complexe
@@ -81,7 +81,7 @@ def insert_insee_ref(db, COG_year, cursor):
                     "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                     "VALUES(?, ?, ?, ?, ?, ?)",
                     (id, 'CT', row['CANTON'], None, '5', row['NCCENR']))
-                db.commit()
+            db.commit()
         # A priori. Vérifier que la donnée (parent_id) est bien disponible pour toutes les autres années du COG.
         else:
             for row in reader:
@@ -91,7 +91,7 @@ def insert_insee_ref(db, COG_year, cursor):
                     "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                     "VALUES(?, ?, ?, ?, ?, ?)",
                     (id, 'CT', row['CANTON'], parent_id, '5', row['NCCENR']))
-                db.commit()
+            db.commit()
     # liste des cantons "non précisés" (type CTNP) pour les communes découpées en canton
     with open('insee/{0}/comsimp{0}.txt'.format(COG_year)) as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
@@ -106,7 +106,7 @@ def insert_insee_ref(db, COG_year, cursor):
                     "INSERT INTO insee_ref (id, type, insee_code, parent_id, level, label)"
                     "VALUES(?, ?, ?, ?, ?, ?)",
                     (id, 'CTNP', row['CT'], parent_id, '5', label))
-                db.commit()
+        db.commit()
 
     # EXCEPTIONS (à reprendre)
     # DEP_20, ancien département de la Corse, pour les anciennes communes (vieux codes communes)
@@ -152,7 +152,7 @@ def insert_insee_commune(db, COG_year, cursor):
                                "(insee_code, REG_id, DEP_id, AR_id, CT_id, NCCENR, ARTMIN)"
                                "VALUES(?, ?, ?, ?, ?, ?, ?)",
                                (insee_COM, REG_id, 'DEP_'+row['DEP'], AR_id, None, row['NCCENR'], row['ARTMIN']))
-            db.commit()
+    db.commit()
 
 
 """
@@ -208,9 +208,9 @@ def insert_longlat(db, cursor, method):
             for row in data:
                 insee_code = row[0]
                 longlat = row[1]
-                print("set %s longlat: %s" % (insee_code, longlat))
+                #print("set %s longlat: %s" % (insee_code, longlat))
                 cursor.execute(("UPDATE insee_commune SET longlat = '%s' WHERE insee_code = '%s'" % (longlat, insee_code)))
-                db.commit()
+        db.commit()
     else:
         return
 
