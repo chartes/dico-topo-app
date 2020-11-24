@@ -141,7 +141,21 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
     # print("INSERT bibl for {0}".format(dt_id))
     insert_bibl(db, cursor, dt_id)
-    bibl_id = cursor.lastrowid
+    bibl_id = cursor.lastrowid # on sélectionne le tome plus bas pour DT72 et DT80. Très pénible!
+    if dt_id == 'DT72':
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb37374247g' and bibl like '%tome 1%'")
+        tome1_id = cursor.fetchone()[0]
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb37374247g' and bibl like '%tome 2%'")
+        tome2_id = cursor.fetchone()[0]
+    if dt_id == 'DT80':
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb30482383j' and bibl like '%tome 1%'")
+        tome1_id = cursor.fetchone()[0]
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb30482383j' and bibl like '%tome 2%'")
+        tome2_id = cursor.fetchone()[0]
 
     for entry in tree.xpath('/DICTIONNAIRE/article'):
         # stocker les données relatives à chaque Place (article du DT)
@@ -150,6 +164,20 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # id/old-id de l’article (e.g. 'P49443358/DT86-11608')
         place['id'] = entry.get('id')
         place['old-id'] = entry.get('old-id')
+
+        # page de début
+        place['num_start_page'] = entry.get('pg')
+
+        # on redéfinit bibl_id pour DT72 et DT80 #HONTE
+        if dt_id == 'DT72' and place['num_start_page'] <= '400':
+            bibl_id = tome1_id
+        elif dt_id == 'DT72' and place['num_start_page'] > '400':
+            bibl_id = tome2_id
+        elif dt_id == 'DT80' and entry.get('tm') == '1':
+            bibl_id = tome1_id
+        elif dt_id == 'DT80' and entry.get('tm') == '2':
+            bibl_id = tome2_id
+        #print(place['id'], '=>', bibl_id)
 
         # code insee (si commune, optionnel)
         place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
@@ -236,9 +264,6 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
         # id du département
         place['dpt'] = dpt
-
-        # page de début
-        place['num_start_page'] = entry.get('pg')
 
         # VEDETTE (place.label)
         """
@@ -331,6 +356,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     <xsl:apply-templates/>
                     <xsl:text>&lt;/time></xsl:text>
                 </xsl:template>
+                <xsl:template match="ads"/>
+
             </xsl:stylesheet>''')
         xslt_commentaire2html = etree.parse(commentaire2html)
         transform_commentaire2html = etree.XSLT(xslt_commentaire2html)
@@ -583,6 +610,7 @@ def insert_place_old_label(db, cursor, dt_id):
     # utilitaires pour extraire et nettoyer les formes anciennes
     # relou, support xpath incomplet, on ne peut pas sortir le texte qui suit le dernier élément <i>
     # <xsl:template match="i[position()=last()]/following-sibling::text()"/>
+    # On sort les notes, notamment pour DT60
     # On corrige plus loin en traitement de chaîne de chars.
     get_old_label = io.StringIO('''\
         <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -599,6 +627,7 @@ def insert_place_old_label(db, cursor, dt_id):
             <xsl:template match="date"/>
             <xsl:template match="comment"/>
             <xsl:template match="pg"/>
+            <xsl:template match="note"/>
         </xsl:stylesheet>''')
     xslt_get_old_label = etree.parse(get_old_label)
     transform_old_label2dfn = etree.XSLT(xslt_get_old_label)
@@ -730,7 +759,9 @@ def insert_place_old_label(db, cursor, dt_id):
                 dfn = str(transform_old_label2dfn(tree))
                 dfn = re.sub(clean_start, '', dfn)
                 dfn = dfn.replace('<dfn>*', '<dfn>') # déprime de la gestion de l’"*" initiale (cf plus haut aussi)
-                dfn = dfn.replace(',</dfn>', '</dfn>,') # sortir la ponctuation avant normalisation de la fin de la chaîne
+                # sortir la ponctuation des élements <dfn> avant normalisation de la fin de la chaîne complète (dfn)
+                # dfn = dfn.replace(',</dfn>', '</dfn>,')
+                dfn = re.sub('([, .; :]+)</dfn>', '</dfn>\\1', dfn)
                 dfn = re.sub(clean_end, '', dfn)
                 dfn = dfn.rstrip()  # ceintures bretelles
                 # On vire le texte qui suit le dernier élément <dfn> (support xpath insuffisant avec lxml)
