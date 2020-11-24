@@ -14,21 +14,17 @@ def rewrite_link_target(insee_code, place_label):
 
     if length == 1:
         place = places[0]
-        print('@@ ONLY MATCH', place, place_label, place.label)
-
     elif length > 1:
         # find exact match
         for p in places:
             if p.label == place_label:
                 place = p
-                print('@@ EXACT MATCH', p)
                 break
         if place is None:
             # find best match
             distances = [distance(place_label, p.label) for p in places]
             best_match_idx = distances.index(min(distances))
             place = places[best_match_idx]
-            print('@@ BEST MATCH', distances, places)
 
     if place:
         return '<a href="{0}/places/{1}">{2}</a>'.format(current_app.config['APP_URL_PREFIX'], place.id, place_label)
