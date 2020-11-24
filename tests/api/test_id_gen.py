@@ -1,4 +1,7 @@
 import pprint
+import random
+
+from app.cli import make_cli
 
 from app.models import Place, User, Bibl, Responsibility, \
     PlaceOldLabel, PlaceDescription, PlaceComment, IdRegister
@@ -11,7 +14,6 @@ class TestIdGen(TestBaseServer):
     def setUp(self):
         super().setUp()
 
-        from app.cli import make_cli
         self.cli = make_cli(self.app)
         self.cli_runner = CliRunner()
 
@@ -25,11 +27,21 @@ class TestIdGen(TestBaseServer):
 
         # resp statements
         r3 = Responsibility(user=u1, bibl=dt, num_start_page=1)
+        self.db.session.add(r3)
+        self.db.session.add(u1)
+        self.db.session.add(dt)
+
+        self.db.session.commit()
 
         # places
-        p1 = Place(id="DT01-00001", country="fr", dpt="99", label="Metz", responsibility=r3)
-        p2 = Place(id="DT01-00002", country="fr", dpt="99", label="Paris", responsibility=r3)
-        p3 = Place(id="DT01-00003", country="fr", dpt="99", label="Montpellier", responsibility=r3)
+        places = []
+        for i in range(1, 1000):
+            p = Place(id="DT01-%s" % (str(i).zfill(10)), country="fr", dpt="99", label="Metz")
+            p.responsibility_id = r3.id
+            places.append(p)
+            self.db.session.add(p)
+
+        self.db.session.flush()
 
         # attach the citable elements to the palce
         for desc, responsibility in [
@@ -37,7 +49,7 @@ class TestIdGen(TestBaseServer):
         ]:
             p_desc = PlaceDescription()
             p_desc.content = desc
-            p_desc.place = p1
+            p_desc.place = places[0]
             p_desc.responsibility = responsibility
             self.db.session.add(p_desc)
 
@@ -46,24 +58,16 @@ class TestIdGen(TestBaseServer):
         ]:
             p_comm = PlaceComment()
             p_comm.content = comment
-            p_comm.place = p1
+            p_comm.place = places[0]
             p_comm.responsibility = responsibility
             self.db.session.add(p_comm)
 
-        oldlabel_dt1 = PlaceOldLabel(old_label_id='OLD-001', place=p1, responsibility=r3, rich_label="Lodanium")
-        oldlabel_dt2 = PlaceOldLabel(old_label_id='OLD-002', place=p1, responsibility=r3, rich_label="Lodanium")
-        oldlabel_dt3 = PlaceOldLabel(old_label_id='OLD-003', place=p2, responsibility=r3, rich_label="Lodanium")
-
-        self.db.session.add(u1)
-        self.db.session.add(r3)
-        self.db.session.add(dt)
-        self.db.session.add(oldlabel_dt1)
-        self.db.session.add(oldlabel_dt2)
-        self.db.session.add(oldlabel_dt3)
-        self.db.session.add(p1)
-        self.db.session.add(p2)
-        self.db.session.add(p3)
         self.db.session.commit()
+
+    def test_clear(self):
+        result = self.cli_runner.invoke(self.cli, ['id-register', '--clear'], input='y')
+        assert result.exit_code == 0
+        print(result.output)
 
     def test_rollback(self):
         result = self.cli_runner.invoke(self.cli, ['id-register', '--register'], input='n')
@@ -81,8 +85,17 @@ class TestIdGen(TestBaseServer):
         self.assertListEqual([p.id for p in places], [r.primary_value for r in reg])
         self.assertListEqual([r.primary_value for r in reg], [r.secondary_value for r in reg])
 
+    def test_append_id_max(self):
+        self.cli = make_cli(self.app)
+        result = self.cli_runner.invoke(self.cli, ['id-register', '--append'], input='y')
+        assert result.exit_code == 0
+        with self.assertRaises(ValueError):
+            result.output.rindex('There is (probably) no room anymore!')
+
     def test_append_from_scratch(self):
-        pass
+        result = self.cli_runner.invoke(self.cli, ['id-register', '--clear', '--append'], input='y')
+        #assert result.exit_code == 0
+        print(result.output)
 
     def test_append_with_non_empty(self):
         pass
