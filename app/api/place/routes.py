@@ -11,7 +11,7 @@ export_funcs = {
     #     or
     #     http://localhost:5003/dico-topo/api/1.0/places/DT02-02878?export=linkedplaces
     "linkedplaces": export_place_to_linkedplace,
-    "inlined-linkedplaces": export_place_to_inline_linkedplace
+    "inline-linkedplaces": export_place_to_inline_linkedplace
 }
 
 def register_place_api_urls(app):

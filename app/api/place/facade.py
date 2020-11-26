@@ -31,7 +31,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
         rel_facade = PlaceFacade if not rel_facade else rel_facade
 
         if self.obj.commune_insee_code is None:
-            return [] if self.obj.localization_commune is None else [
+            return [] if self.obj.localization_commune is None or self.obj.localization_commune.place is None else [
                 rel_facade.make_resource_identifier(lp.id, rel_facade.TYPE)
                 for lp in self.obj.localization_commune.place.linked_places if
                 lp.commune_insee_code is None and lp.id != self.obj.id]
@@ -45,7 +45,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
         rel_facade = PlaceFacade if not rel_facade else rel_facade
 
         if self.obj.commune_insee_code is None:
-            return [] if self.obj.localization_commune is None else [rel_facade(self.url_prefix, lp,
+            return [] if self.obj.localization_commune is None or self.obj.localization_commune.place is None else [rel_facade(self.url_prefix, lp,
                                                                                  self.with_relationships_links,
                                                                                  self.with_relationships_data).resource
                                                                      for lp in

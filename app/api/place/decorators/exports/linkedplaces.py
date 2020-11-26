@@ -59,14 +59,12 @@ def export_place_to_linkedplace(request, input_data):
         feature["properties"]["title"] = resource["attributes"]["label"]
         feature["properties"]["ccodes"] = [resource["attributes"]["country"]]
 
-        if resource["attributes"]["desc"] and len(resource["attributes"]["desc"]) > 0:
-            feature["descriptions"] = [
-                {
-                    "@id": feature["@id"],  # input_data["links"]["self"].split('?')[0],
-                    "value": resource["attributes"]["desc"],
-                    "lang": "fr"
-                }
-            ]
+        for desc in place_f.obj.descriptions:
+            feature["descriptions"].append({
+                "@id": feature["@id"],
+                "value": desc.content,
+                "lang": "fr"
+            })
 
         insee_code = resource["attributes"]["localization-insee-code"]
         if insee_code:
@@ -133,7 +131,7 @@ def export_place_to_linkedplace(request, input_data):
                 feature["names"].append(name)
 
         # feature types
-        for ftype in place_f.obj.feature_types:
+        for ftype in place_f.obj.place_feature_types:
             if ftype.term:
                 feature_type = {
                     "label": ftype.term
@@ -168,6 +166,16 @@ def export_place_to_linkedplace(request, input_data):
             #        "relationType": "gvp:broaderPartitive",
             #        "relationTo": "http://id.insee.fr/geo/canton/{0}".format(co.canton.insee_code)
             #    })
+
+        # relation to commune
+        if place_f.obj.localization_commune_relation_type:
+            co_f, _, _ = JSONAPIAbstractFacade.get_facade(url_prefix, place_f.obj.localization_commune)
+            feature["relations"].append({
+                "relationType": place_f.obj.localization_commune_relation_type,
+                "relationTo": co_f.self_link,
+                "label": co_f.obj.NCCENR,
+                # "when": {"timespans": []}
+            })
 
         ## subcommunal linked places
         if len(place_f.obj.linked_places) > 0:
@@ -211,6 +219,16 @@ def export_place_to_linkedplace(request, input_data):
                     addLink("https://viaf.org/viaf/{0}".format(co.viaf_id))
                 )
 
+            if co.siaf_id:
+                feature["links"].append(
+                    addLink("https://francearchives.fr/fr/location/{0}".format(co.siaf_id))
+            )
+
+            if co.osm_id:
+                feature["links"].append(
+                    addLink("https://www.openstreetmap.org/relation/{0}".format(co.osm_id))
+            )
+
         feature_collection["features"].append(feature)
 
     return feature_collection, 200, {}, "application/json"
@@ -220,7 +238,7 @@ def export_place_to_inline_linkedplace(request, input_data):
     exp, _, _, _ = export_place_to_linkedplace(request, input_data)
     filename = "/tmp/feat.json"
 
-    num_page = 1 if "page[number]" not in request.args else request.args["page[number]"]
+    num_page = request.args.get("page[number]", 1)
     output = "/tmp/inlined-feats.{0}.json".format(num_page)
 
     try:
@@ -228,13 +246,14 @@ def export_place_to_inline_linkedplace(request, input_data):
     except Exception as e:
         pass
 
-    for i, feat in enumerate(exp["features"]):
-        with open(filename, "w", encoding='utf-8') as jsonfile:
-            json.dump(feat, jsonfile, ensure_ascii=False)
+    try:
+        for i, feat in enumerate(exp["features"]):
+            with open(filename, "w", encoding='utf-8') as jsonfile:
+                json.dump(feat, jsonfile, ensure_ascii=False)
+            code = os.system('jq -c . {0} >> {1}'.format(filename, output))
+            print(code)
 
-        code = os.system('jq -c . {0} >> {1}'.format(filename, output))
-        print(i, code)
-
-    with open(output, "r", encoding='utf-8') as inlined:
-        print(len(exp["features"]))
-        return inlined.read(), 200, {}, "text/plain"
+        with open(output, "r", encoding='utf-8') as inlined:
+            return inlined.read(), 200, {}, "text/plain"
+    except:
+        return "Cannot compact data", 400, "text/plain"
