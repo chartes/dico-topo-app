@@ -41,7 +41,7 @@ packaging==17.1
 passlib==1.7.1
 pockets==0.6.2
 pycparser==2.18
-Pygments==2.2.0
+Pygments==2.7.4
 PyJWT==1.7.1
 PyMySQL==0.9.2
 pyparsing==2.2.0
