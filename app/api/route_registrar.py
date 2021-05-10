@@ -174,7 +174,7 @@ class JSONAPIRouteRegistrar(object):
                         new_criteria = column(col, is_literal=True).isnot(None)
 
                     print(str(new_criteria))
-                    filter_criteriae.append(text(new_criteria))
+                    filter_criteriae.append(text(str(new_criteria)))
 
             objs_query = objs_query.filter(*filter_criteriae)
 
