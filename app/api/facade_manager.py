@@ -14,6 +14,12 @@ from app.api.user.facade import UserFacade
 from app.models import Place, PlaceOldLabel, InseeCommune, InseeRef, PlaceFeatureType, Bibl, \
     Responsibility, User, PlaceDescription, PlaceComment
 
+old_label_facades = {
+    "default": PlaceOldLabelFacade,
+    "search": PlaceOldLabelSearchFacade,
+    "map": PlaceOldLabelMapFacade,
+    "flat-old-label": FlatPlaceOldLabelFacade,
+}
 
 _FACADES = {
     "lp": LinkedPlaceFacade,
@@ -25,18 +31,16 @@ _FACADES = {
     Place.__tablename__: {
         "default": PlaceFacade,
         "search": PlaceSearchFacade,
-        "map": PlaceMapFacade
+        "map": PlaceMapFacade,
+        "lp": LinkedPlaceFacade,
     },
     InseeCommune.__tablename__: {
         "default": CommuneFacade,
         "search": CommuneFacade,
         "map": CommuneFacade
     },
-    PlaceOldLabel.__tablename__: {
-        "default": PlaceOldLabelFacade,
-        "search": PlaceOldLabelSearchFacade,
-        "map": PlaceOldLabelMapFacade
-    },
+    PlaceOldLabel.__tablename__: old_label_facades,
+    'old-labels': old_label_facades,
     InseeRef.__tablename__: {
         "default": InseeRefFacade,
         "search": InseeRefSearchFacade,
@@ -55,7 +59,8 @@ _FACADES = {
     Responsibility.__tablename__: {
         "default": ResponsibilityFacade,
         "search": ResponsibilityFacade,
-        "map": ResponsibilityFacade
+        "map": ResponsibilityFacade,
+        "flat-resp": FlatResponsibilityFacade,
     },
     User.__tablename__: {
         "default": UserFacade,
@@ -65,12 +70,14 @@ _FACADES = {
     PlaceDescription.__tablename__: {
         "default": PlaceDescriptionFacade,
         "search": PlaceDescriptionFacade,
-        "map": PlaceDescriptionFacade
+        "map": PlaceDescriptionFacade,
+        "flat-place-desc": FlatPlaceDescriptionFacade,
     },
     PlaceComment.__tablename__: {
         "default": PlaceCommentFacade,
         "search": PlaceCommentFacade,
-        "map": PlaceCommentFacade
+        "map": PlaceCommentFacade,
+        "flat-place-comment": FlatPlaceCommentFacade,
     }
 }
 
@@ -89,13 +96,13 @@ class JSONAPIFacadeManager(object):
     FACADES = _FACADES
 
     @staticmethod
-    def get_facade_class_from_name(name):
+    def get_facade_class_from_name(rel, name):
         try:
-            return JSONAPIFacadeManager.FACADES[name]
+            return JSONAPIFacadeManager.FACADES[rel][name]
         except Exception as e:
             print(e)
-            print("Facade %s %s unknown" % (name))
-            return None
+            print("Facade %s unknown" % name)
+            return JSONAPIFacadeManager.FACADES[name]
 
     @staticmethod
     def get_facade_class(obj, facade_type="default"):

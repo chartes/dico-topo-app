@@ -70,6 +70,7 @@ class FlatPlaceDescriptionFacade(PlaceDescriptionFacade):
     @property
     def resource(self):
         res = super(FlatPlaceDescriptionFacade, self).resource
+        res['attributes']['place-id'] = self.obj.place_id
 
         # add a flattened resp statement to the description facade
 

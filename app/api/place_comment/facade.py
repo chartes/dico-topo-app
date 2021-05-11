@@ -27,7 +27,6 @@ class PlaceCommentFacade(CitableContentFacade):
     @property
     def resource(self):
         res = super(PlaceCommentFacade, self).resource
-
         # rewrite links in desc so they target to a better url
         if res['attributes']['content']:
             for (match, insee_code, label) in re.findall(r'(<a href="(\d+)">(.*?)</a>)', res['attributes']['content']):
@@ -42,6 +41,7 @@ class FlatPlaceCommentFacade(PlaceCommentFacade):
     @property
     def resource(self):
         res = super(FlatPlaceCommentFacade, self).resource
+        res['attributes']['place-id'] = self.obj.place_id
 
         # add a flattened resp statement to the comment facade
         from app.api.responsibility.facade import FlatResponsibilityFacade

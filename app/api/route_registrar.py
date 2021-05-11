@@ -76,7 +76,7 @@ class JSONAPIRouteRegistrar(object):
             rel = inclusion.split('@')
             if len(rel) > 1:
                 rel_name, asked_facade_name = rel
-                asked_facade = JSONAPIFacadeManager.get_facade_class_from_name(asked_facade_name)
+                asked_facade = JSONAPIFacadeManager.get_facade_class_from_name(rel_name, asked_facade_name)
             else:
                 rel_name, asked_facade = rel[0], None
 
