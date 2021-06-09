@@ -233,8 +233,8 @@ class JSONAPIRouteRegistrar(object):
                 range = {key: {}}
                 for op, value in ops:
                     range[key][op] = value
-                return range
-        #print(range)
+                #return range
+        print("range parameter", range)
         return range
 
     def search(self, index, query, range, groupby, sort_criteriae, page_id, page_size, page_after):
