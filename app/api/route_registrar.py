@@ -226,23 +226,24 @@ class JSONAPIRouteRegistrar(object):
 
     @staticmethod
     def parse_range_parameter():
-        range = None
+        ranges = []
         for f in request.args.keys():
             if f.startswith('range[') and f.endswith(']'):
                 key, ops = (f[len('range['):-1], [op.split(':') for op in request.args[f].split(",")])
                 range = {key: {}}
                 for op, value in ops:
                     range[key][op] = value
-                #return range
-        print("range parameter", range)
-        return range
+                # return range
+                ranges.append(range)
+        print("ranges params:", ranges)
+        return ranges
 
-    def search(self, index, query, range, groupby, sort_criteriae, page_id, page_size, page_after):
+    def search(self, index, query, ranges, groupby, sort_criteriae, page_id, page_size, page_after):
         # query the search engine
         results, buckets, after_key, total = SearchIndexManager.query_index(
             index=index,
             query=query,
-            range=range,
+            ranges=ranges,
             groupby=groupby,
             sort_criteriae=sort_criteriae,
             page=page_id,
@@ -313,7 +314,7 @@ class JSONAPIRouteRegistrar(object):
             # PARAMETERS
             index = request.args.get("index", None)
             query = request.args["query"]
-            range = JSONAPIRouteRegistrar.parse_range_parameter()
+            ranges = JSONAPIRouteRegistrar.parse_range_parameter()
             groupby = request.args["groupby[field]"] if "groupby[field]" in request.args else None
 
             # if request has pagination parameters
@@ -345,7 +346,7 @@ class JSONAPIRouteRegistrar(object):
                 sorted_ids_list, res, meta = self.search(
                     index=index,
                     query=query,
-                    range=range,
+                    ranges=ranges,
                     groupby=groupby,
                     sort_criteriae=sort_criteriae,
                     page_id=num_page,
