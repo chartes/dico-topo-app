@@ -107,7 +107,7 @@ def make_cli(given_app=None):
     def db_validate(between):
         SCHEMA_URL = "https://raw.githubusercontent.com/kgeographer/whgazetteer/master/datasets/static/validate/lpf-schema.json"
         getAPIUrl = lambda \
-                id: "http://localhost/dico-topo/api/1.0/places/{0}?export=linkedplaces&without-relationships".format(id)
+                id: "http://localhost:5003/api/1.0/places/{0}?export=linkedplaces&without-relationships".format(id)
         print("Fetching schema from {0}... ".format(SCHEMA_URL), end='', flush=False)
         r = requests.get(SCHEMA_URL)
         print(r.status_code)

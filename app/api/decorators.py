@@ -1,4 +1,4 @@
-from flask_jwt_extended import get_jwt_identity, get_jwt_claims, jwt_required, verify_jwt_in_request
+#from flask_jwt_extended import get_jwt_identity, get_jwt_claims, jwt_required, verify_jwt_in_request
 from functools import wraps
 from app import JSONAPIResponseFactory
 from flask import request
