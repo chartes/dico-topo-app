@@ -6,6 +6,72 @@ import io
 import re
 import csv
 from datetime import datetime
+import random
+
+
+def make_primary_value(new_id):
+    '''
+    Calculer le caractère de contrôle d’un identifiant
+    :param new_id: id returned by new_id_calc()
+    :return: control character to be added to the identifier
+    '''
+    xdigits = "0123456789"
+    index_sum = 0
+    i = 1
+    for digit in str(new_id):
+        index_sum += xdigits.index(digit) * i
+        i += 1
+        check_digit = xdigits[index_sum % 10]
+    return check_digit
+
+
+def new_id_calc():
+    '''
+    Générer un id aléatoire
+    :return:
+    '''
+    id_max = 9999999
+    padding = len(str(id_max))
+    new_id = random.randint(0, 9999999)
+    check_digit = make_primary_value(new_id)
+    new_id = 'P' + str(new_id).zfill(padding) + str(check_digit)
+    return new_id
+
+
+def new_ids_generator_tsv(db, cursor, dt_id):
+    '''
+    Parser un nouveau DT et attribuer de nouveaux identifiants
+    :param db: SQLite database connection
+    :param cursor: Cursor instance
+    :param dt_id: DT id (e.g. 'DT60')
+    :return: '../../../dico-topo/data/{dt_id}/IDS_MAP.tsv' (mapping OLD|NEW ids to be injected into the XML source)
+    '''
+
+    # stocker les ids existants dans un registre
+    register_s = set()
+    cursor.execute("SELECT place_id FROM place")
+    for existing_id in cursor.fetchall():
+        register_s.add(existing_id[0])
+
+    # parser le dt pour définir de nouveaux ids et enregistrer le mapping dans un dict
+    mapping_d = {}
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
+    for entry in tree.xpath('/DICTIONNAIRE/article'):
+        old_id = entry.get('id')
+        new_id = new_id_calc()
+        while new_id in register_s:
+            new_id = new_id_calc()
+        register_s.add(new_id)
+        mapping_d[str(new_id)] = old_id
+
+    # exporter le mapping
+    mapping_f = '../../../dico-topo/data/' + dt_id + '/IDS_MAP.tsv'
+    try:
+        with open(mapping_f, 'w') as tsvfile:
+            for mapping in mapping_d:
+                tsvfile.write("%s\t%s\n"%(mapping, mapping_d[mapping]))
+    except IOError:
+        print("I/O error")
 
 
 def html_snippet_validator(html_snippet, place_id, authorized_tags_set):

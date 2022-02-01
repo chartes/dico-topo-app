@@ -1,9 +1,15 @@
 import sqlite3
 import insee
 import dt2db
-import debug
 import sys
 import time
+
+'''
+Insertion de nouveaux DT en base.
+Procédure:
+    1. Avant insertion : calcul de nouveaux ids à injecter dans la source XML
+    2. Insertion en base
+'''
 
 start_time = time.time()
 
@@ -12,12 +18,10 @@ db = sqlite3.connect(db_path)
 cursor = db.cursor()
 cursor.execute('PRAGMA foreign_keys=ON')
 
-# DEBUG SECTION
-#dt_id = 'DT26'
-#debug.get_old_label_date(db, cursor, dt_id)
-#debug.get_description(db, cursor, dt_id)
-#debug.get_feature_types(db, cursor, dt_id)
-#exit()
+
+# 1. Avant insertion : calcul de nouveaux ids à injecter dans la source XML
+dt2db.new_ids_generator_tsv(db, cursor, 'DT68')
+exit()
 
 # création du user
 u1 = {"id": 1, "username": "delisle", "is_admin": 1}
@@ -43,17 +47,22 @@ insee.insert_longlat(db, cursor, 'tsv')
 # si on charge la liste de toutes les communes depuis 1943 (`france{AAAA}.txt`), appeler insee.update_insee_ref()
 # insee.update_insee_ref(db, cursor)
 
-"""
-DT_with_insee = ["DT01", "DT02", "DT05", "DT07", "DT10", "DT11", "DT14", "DT15", "DT18", "DT21", "DT23", "DT24",
-  "DT26", "DT27", "DT28", "DT30", "DT34", "DT41", "DT42", "DT43", "DT44", "DT51", "DT52", "DT54", "DT55", "DT56",
-  "DT57", "DT58", "DT60", "DT62", "DT64", "DT71", "DT72", "DT76", "DT77", "DT79", "DT80", "DT86", "DT88", "DT89"]
-"""
-DT_with_insee = ["DT01", "DT02", "DT05", "DT07", "DT10"]
+DT_with_insee = [
+    "DT01", "DT02", "DT05", "DT07", "DT10",
+    "DT11", "DT14", "DT15", "DT18", "DT21",
+    "DT23", "DT24", "DT26", "DT27", "DT28",
+    "DT30", "DT34", "DT36", "DT41", "DT42",
+    "DT43", "DT44", "DT51", "DT52", "DT54",
+    "DT55", "DT56", "DT57", "DT58", "DT60",
+    "DT62", "DT64", "DT68", "DT71", "DT72",
+    "DT76", "DT77", "DT79", "DT80", "DT86",
+    "DT88", "DT89"]
+
+DT_with_insee = ["DT68"]
 
 for dt_id in DT_with_insee:
     dpt_code = dt_id[-2:]
     print("===%s processing===" % dt_id)
-    # debug.new_ids_generator(db, cursor)
     # bibl, place, place_alt_label, place_comment, place_description, place_feature_type
     dt2db.insert_place_values(db, cursor, dt_id, u1["id"])
     # place_old_labels
