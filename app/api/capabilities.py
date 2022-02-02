@@ -6,8 +6,13 @@ from app import api_bp, JSONAPIResponseFactory
 @api_bp.route("/api/<api_version>")
 def api_get_capabilities(api_version):
     if "capabilities" in request.args:
-        url_prefix = request.host_url[:-1] + current_app.config["API_URL_PREFIX"]
-        url_prefix = url_prefix.replace('http://', 'https://')
+        host = request.host_url[:-1]
+        if "localhost" not in host:
+            url_prefix = host + current_app.config["API_URL_PREFIX"]
+            url_prefix = url_prefix.replace('http://', 'https://')
+        else:
+            url_prefix = "http://localhost:5003/api/1.0"
+
         capabilities = [
             {
                 "type": "parameter",
@@ -60,28 +65,14 @@ def api_get_capabilities(api_version):
             },
             {
                 "type": "feature",
-                "id": "db-search-api",
-                "attributes": {
-                    "title": "Recherche simple",
-                    "content": "Il est possible d'effectuer des recherches simples sur des ressources spécifiques sans utiliser les indexes avancés d'elasticsearch",
-                    "examples": [
-                        {
-                            "description": "Recherche de la vedette 'Metz'",
-                            "content": "%s/places?filter[label]=Metz" % url_prefix
-                        }
-                    ]
-                }
-            },
-            {
-                "type": "feature",
                 "id": "elasticsearch-api",
                 "attributes": {
                     "title": "Rercherche avancée",
                     "content": "L'application expose un point d'entrée vers un moteur de recherche Elasticsearch. Les requêtes retournant plus de 10.000 résultats ne seront pas exécutées.",
                     "examples": [
                         {
-                            "description": "Recherche du toponyme 'Metz'",
-                            "content": "%s/search?query=label:Metz OR old-labels:Metz" % url_prefix
+                            "description": "Recherche du terme 'Poizatière'",
+                            "content": f"{url_prefix}/search?query=label.folded:Poizatière&sort=place-label.keyword&page[size]=200&page[number]=1"
                         }
                     ]
                 }
@@ -95,11 +86,11 @@ def api_get_capabilities(api_version):
                     "examples": [
                         {
                             "description": "Export d'un lieu",
-                            "content": "%s/places/DT80-02001?export=linkedplaces" % url_prefix
+                            "content": f"{url_prefix}/places/P41693029?export=linkedplaces"
                         },
                         {
                             "description": "Export d'une collection de lieux",
-                            "content": "%s/search?query=label:Troyes&export=linkedplaces" % url_prefix
+                            "content": f"{url_prefix}/search?query=label.folded:Troyes&export=linkedplaces"
                         }
                     ]
                 }
@@ -108,39 +99,53 @@ def api_get_capabilities(api_version):
                 "type": "resource",
                 "id": "place",
                 "attributes": {
-                    "description": "Toponyme",
+                    "description": "Lieu",
                     "endpoints":  {
                         "resource": {
-                            "url": "%s/place/<id>" % url_prefix,
+                            "url": f"{url_prefix}/place/<id>",
                             "parameters": {},
                             "attributes": [
                                 {"name": "label", "description": "Vedette de l'article telle que présente dans l'ouvrage d'origine "},
                                 {"name": "country", "description": "Pays"},
                                 {"name": "dpt", "description": "Département"},
-                                {"name": "desc", "description": "Description du lieu"},
                                 {"name": "num-start-page", "description": "Numéro de la première page du tome d'origine où est inscrit le toponyme"},
-                                {"name": "localization-certainty", "description": "Indice de confiance quant à la localisation du lieu"},
                                 {"name": "localization-insee-code", "description": "Code insee de la commune attachée (si connue)"},
-                                {"name": "comment", "description": "Commentaire apporté tant au niveau du lieu que des ressources liées"},
+                                {"name": "localization-commune-relation-type",
+                                 "description": "Type de relation entre ce lieu et son éventuelle commune associée"},
+
+                                {"name": "geoname-id", "description": ""},
+                                {"name": "wikidata-item-id", "description": ""},
+                                {"name": "wikipedia-url", "description": ""},
+                                {"name": "databnf-ark", "description": ""},
+                                {"name": "viaf-id", "description": ""},
+                                {"name": "siaf-id", "description": ""},
+                                {"name": "osm-id", "description": ""},
                             ],
                             "relationships": [
-                                {"name": "commune", "description": "La reslation est renseignée si le lieu lui-même correspond à une commune", "type": "resource",
+                                {"name": "responsibility",
+                                 "description": "Mention de responsabilité de la notice",
+                                 "type": "resource",
+                                 "ref": "responsibility"},
+                                {"name": "commune", "description": "La relation est renseignée si le lieu lui-même correspond à une commune", "type": "resource",
                                  "ref": "commune"},
                                 {"name": "localization-commune", "description": "La relation est renseignée si le lieu peut être attaché à une commune", "type": "resource",
                                  "ref": "commune"},
+                                {"name": "descriptions", "description": "Descriptions du lieu"},
+                                {"name": "comments",
+                                 "description": "Commentaires apportés tant au niveau du lieu que des ressources liées"},
                                 {"name": "linked-places", "description": "Lieux attachés", "type": "collection",
                                  "ref": "place"},
-                                {"name": "alt-labels", "description": "Formes alternatives du toponyme", "type": "collection", "ref": "place-alt-label"},
-                                {"name": "old-labels", "description": "Formes anciennes du toponyme", "type": "collection", "ref": "place-old-label"}
+                                {"name": "old-labels", "description": "Formes anciennes du toponyme", "type": "collection", "ref": "place-old-label"},
+
                             ]
                         },
                         "collection": {
-                            "url": "%s/places?page[size]=10" % url_prefix,
+                            "url": f"{url_prefix}/places?page[size]=3",
 
                         }
                     },
                     "examples": {
-                        "url": "%s/places/DT80-03029" % url_prefix
+                        "url": f"{url_prefix}/places/P61132243"
                     }
                 },
 
@@ -153,13 +158,22 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints":  {
                         "resource": {
-                            "url": "%s/commune/<insee-code>" % url_prefix,
+                            "url": f"{url_prefix}/commune/<insee-code>",
                             "parameters": {},
                             "attributes": [
                                 {"name": "insee-code", "description": ""},
+                                {"name": "place-id", "description": ""},
                                 {"name": "NCCENR", "description": ""},
                                 {"name": "ARTMIN", "description": ""},
-                                {"name": "longlat", "description": ""}
+                                {"name": "longlat", "description": ""},
+
+                                {"name": "geoname-id", "description": ""},
+                                {"name": "wikidata-item-id", "description": ""},
+                                {"name": "wikipedia-url", "description": ""},
+                                {"name": "databnf-ark", "description": ""},
+                                {"name": "viaf-id", "description": ""},
+                                {"name": "siaf-id", "description": ""},
+                                {"name": "osm-id", "description": ""},
                             ],
                             "relationships": [
                                 {"name": "localized-places", "description": "",
@@ -177,12 +191,12 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/communes?page[size]=10" % url_prefix,
+                            "url": f"{url_prefix}/communes?page[size]=10",
 
                         }
                     },
                     "examples": {
-                        "url": "%s/communes/01025" % url_prefix
+                        "url": f"{url_prefix}/communes/01367"
                     }
                 },
 
@@ -195,7 +209,7 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "%s/place-feature-type/<id>" % url_prefix,
+                            "url": f"{url_prefix}/place-feature-type/<id>",
                             "parameters": {},
                             "attributes": [
                                 {"name": "term", "description": ""},
@@ -203,15 +217,17 @@ def api_get_capabilities(api_version):
                             "relationships": [
                                 {"name": "place", "description": "",
                                  "type": "resource", "ref": "place"},
+                                {"name": "responsibility", "description": "",
+                                 "type": "resource", "ref": "responsibility"},
                             ]
                         },
                         "collection": {
-                            "url": "%s/place-feature-types?page[size]=10" % url_prefix,
+                            "url": f"{url_prefix}/place-feature-types?page[size]=10",
 
                         }
                     },
                     "examples": {
-                        "url": "%s/place-feature-types/124" % url_prefix
+                        "url": f"{url_prefix}/place-feature-types/124"
                     }
                 },
 
@@ -224,7 +240,7 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "%s/insee-ref/<id>" % url_prefix,
+                            "url": f"{url_prefix}/insee-ref/<id>",
                             "parameters": {},
                             "attributes": [
                                 {"name": "reference-type", "description": ""},
@@ -240,12 +256,12 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/insee-refs?page[size]=10" % url_prefix,
+                            "url": f"{url_prefix}/insee-refs?page[size]=10",
 
                         }
                     },
                     "examples": {
-                        "url": "%s/insee-refs/DEP_03" % url_prefix
+                        "url": f"{url_prefix}/insee-refs/DEP_03"
                     }
                 },
 
@@ -265,8 +281,6 @@ def api_get_capabilities(api_version):
                                 {"name": "rich-date", "description": ""},
                                 {"name": "text-date", "description": ""},
                                 {"name": "rich-reference", "description": ""},
-                                {"name": "rich-label-node", "description": ""},
-                                {"name": "text-label-node", "description": ""},
                             ],
                             "relationships": [
                                 {"name": "place", "description": "",
@@ -275,6 +289,8 @@ def api_get_capabilities(api_version):
                                  "type": "resource", "ref": "commune"},
                                 {"name": "localization-commune", "description": "",
                                  "type": "resource", "ref": "commune"},
+                                {"name": "responsibility", "description": "",
+                                 "type": "resource", "ref": "responsibility"},
                             ]
                         },
                         "collection": {
@@ -287,36 +303,7 @@ def api_get_capabilities(api_version):
                     }
                 },
 
-            },
-
-            {
-                "type": "resource",
-                "id": "place-alt-label",
-                "attributes": {
-                    "description": "",
-                    "endpoints": {
-                        "resource": {
-                            "url": "%s/place-alt-label/<id>" % url_prefix,
-                            "parameters": {},
-                            "attributes": [
-                                {"name": "label", "description": ""},
-                            ],
-                            "relationships": [
-                                {"name": "place", "description": "",
-                                 "type": "resource", "ref": "place"},
-                            ]
-                        },
-                        "collection": {
-                            "url": "%s/place-alt-labels?page[size]=10" % url_prefix,
-
-                        }
-                    },
-                    "examples": {
-                        "url": "%s/place-alt-labels/24" % url_prefix
-                    }
-                },
-
-            },
+            }
         ]
 
         meta = {

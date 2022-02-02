@@ -1,5 +1,5 @@
 
-from app.models import InseeRef, InseeCommune, Place, PlaceAltLabel, PlaceOldLabel
+from app.models import InseeRef, InseeCommune, Place, PlaceOldLabel
 
 
 def load_fixtures(db):
@@ -52,12 +52,6 @@ def load_fixtures(db):
                    comment=None)
 
     db.session.add(e3)
-    db.session.commit()
-
-    place_alt_label1 = PlaceAltLabel(place_id=e2.id, label="Commune numéro une")
-    place_alt_label2 = PlaceAltLabel(place_id=e2.id, label="Commune n°1")
-    db.session.add(place_alt_label1)
-    db.session.add(place_alt_label2)
     db.session.commit()
 
     old_label1 = PlaceOldLabel(old_label_id='PLACE1_OLD_1', place_id=e1.id, rich_label="Cmune Un")

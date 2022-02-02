@@ -6,10 +6,76 @@ import io
 import re
 import csv
 from datetime import datetime
+import random
+
+
+def make_primary_value(new_id):
+    '''
+    Calculer le caractère de contrôle d’un identifiant
+    :param new_id: id returned by new_id_calc()
+    :return: control character to be added to the identifier
+    '''
+    xdigits = "0123456789"
+    index_sum = 0
+    i = 1
+    for digit in str(new_id):
+        index_sum += xdigits.index(digit) * i
+        i += 1
+        check_digit = xdigits[index_sum % 10]
+    return check_digit
+
+
+def new_id_calc():
+    '''
+    Générer un id aléatoire
+    :return:
+    '''
+    id_max = 9999999
+    padding = len(str(id_max))
+    new_id = random.randint(0, 9999999)
+    check_digit = make_primary_value(new_id)
+    new_id = 'P' + str(new_id).zfill(padding) + str(check_digit)
+    return new_id
+
+
+def new_ids_generator_tsv(db, cursor, dt_id):
+    '''
+    Parser un nouveau DT et attribuer de nouveaux identifiants
+    :param db: SQLite database connection
+    :param cursor: Cursor instance
+    :param dt_id: DT id (e.g. 'DT60')
+    :return: '../../../dico-topo/data/{dt_id}/IDS_MAP.tsv' (mapping OLD|NEW ids to be injected into the XML source)
+    '''
+
+    # stocker les ids existants dans un registre
+    register_s = set()
+    cursor.execute("SELECT place_id FROM place")
+    for existing_id in cursor.fetchall():
+        register_s.add(existing_id[0])
+
+    # parser le dt pour définir de nouveaux ids et enregistrer le mapping dans un dict
+    mapping_d = {}
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
+    for entry in tree.xpath('/DICTIONNAIRE/article'):
+        old_id = entry.get('id')
+        new_id = new_id_calc()
+        while new_id in register_s:
+            new_id = new_id_calc()
+        register_s.add(new_id)
+        mapping_d[str(new_id)] = old_id
+
+    # exporter le mapping
+    mapping_f = '../../../dico-topo/data/' + dt_id + '/IDS_MAP.tsv'
+    try:
+        with open(mapping_f, 'w') as tsvfile:
+            for mapping in mapping_d:
+                tsvfile.write("%s\t%s\n"%(mapping, mapping_d[mapping]))
+    except IOError:
+        print("I/O error")
 
 
 def html_snippet_validator(html_snippet, place_id, authorized_tags_set):
-    """ """
+    """ contrôle des balises autorisées """
     html_snippet_p = '<p>' + html_snippet + '</p>'
 
     # Vérification de la conformité
@@ -31,7 +97,7 @@ def html_snippet_validator(html_snippet, place_id, authorized_tags_set):
 
 
 def date_4digits(date):
-    """ """
+    """ formatage des millésimes en AAAA """
     missing_zero_digit_number = 4 - len(date)
     date = missing_zero_digit_number*'0' + date
     return date
@@ -39,6 +105,7 @@ def date_4digits(date):
 
 def date2iso(date):
     """ """
+    # TODO: implémenter les cas de DT10 et DT21
     year_pattern = re.compile('^[0-9]{3,4}$')
     approximate_date_pattern1 = re.compile('([0-9]{3,4}) environ')
     approximate_date_pattern2 = re.compile('vers ([0-9]{3,4})')
@@ -93,6 +160,16 @@ def date2iso(date):
     return date_iso
 
 
+def punctuation_clean(string):
+    """ Ponctuation très fautive avant les balises fermantes. Tentative de correction """
+    string = re.sub(
+        '([^\S]*[,.:;!?][^\S]*)(</[^>]+>)',
+        '\\2\\1',
+        string
+    )
+    return string
+
+
 def insert_bibl(db, cursor, dt_id):
     """ """
     with open('bibl_gallica.tsv') as csvfile:
@@ -123,21 +200,50 @@ def insert_place_values(db, cursor, dt_id, user_id):
 
     print("** TABLE place, place_comment, place_description, place_feature_type – INSERT")
 
-    #TODO: appeler le bon DT (et non _output6.xml, uniquement en dev)
-    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
+    #TODO: appeler le bon DT (et non _output7.xml, uniquement en dev)
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output7.xml')
     # code du dpt
     dpt = tree.xpath('/DICTIONNAIRE')[0].get('dep')
 
     # print("INSERT bibl for {0}".format(dt_id))
     insert_bibl(db, cursor, dt_id)
-    bibl_id = cursor.lastrowid
+    bibl_id = cursor.lastrowid # on sélectionne le tome plus bas pour DT72 et DT80. Très pénible!
+    if dt_id == 'DT72':
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb37374247g' and bibl like '%tome 1%'")
+        tome1_id = cursor.fetchone()[0]
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb37374247g' and bibl like '%tome 2%'")
+        tome2_id = cursor.fetchone()[0]
+    if dt_id == 'DT80':
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb30482383j' and bibl like '%tome 1%'")
+        tome1_id = cursor.fetchone()[0]
+        cursor.execute(
+            "SELECT id FROM bibl WHERE bnf_catalogue_ark = 'ark:/12148/cb30482383j' and bibl like '%tome 2%'")
+        tome2_id = cursor.fetchone()[0]
 
     for entry in tree.xpath('/DICTIONNAIRE/article'):
         # stocker les données relatives à chaque Place (article du DT)
         place = {}
 
-        # id de l’article in XML (e.g. 'DT02-00001')
+        # id/old-id de l’article (e.g. 'P49443358/DT86-11608')
         place['id'] = entry.get('id')
+        place['old-id'] = entry.get('old-id')
+
+        # page de début
+        place['num_start_page'] = entry.get('pg')
+
+        # on redéfinit bibl_id pour DT72 et DT80 #HONTE
+        if dt_id == 'DT72' and place['num_start_page'] <= '400':
+            bibl_id = tome1_id
+        elif dt_id == 'DT72' and place['num_start_page'] > '400':
+            bibl_id = tome2_id
+        elif dt_id == 'DT80' and entry.get('tm') == '1':
+            bibl_id = tome1_id
+        elif dt_id == 'DT80' and entry.get('tm') == '2':
+            bibl_id = tome2_id
+        #print(place['id'], '=>', bibl_id)
 
         # code insee (si commune, optionnel)
         place['commune_insee_code'] = entry.xpath('insee')[0].text if entry.xpath('insee') else None
@@ -169,9 +275,11 @@ def insert_place_values(db, cursor, dt_id, user_id):
             place['localization_commune_relation_type'] = None
 
         # formatage de place_description.content (xml_dt:definition)
-        # TODO: typer les html5:a ? – pour distinguer les liens à venir vers les FT et les codes insee des communes
-        # TODO: pour les communes, inscrire le code insee ou le place_id ?
-        # TODO: quid des renvois ? pour l’instant on supprime (cf ci-dessous)
+        # LIENS
+        #   - feature types (FT): html:a, sans @href à ce stade du projet
+        #   - commune d’appartenance: html:a, avec code INSEE en @href
+        #   - renvois: html:a, avec @rel='search' et @data-dpt='{dpt-id}' pour construire les liens de recherche.
+        # TODO: standardiser les liens au FT
         remove_tags = re.compile('</?(definition|localisation|date|renvoi|commune)[^>]*>')
         # on ne matche que les codes insee conformes au motif \[0-9]{5}\
         rename_commune_optag = re.compile('<commune insee="([0-9]{5})"[^>]*>')
@@ -184,9 +292,14 @@ def insert_place_values(db, cursor, dt_id, user_id):
             description = re.sub(rename_commune_optag, '<a href="\\1">', description)
             description = re.sub(rename_commune_cltag, '</a>', description)
             description = re.sub(rename_typo_tag, '<\\1a>', description)
+            # liens sur les renvois (tordu, car pas en XSLT initialement)
+            description = re.sub(
+                '(<renvoi>.*)<sm>([^<]+)</sm>(.*</renvoi>)',
+                '\\1<a rel="search" data-dpt="'+dpt+'"><span class="sc">\\2</span></a>\\3',
+                description)
             description = re.sub(remove_tags, '', description)
             # Tristesse de découvrir que le schéma n’est respecté… et hacks honteux
-            # des small-caps dans les descriptions
+            # des small-caps dans les descriptions (principalement les siècles)
             description = re.sub(re.compile('<sm>([^<]+)</sm>'), '<span class="sc">\\1</span>', description)
             # erreurs de segmentation dans la source XML
             description = description.replace('</span> <sup>', '</span><sup>')
@@ -194,6 +307,10 @@ def insert_place_values(db, cursor, dt_id, user_id):
             description = re.sub(re.compile('<pg>[0-9]+</pg>'), '', description)
             # des références…
             description = re.sub(re.compile('<(/?)reference>'), '<\\1cite>', description)
+            # ponctuation très fautive autour des balise TODO: évaluer
+            description = punctuation_clean(description)
+            # ceinture bretelle, on trim()
+            description = description.strip()
             # uppercase first letter of description (bien compliqué…)
             re_first_letter = re.compile('(<a>)?([^ ])')
             first_letter_pos = re.match(re_first_letter, description).start(2)
@@ -214,9 +331,6 @@ def insert_place_values(db, cursor, dt_id, user_id):
         # id du département
         place['dpt'] = dpt
 
-        # page de début
-        place['num_start_page'] = entry.get('pg')
-
         # VEDETTE (place.label)
         """
         2020-07: choix d’abandonner la distinction entre vedette pricipale et vedettes secondaires (alt_label)
@@ -230,7 +344,9 @@ def insert_place_values(db, cursor, dt_id, user_id):
         """
         place['label'] = tostring(entry.xpath('vedette')[0], method='text', encoding='unicode')
         # TODO: vérifier toutes les ponctuations en fin de vedette/label (pour tout supprimer)
-        place['label'] = place['label'].strip().rstrip('.,;')
+        # place['label'] = place['label'].strip().rstrip('.,;')
+        # place['label'] = place['label'].strip().strip('.,;  »«*,')
+        place['label'] = place['label'].strip().strip('.,;» «*,')
         # SN: le prefixe "*" marque les formes reconstituées/hypothétiques pour les lieux disparus. On supprime ?
         # parfois à la fin de la vedette (cf DT72)
         place['label'] = place['label'].replace('*', '')
@@ -275,13 +391,13 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     <xsl:apply-templates/>
                 </xsl:template>
                 <xsl:template match="sm[parent::renvoi]">
-                    <xsl:text>&lt;a href="</xsl:text>
-                    <xsl:apply-templates/>
+                    <xsl:text>&lt;a rel="search" data-dpt="</xsl:text>
+                    <xsl:value-of select="/DICTIONNAIRE/@dep"/>
                     <xsl:text>"></xsl:text>
                     <xsl:apply-templates/>
                     <xsl:text>&lt;/a></xsl:text>
                 </xsl:template>
-                    <xsl:template match="note">
+                <xsl:template match="note">
                     <xsl:text>&lt;span class="note"></xsl:text>
                     <xsl:apply-templates/>
                     <xsl:text>&lt;/span></xsl:text>
@@ -306,6 +422,8 @@ def insert_place_values(db, cursor, dt_id, user_id):
                     <xsl:apply-templates/>
                     <xsl:text>&lt;/time></xsl:text>
                 </xsl:template>
+                <xsl:template match="ads"/>
+
             </xsl:stylesheet>''')
         xslt_commentaire2html = etree.parse(commentaire2html)
         transform_commentaire2html = etree.XSLT(xslt_commentaire2html)
@@ -352,7 +470,17 @@ def insert_place_values(db, cursor, dt_id, user_id):
         except sqlite3.IntegrityError as e:
             print(e, "insert responsability, place %s" % (place['id']))
         responsability_id = cursor.lastrowid
-        db.commit()
+        #db.commit()
+
+        # registre
+        try:
+            cursor.execute(
+                "INSERT INTO id_register ("
+                    "primary_value, secondary_value)"
+                "VALUES (?, ?)",
+                    (place['id'], place['old-id']))
+        except sqlite3.IntegrityError as e:
+            print(e,  "insert id_register, place %s" % (place['id']))
 
         # place
         try:
@@ -377,7 +505,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                      responsability_id))
         except sqlite3.IntegrityError as e:
             print(e, "insert place, place %s" % (place['id']))
-        db.commit()
+        #db.commit()
 
         """ 2020-07: abandon de l’insertion des alt_label
         # place_alt_label
@@ -409,7 +537,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                          place['id']))
             except sqlite3.IntegrityError as e:
                 print(e, "insert place_comment, place %s" % (place['id']))
-            db.commit()
+            #db.commit()
 
         # place_description
         if place['description']:
@@ -425,7 +553,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                          place['id']))
             except sqlite3.IntegrityError as e:
                 print(e, "insert place_description, place %s" % (place['id']))
-            db.commit()
+            #db.commit()
 
         # place_feature_type
         if place['feature_types']:
@@ -442,7 +570,7 @@ def insert_place_values(db, cursor, dt_id, user_id):
                              place['id']))
                 except sqlite3.IntegrityError as e:
                     print(e, ("insert place_feature_type: place %s – FT '%s'" % (place['id'], feature_type)))
-                db.commit()
+    db.commit()
 
 
 # Enregistrer le place_id de la commune de localisation dans place.localization_place_id
@@ -491,8 +619,8 @@ def insert_place_old_label(db, cursor, dt_id):
     """ """
     print("** TABLE place_old_label – INSERT")
     tags = re.compile('<[^>]+>')
-    # TODO: appeler le bon DT (et non _output6.xml, uniquement en dev)
-    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output6.xml')
+    # TODO: appeler le bon DT (et non _output7.xml, uniquement en dev)
+    tree = etree.parse('../../../dico-topo/data/'+dt_id+'/output7.xml')
     # tree = etree.parse('../../../dico-topo/data/'+dt_id+'/'+dt_id+'.xml')
 
     # conversion HTML5 de toute l’entrée forme_ancienne
@@ -541,13 +669,14 @@ def insert_place_old_label(db, cursor, dt_id):
     xslt_old_label2html = etree.parse(old_label2html)
     transform_old_label2html = etree.XSLT(xslt_old_label2html)
     # nettoyage typo, réutilisable
-    clean_start = re.compile('^[—\- ]+')
-    clean_end = re.compile('[— .,;]+$')
+    clean_start = re.compile('^[«—\-  ]+')
+    clean_end = re.compile('[»—  .,;]+$')
     clean_markup = re.compile(',(</[^>]+>)') # sortir la virgule du markup (span, cite, dfn, ?)
 
     # utilitaires pour extraire et nettoyer les formes anciennes
     # relou, support xpath incomplet, on ne peut pas sortir le texte qui suit le dernier élément <i>
     # <xsl:template match="i[position()=last()]/following-sibling::text()"/>
+    # On sort les notes, notamment pour DT60
     # On corrige plus loin en traitement de chaîne de chars.
     get_old_label = io.StringIO('''\
         <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -564,6 +693,7 @@ def insert_place_old_label(db, cursor, dt_id):
             <xsl:template match="date"/>
             <xsl:template match="comment"/>
             <xsl:template match="pg"/>
+            <xsl:template match="note"/>
         </xsl:stylesheet>''')
     xslt_get_old_label = etree.parse(get_old_label)
     transform_old_label2dfn = etree.XSLT(xslt_get_old_label)
@@ -673,6 +803,11 @@ def insert_place_old_label(db, cursor, dt_id):
         if entry.xpath('forme_ancienne'):
             n = 1
             for old_label in entry.xpath('forme_ancienne'):
+                # ATTENTION: on ne conserve pas les formes anciennes sans label (not(i)),
+                # sauf si la forme ancienne est la première de la liste des formes anciennes (ou unique).
+                # Dans ce cas on reprend le label de l’article.
+                if old_label.xpath('not(i)') and n > 1:
+                    continue
                 old_label_id = place['id']+'-0'+str(n) if n < 10 else place['id']+'-'+str(n)
                 old_label_xml_str = tostring(old_label, encoding='unicode')
                 old_label_xml_str = ' '.join(old_label_xml_str.split())
@@ -687,16 +822,21 @@ def insert_place_old_label(db, cursor, dt_id):
                 old_label_html_str = old_label_html_str.replace('<dfn>*', '<dfn>')
 
                 # DFN
-                # TODO: extraire tous les dfn du champ dans une table dédiée pour indexation
                 dfn = str(transform_old_label2dfn(tree))
                 dfn = re.sub(clean_start, '', dfn)
                 dfn = dfn.replace('<dfn>*', '<dfn>') # déprime de la gestion de l’"*" initiale (cf plus haut aussi)
-                dfn = dfn.replace(',</dfn>', '</dfn>,') # sortir la ponctuation avant normalisation de la fin de la chaîne
+                # sortir la ponctuation des élements <dfn> avant normalisation de la fin de la chaîne complète (dfn)
+                # dfn = dfn.replace(',</dfn>', '</dfn>,')
+                dfn = re.sub('([, .; :]+)</dfn>', '</dfn>\\1', dfn)
                 dfn = re.sub(clean_end, '', dfn)
                 dfn = dfn.rstrip()  # ceintures bretelles
                 # On vire le texte qui suit le dernier élément <dfn> (support xpath insuffisant avec lxml)
                 pos = dfn.rfind('</dfn>')
-                dfn = dfn[:pos+6]
+                # rfind retourne -1 si la chaîne n’est pas trouvée…
+                if pos != -1:
+                    dfn = dfn[:pos+6]
+                # des ponctuations illogiques du fait des traitement précédents, on standardise à la hache
+                dfn = re.sub('[, ;][, ;.:]{3,}', '. ', dfn)
                 # 7201 formes anciennes font plus de 100 chars : on coupe !
                 # TODO: corriger XML ou le code de chargement pour repositionner les balises dans la chaîne conservée
                 # use iterator: re.finditer('</dfn>', dfn)
@@ -737,24 +877,23 @@ def insert_place_old_label(db, cursor, dt_id):
                             "rich_date,"
                             "text_date,"
                             "rich_reference,"
-                            "rich_label_node,"
                             "responsibility_id,"
                             "place_id)"
-                        "VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                        "VALUES(?, ?, ?, ?, ?, ?, ?)",
                             (old_label_id,
                              dfn,
                              rich_date,
                              date,
                              rich_ref,
-                             old_label_html_str,
                              responsibility_id,
                              place['id']))
                 except sqlite3.IntegrityError as e:
                     print(e, "place %s" % (place['id']))
-                db.commit()
+                # db.commit()
 
         else:
             continue
+    db.commit()
 
     # Remettre les valeurs vides à NULL… honteux et efficace:
     cursor.execute("""

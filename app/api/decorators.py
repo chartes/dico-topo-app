@@ -1,4 +1,4 @@
-from flask_jwt_extended import get_jwt_identity, get_jwt_claims, jwt_required, verify_jwt_in_request
+#from flask_jwt_extended import get_jwt_identity, get_jwt_claims, jwt_required, verify_jwt_in_request
 from functools import wraps
 from app import JSONAPIResponseFactory
 from flask import request
@@ -13,6 +13,17 @@ error_401 = JSONAPIResponseFactory.make_errors_response(
     },
     status=401
 )
+
+
+def error_400(s):
+    return JSONAPIResponseFactory.make_errors_response(
+        {
+            "status": 400,
+            "title": "Bad request",
+            "detail": s
+        },
+        status=400
+    )
 
 
 def error_403(s):
@@ -34,7 +45,7 @@ def export_to(export_funcs):
             if "export" in request.args:
                 asked_format = request.args["export"]
                 if asked_format not in export_funcs:
-                    raise ValueError('export format unknown or unavailable')
+                    return error_400('Export format unknown or unavailable. Available values are : ' + ', '.join(['linkedplaces', 'inline-linkedplaces']))
                 func = export_funcs[asked_format]
                 try:
                     data = json_loads(response.data)

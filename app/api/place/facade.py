@@ -31,7 +31,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
         rel_facade = PlaceFacade if not rel_facade else rel_facade
 
         if self.obj.commune_insee_code is None:
-            return [] if self.obj.localization_commune is None else [
+            return [] if self.obj.localization_commune is None or self.obj.localization_commune.place is None else [
                 rel_facade.make_resource_identifier(lp.id, rel_facade.TYPE)
                 for lp in self.obj.localization_commune.place.linked_places if
                 lp.commune_insee_code is None and lp.id != self.obj.id]
@@ -45,7 +45,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
         rel_facade = PlaceFacade if not rel_facade else rel_facade
 
         if self.obj.commune_insee_code is None:
-            return [] if self.obj.localization_commune is None else [rel_facade(self.url_prefix, lp,
+            return [] if self.obj.localization_commune is None or self.obj.localization_commune.place is None else [rel_facade(self.url_prefix, lp,
                                                                                  self.with_relationships_links,
                                                                                  self.with_relationships_data).resource
                                                                      for lp in
@@ -76,10 +76,6 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 "label": self.obj.label,
                 "country": self.obj.country,
                 "dpt": self.obj.dpt,
-                #"desc": self.obj.desc,
-                #"comment": self.obj.comment,
-
-                #"num-start-page": self.obj.responsibility.num_start_page,
                 "localization-commune-relation-type": self.obj.localization_commune_relation_type,
                 "localization-insee-code": self.obj.related_commune.id if self.obj.related_commune else None,
 
@@ -89,6 +85,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 'databnf-ark': self.obj.commune.databnf_ark if self.obj.commune else None,
                 'viaf-id': self.obj.commune.viaf_id if self.obj.commune else None,
                 'siaf-id': self.obj.commune.siaf_id if self.obj.commune else None,
+                'osm-id': self.obj.commune.osm_id if self.obj.commune else None,
             },
             "meta": self.meta,
             "links": {
@@ -118,14 +115,12 @@ class PlaceFacade(JSONAPIAbstractFacade):
             },
         }
 
-
         for rel_name, (rel_facade, to_many) in {
             "responsibility": (ResponsibilityFacade, False),
             "commune": (CommuneFacade, False),
             "localization-commune": (CommuneFacade, False),
             "descriptions": (PlaceDescriptionFacade, True),
             "comments": (PlaceCommentFacade, True),
-            #"alt-labels": (PlaceAltLabelFacade, True),
             "old-labels": (PlaceOldLabelFacade, True),
             "place-feature-types": (PlaceFeatureTypeFacade, True)
 
@@ -175,7 +170,6 @@ class PlaceSearchFacade(PlaceFacade):
     def resource(self):
         """ """
         from app.api.place_description.facade import PlaceDescriptionFacade
-
         co = self.obj.related_commune
 
         old_labels = []
@@ -202,9 +196,6 @@ class PlaceSearchFacade(PlaceFacade):
                 "descriptions": [d.resource["attributes"]["content"]
                                  for d in [PlaceDescriptionFacade("", e)
                                            for e in self.obj.descriptions]]
-                #"desc": self.obj.desc,
-                #"comment": self.obj.comment,
-                #"num-start-page": self.obj.responsibility.num_start_page,
             },
             "links": {
                 "self": self.self_link

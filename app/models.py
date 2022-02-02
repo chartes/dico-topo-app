@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import CheckConstraint
 from sqlalchemy.dialects.sqlite import DATETIME
 from sqlalchemy.ext.declarative import declared_attr
+import random
 
 from app import db
 
@@ -24,7 +25,7 @@ def related_to_place_mixin(backref_name=None):
     class RelatedToPlaceMixin(object):
         @declared_attr
         def place_id(cls):
-            return db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False)
+            return db.Column(db.String(10), db.ForeignKey('place.place_id'), nullable=False, index=True)
 
         @declared_attr
         def place(cls):
@@ -71,7 +72,7 @@ class Place(CitableElementMixin, db.Model):
     commune = db.relationship(
         'InseeCommune', backref=db.backref('place', uselist=False),
         primaryjoin="InseeCommune.id==Place.commune_insee_code",
-        uselist=False
+        uselist=False,
     )
     localization_commune = db.relationship(
         'InseeCommune', backref=db.backref('localized_places'),
@@ -124,17 +125,6 @@ class PlaceComment(CitableElementMixin, related_to_place_mixin("comments"), db.M
     content = db.Column(db.Text, nullable=False)
 
 
-class PlaceAltLabel(CitableElementMixin, related_to_place_mixin("alt_labels"), db.Model):
-    """ """
-    __tablename__ = 'place_alt_label'
-    __table_args__ = (
-        db.UniqueConstraint('place_id', 'label', name='_place_label_uc'),
-    )
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    label = db.Column(db.String(200))
-
-
 class PlaceOldLabel(CitableElementMixin, related_to_place_mixin("old_labels"), db.Model):
     """ """
     __tablename__ = 'place_old_label'
@@ -149,8 +139,6 @@ class PlaceOldLabel(CitableElementMixin, related_to_place_mixin("old_labels"), d
     text_date = db.Column(db.String(100))
     # primary source reference with tags
     rich_reference = db.Column(db.Text)
-    # full old label with tags
-    rich_label_node = db.Column(db.Text)
 
     @property
     def longlat(self):
@@ -180,6 +168,7 @@ class InseeCommune(db.Model):
     databnf_ark = db.Column(db.String(64))
     viaf_id = db.Column(db.String(64))
     siaf_id = db.Column(db.String(64))
+    osm_id = db.Column(db.String(64))
 
     # relationships
     region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id",
@@ -249,8 +238,8 @@ class Responsibility(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    bibl_id = db.Column(db.Integer, db.ForeignKey('bibl.id'), nullable=True, index=True)
 
     # first num of the page where the element appears (within its source)
     num_start_page = db.Column(db.Integer, nullable=True)
@@ -268,3 +257,43 @@ class Responsibility(db.Model):
             self.creation_date.strftime("%Y-%m-%d %H:%M:%S"),
             self.user.username
         )
+
+
+class IdRegister(db.Model):
+    __tablename__ = "id_register"
+
+    _ID_MAX = 9999999
+    PREFIX = 'P'
+    # _CONTROL = 'z'
+    _PADDING = len(str(_ID_MAX))
+    _NB_TRY_MAX = _ID_MAX*5
+
+    primary_value = db.Column(db.String,  nullable=False, index=True, primary_key=True)
+    secondary_value = db.Column(db.String, nullable=True, index=True)
+
+    def __init__(self, secondary_value, primary_value=None):
+        if primary_value is None:
+            primary_value = self.make_primary_value(random.randint(0, self._ID_MAX))
+            num_try = 0
+            while num_try <= self._NB_TRY_MAX and db.session.query(
+                    IdRegister.query.filter(IdRegister.primary_value == primary_value).exists()
+            ).scalar():
+                primary_value = self.make_primary_value(random.randint(0, self._ID_MAX))
+                num_try += 1
+
+            if num_try >= self._NB_TRY_MAX:
+                raise Exception("There is (probably) no room anymore!")
+
+        super(IdRegister, self).__init__(primary_value=primary_value, secondary_value=secondary_value)
+
+
+    def make_primary_value(self, new_id):
+        # check digit ; https://en.wikisource.org/wiki/User:Inductiveload/BnF_ARK_format
+        xdigits = "0123456789"
+        index_sum = 0
+        i = 1
+        for digit in str(new_id):
+            index_sum += xdigits.index(digit) * i
+            i += 1
+        check_digit = xdigits[index_sum % 10]
+        return f"{self.PREFIX}{str(new_id).zfill(self._PADDING)}{str(check_digit)}"

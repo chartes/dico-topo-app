@@ -6,12 +6,14 @@ import requests
 import sqlalchemy
 from elasticsearch import AuthorizationException
 from jsonschema import validate
+from sqlalchemy import event, or_, not_
+from sqlalchemy.engine import Engine
 
 from app import create_app
 
 from app.api.place.facade import PlaceFacade
 from app.api.place_old_label.facade import PlaceOldLabelFacade
-from app.models import Place, PlaceOldLabel
+from app.models import Place, PlaceOldLabel, IdRegister,  PlaceComment, PlaceDescription, PlaceFeatureType
 
 app = None
 
@@ -43,7 +45,7 @@ def validateJSONSchema(schema, data):
     validate(instance=data, schema=schema)
 
 
-def make_cli():
+def make_cli(given_app=None):
     """ Creates a Command Line Interface for everydays tasks
 
     :return: Click groum
@@ -55,7 +57,10 @@ def make_cli():
         """ Generates the client"""
         click.echo("Loading the application")
         global app
-        app = create_app(config)
+        if given_app:
+            app = given_app
+        else:
+            app = create_app(config)
         print(app.config['SQLALCHEMY_DATABASE_URI'])
 
     @click.command("db-create")
@@ -70,7 +75,8 @@ def make_cli():
             click.echo("Created the database")
 
     @click.command("db-recreate")
-    @click.option('--insert', required=False, default=[], help="--insert ../db/fixtures/file1.sql,../db/fixutres/file2/sql")
+    @click.option('--insert', required=False, default=[],
+                  help="--insert ../db/fixtures/file1.sql,../db/fixutres/file2/sql")
     @click.option('--unstrict', is_flag=True, help="--unstrict disable foreign keys verification")
     def db_recreate(insert, unstrict):
         """ Recreates a local database. You probably should not use this on
@@ -101,7 +107,7 @@ def make_cli():
     def db_validate(between):
         SCHEMA_URL = "https://raw.githubusercontent.com/kgeographer/whgazetteer/master/datasets/static/validate/lpf-schema.json"
         getAPIUrl = lambda \
-            id: "http://localhost/dico-topo/api/1.0/places/{0}?export=linkedplaces&without-relationships".format(id)
+                id: "http://localhost:5003/api/1.0/places/{0}?export=linkedplaces&without-relationships".format(id)
         print("Fetching schema from {0}... ".format(SCHEMA_URL), end='', flush=False)
         r = requests.get(SCHEMA_URL)
         print(r.status_code)
@@ -216,6 +222,190 @@ def make_cli():
             else:
                 print("Warning: index %s does not exist or is not declared in the cli" % name)
 
+    @click.command("id-register")
+    @click.option('--clear', required=False, default=False, is_flag=True, help="empty the id register")
+    @click.option('--register', required=False, default=False, is_flag=True,
+                  help="register all Place ids without generating new ids. Replace old mapping if any.")
+    @click.option('--replace', required=False, default=False, is_flag=True, help="replace all Place ids that exist in "
+                                                                                 "the register but only if they don't"
+                                                                                 " match the new id format (see "
+                                                                                 "--force)")
+    @click.option('--append', required=False, default=False, is_flag=True, help="append all Place ids that does not "
+                                                                                "exist in the register but only if "
+                                                                                "they don't match the new id format ("
+                                                                                "see --force)")
+    @click.option('--force', required=False, default=False, is_flag=True, help="allow append/replace operations on "
+                                                                               "ids that are already in the new "
+                                                                               "format (starting with "
+                                                                               "IdRegister.PREFIX)")
+    @click.option('--auto-commit', required=False, default=False, is_flag=True, help="allow auto committing after "
+                                                                                     "clear/register/append/replace operations")
+    @click.option('--update-app', required=False, default=False, is_flag=True, help="update the application tables ("
+                                                                                    "Place, PlaceComment, "
+                                                                                    "PlaceDescription, "
+                                                                                    "PlaceFeatureType, PlaceOldLabel)")
+    def id_register(clear, register, replace, append, force, auto_commit, update_app):
+        with app.app_context():
+
+            @event.listens_for(Engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=OFF")
+                cursor.close()
+
+            def is_new_format(id):
+                return id[0] == IdRegister.PREFIX
+
+            from app import db
+            db.create_all()
+            try:
+                print('-' * 50)
+                print(f'register: {IdRegister.query.count()} ids | place: {Place.query.count()} ids')
+                print('-' * 50)
+
+                print('[register.start]')
+                if clear:
+                    IdRegister.query.delete()
+                    # db.session.commit()
+                    print(' --> register.clear')
+
+                print(f' --> register: {IdRegister.query.count()} ids | place: {Place.query.count()} ids')
+
+                if register:
+                    nb_register = 0
+                    elts_to_save = []
+                    for place in Place.query.all():
+                        elts = IdRegister.query.filter(or_(IdRegister.primary_value == place.id,
+                                                           IdRegister.secondary_value == place.id)).all()
+
+                        if len(elts) > 0 and force:
+                            for elt in elts:
+                                elt.primary_value = place.id
+                                elt.secondary_value = place.id
+                        else:
+                            elt = IdRegister(place.id, place.id)
+                            elts_to_save.append(elt)
+
+                        nb_register += 1
+                        print(f' --> register.replace: {nb_register} registrations', end='\r')
+                    db.session.bulk_save_objects(elts_to_save)
+                    db.session.flush()
+                    print('')
+                else:
+                    if replace:
+                        nb_replace = 0
+                        for place in Place.query.all():
+                            # update entries with a secondary value matching the place id
+                            elt = IdRegister.query.filter(IdRegister.secondary_value == place.id).first()
+                            if elt:
+                                elt = IdRegister(place.id)
+                                nb_replace += 1
+                                db.session.add(elt)
+                            else:
+                                # update entries if the primary value matches the place id AND if the place id is
+                                # already in the new format
+                                if is_new_format(place.id) and force:
+                                    elt = IdRegister.query.filter(IdRegister.primary_value == place.id).first()
+                                    if elt:
+                                        db.session.delete(elt)
+                                        db.session.flush()
+                                        elt = IdRegister(place.id)
+                                        nb_replace += 1
+                                        db.session.add(elt)
+
+                            print(f' --> register.replace: {nb_replace} replacements', end='\r')
+                            db.session.flush()
+                        if nb_replace != Place.query.count():
+                            print(f'\n --> register.replace: you may have some Place ids that are not registered. '
+                                  f'Consider using --append to add them to the register', end='\r')
+                        print('')
+                    if append:
+                        nb_add = 0
+                        new_ids = []
+                        places = Place.query.with_entities(Place.id).filter(
+                            Place.id.notin_([r.primary_value for r in
+                                             IdRegister.query.with_entities(IdRegister.primary_value).all()])
+                        ).all()
+                        for i, place in enumerate(places):
+                            # append only new ids to the register
+                            if (not is_new_format(place.id) or force) and place.id not in new_ids:
+                                nb_add += 1
+                                print(f' --> register.append: {nb_add} new ids', end='\r')
+                                elt = IdRegister(place.id)
+                                new_ids.append(elt.primary_value)
+                                db.session.add(elt)
+                            else:
+                                print(place.id, place.id in new_ids, is_new_format(place.id))
+
+                        if nb_add == 0:
+                            print(
+                                f' --> register.append: no ids from Place to append (maybe they are already in the new format ?)')
+                        else:
+                            print('')
+
+                print('[register.end]')
+
+                if clear or register or append or replace:
+                    if auto_commit:
+                        db.session.commit()
+                        print('[register.commit]')
+                    else:
+                        co = input('commit changes to the register Y/n ?  ')
+                        print('')
+                        if co.lower() == 'y' or co == '':
+                            db.session.commit()
+                            print('[register.commit]')
+                        else:
+                            print('[register.rollback]')
+                            db.session.rollback()
+
+                if update_app:
+                    print('[app.start]')
+
+                    # update the whole application using the ids stored in the register
+                    q = IdRegister.query.with_entities(IdRegister.primary_value).filter(IdRegister.secondary_value is not None)
+                    print(
+                        f' --> app.update: {q.count()} ids from the register have a secondary value matching a place id')
+
+                    for j, elt in enumerate(IdRegister.query.filter(IdRegister.secondary_value is not None).all()):
+                        new_id, old_id = elt.primary_value, elt.secondary_value
+                        print(f' --> app.update: {j + 1} ids updated', end='\r')
+
+                        with db.session.no_autoflush:
+
+                            p = Place.query.filter(Place.id == old_id).first()
+                            if p:
+                                p.id = new_id
+
+                                for i, p_old in enumerate(
+                                        PlaceOldLabel.query.filter(PlaceOldLabel.place_id == old_id).order_by(
+                                                PlaceOldLabel.id).all()):
+                                    p_old.old_label_id = f'{new_id}-{i + 1}'
+                                    p_old.place_id = new_id
+
+                                for p_feat in PlaceFeatureType.query.filter(PlaceFeatureType.place_id == old_id).all():
+                                    p_feat.place_id = new_id
+
+                                for p_co in PlaceComment.query.filter(PlaceComment.place_id == old_id).all():
+                                    p_co.place_id = new_id
+
+                                for p_desc in PlaceDescription.query.filter(PlaceDescription.place_id == old_id).all():
+                                    p_desc.place_id = new_id
+
+                    print(f'\n[app.end]')
+
+                else:
+                    print('[app] no application update')
+
+                db.session.commit()
+            except Exception as e:
+                print(str(e))
+                db.session.rollback()
+
+            print('-' * 50)
+            print(f'register: {IdRegister.query.count()} ids | place: {Place.query.count()} ids')
+            print('-' * 50)
+
     @click.command("run")
     def run():
         """ Run the application in Debug Mode [Not Recommended on production]
@@ -227,5 +417,6 @@ def make_cli():
     cli.add_command(db_reindex)
     cli.add_command(db_validate)
     cli.add_command(run)
+    cli.add_command(id_register)
 
     return cli

@@ -100,7 +100,6 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
                 "rich-date": self.obj.rich_date,
                 "text-date": self.obj.text_date,
                 "rich-reference": self.obj.rich_reference,
-                "rich-label-node": self.obj.rich_label_node,
             },
             "meta": self.meta,
             "links": {
@@ -177,7 +176,6 @@ class PlaceOldLabelFacade(JSONAPIAbstractFacade):
             "is-localized": co is not None,
 
             "text-date": self.parse_date(self.obj.text_date),
-            #"old-labels": [self.obj.rich_label],
         }
 
         return [{"id": self.obj.id, "index": self.get_index_name(), "payload": payload}]
@@ -205,8 +203,8 @@ class PlaceOldLabelSearchFacade(PlaceOldLabelFacade):
             "attributes": {
                 "place-id": self.obj.place.id,
                 "place-label": self.obj.place.label,
-                "place-desc": [d.resource["attributes"]["content"]  for d in [PlaceDescriptionFacade("", e)
-                                                                              for e in self.obj.place.descriptions]],
+                "place-desc": [d.resource["attributes"]["content"] for d in [PlaceDescriptionFacade("", e)
+                               for e in self.obj.place.descriptions]],
                 "localization-insee-code": co.id if co else None,
                 "commune-label": co.NCCENR if co else None,
                 "dpt": self.obj.place.dpt,

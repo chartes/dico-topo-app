@@ -76,7 +76,7 @@ class JSONAPIRouteRegistrar(object):
             rel = inclusion.split('@')
             if len(rel) > 1:
                 rel_name, asked_facade_name = rel
-                asked_facade = JSONAPIFacadeManager.get_facade_class_from_name(asked_facade_name)
+                asked_facade = JSONAPIFacadeManager.get_facade_class_from_name(rel_name, asked_facade_name)
             else:
                 rel_name, asked_facade = rel[0], None
 
@@ -154,7 +154,7 @@ class JSONAPIRouteRegistrar(object):
                             field=filter_fieldname,
                             criteria=True if criteria_upper == 'TRUE' else False
                         )
-                        print(str(new_criteria))
+                        #print(str(new_criteria))
                     elif not not_null_operator:
                         if criteria:
                             # filter[field]=value
@@ -174,7 +174,7 @@ class JSONAPIRouteRegistrar(object):
                         new_criteria = column(col, is_literal=True).isnot(None)
 
                     print(str(new_criteria))
-                    filter_criteriae.append(text(new_criteria))
+                    filter_criteriae.append(text(str(new_criteria)))
 
             objs_query = objs_query.filter(*filter_criteriae)
 
@@ -226,23 +226,24 @@ class JSONAPIRouteRegistrar(object):
 
     @staticmethod
     def parse_range_parameter():
-        range = None
+        ranges = []
         for f in request.args.keys():
             if f.startswith('range[') and f.endswith(']'):
                 key, ops = (f[len('range['):-1], [op.split(':') for op in request.args[f].split(",")])
                 range = {key: {}}
                 for op, value in ops:
                     range[key][op] = value
-                return range
-        print(range)
-        return range
+                # return range
+                ranges.append(range)
+        print("ranges params:", ranges)
+        return ranges
 
-    def search(self, index, query, range, groupby, sort_criteriae, page_id, page_size, page_after):
+    def search(self, index, query, ranges, groupby, sort_criteriae, page_id, page_size, page_after):
         # query the search engine
         results, buckets, after_key, total = SearchIndexManager.query_index(
             index=index,
             query=query,
-            range=range,
+            ranges=ranges,
             groupby=groupby,
             sort_criteriae=sort_criteriae,
             page=page_id,
@@ -313,7 +314,7 @@ class JSONAPIRouteRegistrar(object):
             # PARAMETERS
             index = request.args.get("index", None)
             query = request.args["query"]
-            range = JSONAPIRouteRegistrar.parse_range_parameter()
+            ranges = JSONAPIRouteRegistrar.parse_range_parameter()
             groupby = request.args["groupby[field]"] if "groupby[field]" in request.args else None
 
             # if request has pagination parameters
@@ -345,7 +346,7 @@ class JSONAPIRouteRegistrar(object):
                 sorted_ids_list, res, meta = self.search(
                     index=index,
                     query=query,
-                    range=range,
+                    ranges=ranges,
                     groupby=groupby,
                     sort_criteriae=sort_criteriae,
                     page_id=num_page,
@@ -495,6 +496,7 @@ class JSONAPIRouteRegistrar(object):
                                 included_resources.append(_res)
                         # included_resources.extend(included_res)
 
+            resources = [f.resource for f in sorted_facade_objs]
             res_meta = {
                 "total-count": meta["total"],
                 "duration": float('%.4f' % (time.time() - start_time))
@@ -502,12 +504,13 @@ class JSONAPIRouteRegistrar(object):
             if "after" in meta:
                 res_meta["after"] = meta["after"]
 
-            return JSONAPIResponseFactory.make_data_response(
-                [f.resource for f in sorted_facade_objs],
+            response = JSONAPIResponseFactory.make_data_response(
+                resources,
                 links=links,
                 included_resources=included_resources,
                 meta=res_meta
             )
+            return response
 
         # APPLY decorators if any
         for dec in decorators:
