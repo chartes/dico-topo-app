@@ -229,6 +229,12 @@ def export_place_to_linkedplace(request, input_data):
                     addLink("https://www.openstreetmap.org/relation/{0}".format(co.osm_id))
             )
 
+            if co.inha_uuid:
+                feature["links"].append(
+                    addLink('https://agorha.inha.fr/recherche?terms=concept_lieu:"{0}"'.format(co.inha_uuid))
+                )
+
+
         feature_collection["features"].append(feature)
 
     return feature_collection, 200, {}, "application/json"

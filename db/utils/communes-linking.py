@@ -21,7 +21,8 @@ if __name__ == "__main__":
             f.readline()
             rejected = 0
             for l, line in enumerate(f.readlines()):
-                insee, osm, geoname, wikidata, wikipedia, databnf, viaf, siaf = [i.strip() for i in line.split("\t")]
+                insee, osm, geoname, wikidata, wikipedia,\
+                databnf, viaf, siaf, inha = [i.strip() for i in line.split("\t")]
 
                 if len(insee) == 0:
                     print("Cannot parse line %s" % (l+2))
@@ -46,6 +47,8 @@ if __name__ == "__main__":
                             co.viaf_id = viaf.strip()
                         if len(siaf) > 0:
                             co.siaf_id = siaf.strip()
+                        if len(inha) > 0:
+                            co.inha_uuid = inha.strip()
 
                         db.session.add(co)
             try:

@@ -120,6 +120,7 @@ def api_get_capabilities(api_version):
                                 {"name": "viaf-id", "description": ""},
                                 {"name": "siaf-id", "description": ""},
                                 {"name": "osm-id", "description": ""},
+                                {"name": "inha-uuid", "description": ""},
                             ],
                             "relationships": [
                                 {"name": "responsibility",
@@ -174,6 +175,7 @@ def api_get_capabilities(api_version):
                                 {"name": "viaf-id", "description": ""},
                                 {"name": "siaf-id", "description": ""},
                                 {"name": "osm-id", "description": ""},
+                                {"name": "inha-uuid", "description": ""},
                             ],
                             "relationships": [
                                 {"name": "localized-places", "description": "",

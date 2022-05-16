@@ -169,6 +169,7 @@ class InseeCommune(db.Model):
     viaf_id = db.Column(db.String(64))
     siaf_id = db.Column(db.String(64))
     osm_id = db.Column(db.String(64))
+    inha_uuid = db.Column(db.String(64))
 
     # relationships
     region = db.relationship('InseeRef', primaryjoin="InseeCommune.REG_id==InseeRef.id",

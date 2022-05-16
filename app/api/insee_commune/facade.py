@@ -45,6 +45,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'viaf-id': self.obj.viaf_id,
                 'siaf-id': self.obj.siaf_id,
                 'osm-id': self.obj.osm_id,
+                'inha-uuid': self.obj.inha_uuid,
             },
             "meta": self.meta,
             "links": {

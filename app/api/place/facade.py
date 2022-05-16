@@ -86,6 +86,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 'viaf-id': self.obj.commune.viaf_id if self.obj.commune else None,
                 'siaf-id': self.obj.commune.siaf_id if self.obj.commune else None,
                 'osm-id': self.obj.commune.osm_id if self.obj.commune else None,
+                'inha-uuid': self.obj.commune.inha_uuid if self.obj.commune else None,
             },
             "meta": self.meta,
             "links": {
