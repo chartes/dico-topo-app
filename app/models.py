@@ -169,6 +169,12 @@ class InseeCommune(db.Model):
     viaf_id = db.Column(db.String(64))
     siaf_id = db.Column(db.String(64))
     osm_id = db.Column(db.String(64))
+    """
+    INHA
+        - ark pour l’entrée du thésaurus: 'https://thesaurus.inha.fr/thesaurus/resource/ark:/54721/09fe37f3-cc3e-4eb8-b90d-e93e3103a71f'
+        - uuid dérivé: '09fe37f3-cc3e-4eb8-b90d-e93e3103a71f'
+        - requête Agorha: https://agorha.inha.fr/recherche?terms=concept_lieu:"09fe37f3-cc3e-4eb8-b90d-e93e3103a71f"
+    """
     inha_uuid = db.Column(db.String(64))
 
     # relationships

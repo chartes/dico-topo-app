@@ -6,3 +6,5 @@ venv
 tests/data/*.sqlite
 db/*.sqlite
 db/utils/debug.py
+db/utils/inha.csv
+db/utils/inha2db.py

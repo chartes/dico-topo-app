@@ -231,7 +231,7 @@ def export_place_to_linkedplace(request, input_data):
 
             if co.inha_uuid:
                 feature["links"].append(
-                    addLink('https://agorha.inha.fr/recherche?terms=concept_lieu:"{0}"'.format(co.inha_uuid))
+                    addLink('https://agorha.inha.fr/recherche?terms=concept_lieu:%22{0}%22'.format(co.inha_uuid))
                 )
 
 
