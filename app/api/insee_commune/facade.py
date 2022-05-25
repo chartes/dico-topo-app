@@ -45,7 +45,7 @@ class CommuneFacade(JSONAPIAbstractFacade):
                 'viaf-id': self.obj.viaf_id,
                 'siaf-id': self.obj.siaf_id,
                 'osm-id': self.obj.osm_id,
-                'inha-uri': 'https://thesaurus.inha.fr/thesaurus/page/ark:/54721/{0}'.format(self.obj.inha_uuid),
+                'inha-uri': 'https://thesaurus.inha.fr/thesaurus/page/ark:/54721/{0}'.format(self.obj.inha_uuid) if self.obj.inha_uuid else None,
             },
             "meta": self.meta,
             "links": {
