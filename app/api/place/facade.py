@@ -87,7 +87,7 @@ class PlaceFacade(JSONAPIAbstractFacade):
                 'siaf-id': self.obj.commune.siaf_id if self.obj.commune else None,
                 'osm-id': self.obj.commune.osm_id if self.obj.commune else None,
                 'inha-uri': 'https://thesaurus.inha.fr/thesaurus/page/ark:/54721/{0}'.format(
-                    self.obj.commune.inha_uuid) if self.obj.commune else None,
+                    self.obj.commune.inha_uuid) if self.obj.commune and self.obj.commune.inha_uuid else None,
             },
             "meta": self.meta,
             "links": {
