@@ -92,9 +92,9 @@ class SearchIndexManager(object):
                     index = current_app.config["DEFAULT_INDEX_NAME"]
 
                 pprint.pprint(body)
-                search = current_app.elasticsearch.search(index=index, doc_type="_doc", body=body)
+                search = current_app.elasticsearch.search(index=index, body=body)
                 # from elasticsearch import Elasticsearch
-                # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, doc_type="_doc", body=body)
+                # scan = Elasticsearch.helpers.scan(client=current_app.elasticsearch, index=index, body=body)
 
                 from collections import namedtuple
                 Result = namedtuple("Result", "index id type score")
@@ -105,7 +105,7 @@ class SearchIndexManager(object):
 
                 buckets = []
                 after_key = None
-                count = search['hits']['total']
+                count = search['hits']['total']['value']
 
                 #print(body, len(results), search['hits']['total'], index)
                 #pprint.pprint(search)
@@ -127,13 +127,13 @@ class SearchIndexManager(object):
     @staticmethod
     def add_to_index(index, id, payload):
         # print("ADD_TO_INDEX", index, id)
-        current_app.elasticsearch.index(index=index, doc_type="_doc", id=id, body=payload)
+        current_app.elasticsearch.index(index=index, id=id, body=payload)
 
     @staticmethod
     def remove_from_index(index, id):
         # print("REMOVE_FROM_INDEX", index, id)
         try:
-            current_app.elasticsearch.delete(index=index, doc_type="_doc", id=id)
+            current_app.elasticsearch.delete(index=index, id=id)
         except elasticsearch.exceptions.NotFoundError as e:
             print("WARNING: resource already removed from index:", str(e))
 
