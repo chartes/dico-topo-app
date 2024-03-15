@@ -1,10 +1,15 @@
 from math import floor
+from pprint import pprint
+from elasticsearch import Elasticsearch
+from elasticsearch.helpers import parallel_bulk
 
+import time
 import click
 import json
 import requests
 import sqlalchemy
 from elasticsearch import AuthorizationException
+
 from jsonschema import validate
 from sqlalchemy import event, or_, not_
 from sqlalchemy.engine import Engine
@@ -181,6 +186,7 @@ def make_cli(given_app=None):
                     stmt = info["model"].query
 
                     if between:
+                        print("with between")
                         boundaries = between.split(",")
                         if len(boundaries) == 1:
                             lower_bound = boundaries[0]
@@ -192,23 +198,85 @@ def make_cli(given_app=None):
 
                     all_objs = stmt.all()
                     count = len(all_objs)
-                    ct = 0
                     print("(%s items)" % count, end=" ", flush=True)
-                    last_progress = -1
-                    for obj in all_objs:
-                        # REINDEX
-                        f_obj = info["facade"](prefix, obj)
-                        try:
-                            f_obj.reindex("insert", propagate=False)
-                        except AuthorizationException:
-                            reset_readonly()
-                            f_obj.reindex("insert", propagate=False)
-                        # show progression
-                        progress = floor(100 * (ct / count))
-                        if progress % 5 == 0 and progress != last_progress:
-                            print(progress, end="... ", flush=True)
-                            last_progress = progress
-                        ct += 1
+
+                    bulk_body = []
+                    start_facade = time.time()
+
+                    is_creation = 'index'
+
+                    if is_creation == 'index':
+                        for obj in all_objs:
+                            # REINDEX
+                            f_obj = info["facade"](prefix, obj)
+                            #bulk create mode
+                            bulk_body.append("\n".join(
+                                [json.dumps({"index": {"_index": index_name, "_type": "_doc", "_id": obj.id}}),
+                                 json.dumps(f_obj.get_data_to_index_when_added(False)[0]["payload"])]))
+                    elif is_creation == 'update':
+                        for obj in all_objs:
+                            # REINDEX
+                            f_obj = info["facade"](prefix, obj)
+                            # bulk update mode (to be used in test mode only as reindex is meant to create, not update)
+                            bulk_body.append("\n".join([json.dumps({"update": {"_index": index_name, "_type": "_doc", "_id": obj.id}}), json.dumps({"doc": f_obj.get_data_to_index_when_added(False)[0]["payload"]})]))
+
+                    elif is_creation == 'delete':
+                        for obj in all_objs:
+                            #bulk delete mode (to be used in test mode only as reindex is meant to create, not delete)
+                            bulk_body.append(json.dumps({"delete": {"_index": index_name, "_type": "_doc", "_id": obj.id}}))
+
+
+                    #print("bulk_body", bulk_body)
+                    print("\ntimer build facade objects : ", time.strftime("%H:%M:%S", time.gmtime((time.time() - start_facade))))
+
+                    #Split the index data in chunks
+                    def split_list(lst, chunk_size):
+                        return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
+
+                    actions_chunks = split_list(bulk_body, 50000)
+
+                    es = Elasticsearch()
+                    start_es = time.time()
+
+                    for chunk in actions_chunks:
+                        res = es.bulk(index='my_index', body=chunk)
+                        #print(res)
+
+                    """
+                    #Test with parallel_bulk : SLOWER !!!
+                    def generate_actions(data):
+                        actions = []
+                        if is_creation == 'index':
+                            for obj in data:
+                                action = {
+                                    '_op_type': 'index',
+                                    '_index': index_name,
+                                    "_id": obj.id,
+                                    '_source': json.dumps(info["facade"](prefix, obj).get_data_to_index_when_added(False)[0]["payload"])
+                                }
+                                actions.append(action)
+                            return actions
+                        else:
+                            for obj in data:
+                                action = {
+                                    '_op_type': 'delete',
+                                    '_index': index_name,
+                                    "_id": obj.id,
+                                }
+                                actions.append(action)
+                            return actions
+                    
+                    es = Elasticsearch()
+                    start_es = time.time()
+                    
+                    for success, info in parallel_bulk(client=es, chunk_size=1000, actions=generate_actions(all_objs)):
+                        if not success:
+                            print("Insert failed: ", info)
+                    """
+
+                    print("\ntimer ES : ", time.strftime("%H:%M:%S", time.gmtime((time.time() - start_es))))
+                    print("\ntimer full : ", time.strftime("%H:%M:%S", time.gmtime((time.time() - start_facade))))
+
                     print("OK")
                 except Exception as e:
                     print("NOT OK!  ", str(e))
