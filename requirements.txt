@@ -8,11 +8,13 @@ Flask-SQLAlchemy==2.5.1
 greenlet==1.1.2
 itsdangerous==2.0.1
 Jinja2==3.0.3
+jsonschema==4.20.0
 Mako==1.1.6
 MarkupSafe==2.0.1
 python-dotenv==0.19.2
 python-Levenshtein==0.12.2
 rapidfuzz==1.8.3
+requests==2.31.0
 six==1.16.0
 SQLAlchemy==1.3.0
 SQLAlchemy-Utils==0.37.9
