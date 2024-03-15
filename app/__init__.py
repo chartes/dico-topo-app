@@ -38,7 +38,7 @@ class PrefixMiddleware(object):
             return self.app(environ, start_response)
 
 
-def create_app(config_name="dev"):
+def create_app(config_name="dev", with_hardcoded_prefix=True):
     """ Create the application """
     app = Flask(__name__)
     if not isinstance(config_name, str):
@@ -56,10 +56,18 @@ def create_app(config_name="dev"):
         app.config.from_object(config[config_name])
 
     #app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
+    def with_url_prefix(url):
+        from flask import request
+        return "".join((request.host_url[:-1], app.config['APP_URL_PREFIX'], url))
+
+    app.with_url_prefix = with_url_prefix
 
     db.init_app(app)
     config[config_name].init_app(app)
     migrate = Migrate(app, db)
+
+    if with_hardcoded_prefix:
+        app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=app.config["APP_URL_PREFIX"])
 
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) if app.config['ELASTICSEARCH_URL'] else None
 
