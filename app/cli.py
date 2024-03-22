@@ -235,7 +235,10 @@ def make_cli(given_app=None):
 
                     actions_chunks = split_list(bulk_body, 50000)
 
-                    es = Elasticsearch("http://localhost:9400", basic_auth=("elastic","7_DT41GZ3A9YH=PrHZ6l"))
+                    # no security enabled (dev):
+                    es = Elasticsearch("http://localhost:9200")
+                    # security enabled (prod):
+                    # es = Elasticsearch("http://localhost:9200", basic_auth=("elastic","ES8KEY"))
                     start_es = time.time()
 
                     for chunk in actions_chunks:
@@ -266,7 +269,10 @@ def make_cli(given_app=None):
                                 actions.append(action)
                             return actions
                     
-                    es = Elasticsearch("http://localhost:9400", basic_auth=("elastic","7_DT41GZ3A9YH=PrHZ6l"))
+                    # no security enabled (dev):
+                    es = Elasticsearch("http://localhost:9200")
+                    # security enabled (prod):
+                    # es = Elasticsearch("http://localhost:9200", basic_auth=("elastic","ES8KEY"))
                     start_es = time.time()
                     
                     for success, info in parallel_bulk(client=es, chunk_size=1000, actions=generate_actions(all_objs)):
