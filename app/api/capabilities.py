@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from flask import request, current_app
 
 from app import api_bp, JSONAPIResponseFactory
@@ -7,11 +9,12 @@ from app import api_bp, JSONAPIResponseFactory
 def api_get_capabilities(api_version):
     if "capabilities" in request.args:
         host = request.host_url[:-1]
-        if "localhost" not in host:
+        if "localhost" not in host and "127.0.0" not in host:
             url_prefix = host + current_app.config["API_URL_PREFIX"]
             url_prefix = url_prefix.replace('http://', 'https://')
         else:
-            url_prefix = "http://localhost:5003/api/1.0"
+
+            url_prefix = host + current_app.config["API_URL_PREFIX"]
 
         capabilities = [
             {
@@ -72,7 +75,7 @@ def api_get_capabilities(api_version):
                     "examples": [
                         {
                             "description": "Recherche du terme 'Poizatière'",
-                            "content": f"{url_prefix}/search?query=label.folded:Poizatière&sort=place-label.keyword&page[size]=200&page[number]=1"
+                            "content": f"{url_prefix}/search?query=label.folded:{quote('Poizatière')}&sort=place-label.keyword&page{quote('[')}size{quote(']')}=200&page{quote('[')}number{quote(']')}=1"
                         }
                     ]
                 }
@@ -141,7 +144,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": f"{url_prefix}/places?page[size]=3",
+                            "url": f"{url_prefix}/places?page{quote('[')}size{quote(']')}=3",
 
                         }
                     },
@@ -193,7 +196,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": f"{url_prefix}/communes?page[size]=10",
+                            "url": f"{url_prefix}/communes?page{quote('[')}size{quote(']')}=10",
 
                         }
                     },
@@ -224,7 +227,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": f"{url_prefix}/place-feature-types?page[size]=10",
+                            "url": f"{url_prefix}/place-feature-types?page{quote('[')}size{quote(']')}=10",
 
                         }
                     },
@@ -258,7 +261,7 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": f"{url_prefix}/insee-refs?page[size]=10",
+                            "url": f"{url_prefix}/insee-refs?page{quote('[')}size{quote(']')}=10",
 
                         }
                     },
@@ -276,7 +279,7 @@ def api_get_capabilities(api_version):
                     "description": "",
                     "endpoints": {
                         "resource": {
-                            "url": "%s/place-old-label/<id>" % url_prefix,
+                            "url": f"{url_prefix}/place-old-label/<id>",
                             "parameters": {},
                             "attributes": [
                                 {"name": "rich-label", "description": ""},
@@ -296,12 +299,12 @@ def api_get_capabilities(api_version):
                             ]
                         },
                         "collection": {
-                            "url": "%s/place-old-labels?page[size]=10" % url_prefix,
+                            "url": f"{url_prefix}/place-old-labels?page{quote('[')}size{quote(']')}=10",
 
                         }
                     },
                     "examples": {
-                        "url": "%s/place-old-labels/93" % url_prefix
+                        "url": f"{url_prefix}/place-old-labels/93"
                     }
                 },
 
