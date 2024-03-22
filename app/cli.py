@@ -211,19 +211,19 @@ def make_cli(given_app=None):
                             f_obj = info["facade"](prefix, obj)
                             #bulk create mode
                             bulk_body.append("\n".join(
-                                [json.dumps({"index": {"_index": index_name, "_type": "_doc", "_id": obj.id}}),
+                                [json.dumps({"index": {"_index": index_name, "_id": obj.id}}),
                                  json.dumps(f_obj.get_data_to_index_when_added(False)[0]["payload"])]))
                     elif is_creation == 'update':
                         for obj in all_objs:
                             # REINDEX
                             f_obj = info["facade"](prefix, obj)
                             # bulk update mode (to be used in test mode only as reindex is meant to create, not update)
-                            bulk_body.append("\n".join([json.dumps({"update": {"_index": index_name, "_type": "_doc", "_id": obj.id}}), json.dumps({"doc": f_obj.get_data_to_index_when_added(False)[0]["payload"]})]))
+                            bulk_body.append("\n".join([json.dumps({"update": {"_index": index_name, "_id": obj.id}}), json.dumps({"doc": f_obj.get_data_to_index_when_added(False)[0]["payload"]})]))
 
                     elif is_creation == 'delete':
                         for obj in all_objs:
                             #bulk delete mode (to be used in test mode only as reindex is meant to create, not delete)
-                            bulk_body.append(json.dumps({"delete": {"_index": index_name, "_type": "_doc", "_id": obj.id}}))
+                            bulk_body.append(json.dumps({"delete": {"_index": index_name, "_id": obj.id}}))
 
 
                     #print("bulk_body", bulk_body)
@@ -235,7 +235,10 @@ def make_cli(given_app=None):
 
                     actions_chunks = split_list(bulk_body, 50000)
 
-                    es = Elasticsearch()
+                    # no security enabled (dev):
+                    es = Elasticsearch("http://localhost:9200")
+                    # security enabled (prod):
+                    # es = Elasticsearch("http://localhost:9200", basic_auth=("elastic","ES8KEY"))
                     start_es = time.time()
 
                     for chunk in actions_chunks:
@@ -266,7 +269,10 @@ def make_cli(given_app=None):
                                 actions.append(action)
                             return actions
                     
-                    es = Elasticsearch()
+                    # no security enabled (dev):
+                    es = Elasticsearch("http://localhost:9200")
+                    # security enabled (prod):
+                    # es = Elasticsearch("http://localhost:9200", basic_auth=("elastic","ES8KEY"))
                     start_es = time.time()
                     
                     for success, info in parallel_bulk(client=es, chunk_size=1000, actions=generate_actions(all_objs)):
