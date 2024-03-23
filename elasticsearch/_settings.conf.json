@@ -19,9 +19,6 @@
           "lorsqu",
           "puisqu"
         ]
-      },
-      "my_ascii_folding": {
-        "type": "asciifolding"
       }
     },
     "analyzer": {
@@ -30,14 +27,14 @@
         "filter": [
           "lowercase",
           "french_elision",
-          "my_ascii_folding"
+          "asciifolding"
         ]
       },
       "lowercaseKeyword": {
         "tokenizer": "keyword",
         "filter": [
           "lowercase",
-          "my_ascii_folding"
+          "asciifolding"
         ]
       }
     }
