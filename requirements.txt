@@ -1,5 +1,5 @@
 alembic==1.7.5
-certifi==2021.10.8
+certifi==2022.12.7
 click==7.1.2
 elasticsearch==8.12.1
 Flask==2.0.2
