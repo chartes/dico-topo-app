@@ -4,7 +4,8 @@ __pycache__
 venv
 *.pyc
 tests/data/*.sqlite
-db/*.sqlite
+dico_topo/db/*.sqlite
 db/utils/debug.py
 db/utils/inha.csv
 db/utils/inha2db.py
+*.egg-info
