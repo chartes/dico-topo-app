@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dico-topo"
+version = "1.0.0"
+dependencies = [
+  "alembic==1.7.5",
+  "click==8.1.7",
+  "elasticsearch==8.12.1",
+  "Flask==3.1.0",
+  "Flask-Migrate==3.1.0",
+  "Flask-SQLAlchemy==3.0.5", #version 3.1.0 depends on SQLAlchemy 2 which has breaking changes
+  "jsonschema==4.17.3",
+  "python-dotenv==0.19.2",
+  "Levenshtein==0.26.1",
+  "requests==2.32.3",
+  "SQLAlchemy==1.4.18",
+  "SQLAlchemy-Utils==0.37.9"
+]
+
+[tool.setuptools]
+packages = [
+  "dico_topo"
+]

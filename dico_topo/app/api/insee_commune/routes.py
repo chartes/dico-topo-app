@@ -1,0 +1,15 @@
+from dico_topo.app.api.insee_commune.facade import CommuneFacade
+from dico_topo.app.models import InseeCommune
+
+
+def register_insee_commune_api_urls(app):
+    registrar = app.api_url_registrar
+
+    registrar.register_get_routes(InseeCommune, CommuneFacade)
+
+    registrar.register_relationship_get_route(CommuneFacade, 'place')
+    registrar.register_relationship_get_route(CommuneFacade, 'localized-places')
+    registrar.register_relationship_get_route(CommuneFacade, 'region')
+    registrar.register_relationship_get_route(CommuneFacade, 'departement')
+    registrar.register_relationship_get_route(CommuneFacade, 'arrondissement')
+    registrar.register_relationship_get_route(CommuneFacade, 'canton')
