@@ -1,3 +1,4 @@
+from pathlib import Path
 from math import floor
 from pprint import pprint
 from elasticsearch import Elasticsearch
@@ -21,7 +22,7 @@ from dico_topo.app.api.place_old_label.facade import PlaceOldLabelFacade
 from dico_topo.app.models import Place, PlaceOldLabel, IdRegister,  PlaceComment, PlaceDescription, PlaceFeatureType
 
 app = None
-
+HERE = Path(__file__).parent
 
 def load_elastic_conf(conf_name, index_name, delete=False):
     url = '/'.join([app.config['ELASTICSEARCH_URL'], index_name])
@@ -29,10 +30,11 @@ def load_elastic_conf(conf_name, index_name, delete=False):
     try:
         if delete:
             res = requests.delete(url)
-            with open('elasticsearch/_settings.conf.json', 'r') as _settings:
+            elastic_dir = HERE.parent / 'elasticsearch'
+            with ( elastic_dir / '_settings.conf.json').open('r') as _settings:
                 settings = json.load(_settings)
 
-                with open('elasticsearch/%s.conf.json' % conf_name, 'r') as f:
+                with ( elastic_dir / ('%s.conf.json' % conf_name)).open('r') as f:
                     payload = json.load(f)
                     payload["settings"] = settings
                     print("PUT", url, payload)
@@ -206,7 +208,7 @@ def make_cli(given_app=None):
                     es = app.elasticsearch
 
                     is_creation = 'index'
-                    for obj in all_objs:
+                    for count, obj in enumerate(all_objs):
                         if is_creation == 'index':
                             # REINDEX
                             f_obj = info["facade"](prefix, obj)
@@ -225,8 +227,9 @@ def make_cli(given_app=None):
 
                         # if bulk_body is over limit, then send bulk request
                         if len(bulk_body) > 5000:
+                            print("sending count : ", count)
                             res = es.bulk(body=bulk_body, request_timeout=60*10)
-                            #print(res)
+                            #print("es.bulk result", res)
                             bulk_body = []
                     # finish indexing remaining bulk_body
                     if len(bulk_body) > 0:
