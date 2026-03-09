@@ -1,6 +1,7 @@
 dt_id	abbr	bibl	bnf_catalogue_ark	gallica_ark	gallica_page_one	gallica_IIIF_availability
 DT01	Dictionnaire topographique de l’Ain	Philipon (Édouard), <i>Dictionnaire topographique du département de l’Ain</i>, Paris, 1911.	ark:/12148/cb31100532p	ark:/12148/bpt6k367437	f89.image	0
 DT02	Dictionnaire topographique de l’Aisne	Matton (Auguste), <i>Dictionnaire topographique du département de l’Aisne</i>, Paris, 1871.	ark:/12148/cb364807203	ark:/12148/bpt6k39289w	f46.image	1
+DT03	Dictionnaire topographique de l’Allier	Chazaud (Martial-Alphonse), <i>Dictionnaire des noms de lieux habités du département de l'Allier</i>, Moulins, 1881.	ark:/12148/cb34105211h	ark:/12148/bpt6k5817623f	f14.image	1
 DT05	Dictionnaire topographique des Hautes-Alpes	Roman (Joseph), <i>Dictionnaire topographique du département des Hautes-Alpes</i>, Paris, 1884.	ark:/12148/cb34105263r	ark:/12148/bpt6k392903	f79.image	1
 DT07	Dictionnaire topographique de l’Ardèche	Charrié (Pierre), <i>Dictionnaire topographique du département de l’Ardèche</i>, Paris, 1979.	ark:/12148/cb346280578			0
 DT10	Dictionnaire topographique de l’Aube	Boutiot (Théophile) et Socard (Émile), <i>Dictionnaire topographique du département de l’Aube</i>, Paris, 1874.	ark:/12148/cb313802216	ark:/12148/bpt6k39291f	f74.image	1
@@ -25,6 +26,7 @@ DT43	Dictionnaire topographique de la Haute-Loire	Chassaing (Augustin) et Jacoti
 DT44	Dictionnaire topographique de la Loire-Inférieure	Quilgars (Henri), <i>Dictionnaire topographique du département de la Loire-Inférieure</i>, Nantes, 1906.	ark:/12148/cb311642322			0
 DT51	Dictionnaire topographique de la Marne	Longnon (Auguste), <i>Dictionnaire topographique du département de la Marne</i>, Paris, 1891.	ark:/12148/cb373712421	ark:/12148/bpt6k39298v	f95.image	1
 DT52	Dictionnaire topographique de la Haute-Marne	Roserot (Alphonse), <i>Dictionnaire topographique du département de la Haute-Marne</i>, Paris, 1903.	ark:/12148/cb31246836b	ark:/12148/bpt6k39297h	f67.image	1
+DT53	Dictionnaire topographique de la Mayenne	Maître (Léon), <i>Dictionnaire topographique du département de la Mayenne</i>, Paris, 1878.	ark:/12148/cb30863726b	ark:/12148/bpt6k204189z	f55.image	1
 DT54	Dictionnaire topographique de la Meurthe	Lepage (Henri), <i>Dictionnaire topographique du département de la Meurthe</i>, Paris, 1862.	ark:/12148/cb30793735r	ark:/12148/bpt6k96349681	f39.image	1
 DT55	Dictionnaire topographique de la Meuse	Liénard (Félix), <i>Dictionnaire topographique du département de la Meuse</i>, Paris, 1872.	ark:/12148/cb30818141r	ark:/12148/bpt6k392996	f50.image	1
 DT56	Dictionnaire topographique du Morbihan	Rosenzweig (Louis), <i>Dictionnaire topographique du département du Morbihan</i>, Paris, 1870.	ark:/12148/cb312467618	ark:/12148/bpt6k39300k	f55.image	1
